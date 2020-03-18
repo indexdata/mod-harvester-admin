@@ -20,18 +20,19 @@ import io.vertx.ext.web.Router;
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("harvester-admin");
-  private final ServiceHarvestables serviceHarvestables = new ServiceHarvestables();
-
+  private AdminRecordsHandlers adminRecordsHandlers;
   @Override
   public void start(Promise<Void> promise)  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting Harvester admin service "
       + ManagementFactory.getRuntimeMXBean().getName()
       + " on port " + port);
+    adminRecordsHandlers = new AdminRecordsHandlers(vertx);
 
     Router router = Router.router(vertx);
     //router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    router.get("/harvestables").handler(serviceHarvestables::handleGetHarvestables);
+    router.get("/harvestables").handler(adminRecordsHandlers::handleGetHarvestables);
+    router.get("/storages").handler(adminRecordsHandlers::handleGetStorages);
 
     vertx.createHttpServer()
       .requestHandler(router)
