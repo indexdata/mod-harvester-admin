@@ -1,0 +1,85 @@
+{
+  "id": "${artifactId}-${version}",
+  "name": "Harvester Admin Module",
+  "provides": [
+    {
+      "id": "harvestables",
+      "version": "0.1",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/harvestables",
+          "permissionsRequired": ["harvester.harvestables.items.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvestables/{id}",
+          "permissionsRequired": ["harvester.harvestables.items.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvestables",
+          "permissionsRequired": ["harvester.harvestables.items.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/harvestables/{id}",
+          "permissionsRequired": ["harvester.harvestables.items.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvestables/{id}",
+          "permissionsRequired": ["harvester.harvestables.items.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvestables",
+          "permissionsRequired": ["harvester.harvestables.items.collection.delete"]
+        }
+      ]
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "harvester.harvestables.items.collection.get",
+      "displayName": "harvester admin - get harvestable collection",
+      "description": "get harvestable collection from storage"
+    },
+    {
+      "permissionName": "harvester.harvestables.items.collection.delete",
+      "displayName": "harvester admin - delete entire harvestable collection",
+      "description": "delete entire harvestable collection from storage"
+    },
+    {
+      "permissionName": "harvester.harvestables.items.item.get",
+      "displayName": "harvester admin - get individual harvestable",
+      "description": "get individual harvestable from storage"
+    },
+    {
+      "permissionName": "harvester.harvestables.items.item.post",
+      "displayName": "harvester admin - create individual harvestable",
+      "description": "create individual harvestable in storage"
+    },
+    {
+      "permissionName": "harvester.harvestables.items.item.put",
+      "displayName": "harvester admin - modify harvestable",
+      "description": "modify harvestable in storage"
+    },
+    {
+      "permissionName": "harvester.harvestables.items.item.delete",
+      "displayName": "harvester admin - delete individual harvestable",
+      "description": "delete individual harvestable from storage"
+    },
+    {
+      "permissionName": "harvester.all",
+      "displayName": "Harvester admin module - all permissions",
+      "description": "Entire set of permissions needed to manage the Harvester",
+      "subPermissions": [
+        "harvester.harvestables.items.collection.get",
+        "harvester.harvestables.items.item.get",
+        "harvester.harvestables.items.item.post",
+        "harvester.harvestables.items.item.put",
+        "harvester.harvestables.items.item.delete",
+        "harvester.harvestables.items.collection.delete"
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "dockerImage": "${artifactId}:${version}"
+  }
+}
