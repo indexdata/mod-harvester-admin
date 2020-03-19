@@ -35,10 +35,15 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     //router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
     router.get(API_BASE_PATH+"/harvestables").handler(adminRecordsHandlers::handleGetHarvestables);
+    router.get(API_BASE_PATH+"/harvestables/:id").handler(adminRecordsHandlers::handleGetHarvestableById);
     router.get(API_BASE_PATH+"/storages").handler(adminRecordsHandlers::handleGetStorages);
+    router.get(API_BASE_PATH+"/storages/:id").handler(adminRecordsHandlers::handleGetStorageById);
     router.get(API_BASE_PATH+"/transformations").handler(adminRecordsHandlers::handleGetTransformations);
+    router.get(API_BASE_PATH+"/transformations/:id").handler(adminRecordsHandlers::handleGetTransformationById);
     router.get(API_BASE_PATH+"/steps").handler(adminRecordsHandlers::handleGetSteps);
+    router.get(API_BASE_PATH+"/steps/:id").handler(adminRecordsHandlers::handleGetStepById);
     router.get(API_BASE_PATH+"/transformation-steps").handler(adminRecordsHandlers::handleGetTransformationSteps); // path is '/tsas/' in Harvester WS
+    router.get(API_BASE_PATH+"/transformation-steps/:id").handler(adminRecordsHandlers::handleGetTransformationStepById);
 
     vertx.createHttpServer()
       .requestHandler(router)

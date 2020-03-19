@@ -30,7 +30,7 @@ import io.vertx.core.json.JsonObject;
  * following FOLIO conventions as closely as possible.
  * @author ne
  */
-public class Records2JsonArray {
+public class Xml2Json {
 
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
@@ -72,7 +72,7 @@ public class Records2JsonArray {
     System.out.println(doc.getDocumentElement().getNodeName());
     System.out.println(doc.getDocumentElement().getChildNodes().getLength());
     System.out.println(doc.getDocumentElement().getFirstChild().getChildNodes().getLength());
-    System.out.println(xml2json(xml).encodePrettily());
+    System.out.println(recordSetXml2json(xml).encodePrettily());
   }
 
   /**
@@ -80,13 +80,27 @@ public class Records2JsonArray {
    * @param xml
    * @return
    */
-  public static JsonObject xml2json(String xml) {
+  public static JsonObject recordSetXml2json(String xml) {
     JsonObject jsonObject = new JsonObject();
     Document doc = XMLStringToXMLDocument(xml);
     stripWhiteSpaceNodes(doc);
     Node records = doc.getDocumentElement();
     jsonObject.put(doc.getDocumentElement().getNodeName(),xmlRecords2jsonArray(records));
     jsonObject.put("totalRecords", Integer.parseInt(records.getAttributes().getNamedItem("count").getTextContent()));
+    return jsonObject;
+  }
+
+  /**
+   * Creates JSON object from a single XML record
+   * @param xml
+   * @return
+   */
+  public static JsonObject recordXml2Json (String xml) {
+    JsonObject jsonObject = new JsonObject();
+    Document doc = XMLStringToXMLDocument(xml);
+    stripWhiteSpaceNodes(doc);
+    Node record = doc.getDocumentElement();
+    jsonObject = node2json(record);
     return jsonObject;
   }
 
@@ -123,15 +137,27 @@ public class Records2JsonArray {
   }
 
   /**
-   * Creates a JSON object from an XML element; recursively if necessary
-   * @param node
+   * Creates a JSON object from an XML element;
+   * recursively if necessary
+   * The code relies on knowledge about the names of XML elements
+   * that are repeatable in the Harvester WS API - it has always been
+   * only one, 'stepAssociations'.
+   *
+   * @param node XML element to create JsonObject for
    * @return XML element as JSON object
    */
   private static JsonObject node2json (Node node) {
     JsonObject json = new JsonObject();
     for (Node child : iterable(node)) {
       if (hasChildElements(child)) {
-        json.put(child.getNodeName(), node2json(child));
+        if (child.getNodeName().equals("stepAssociations")) {
+          if (!json.containsKey("stepAssociations")) {
+            json.put("stepAssociations", new JsonArray());
+          }
+          json.getJsonArray("stepAssociations").add(node2json(child));
+        } else {
+          json.put(child.getNodeName(), node2json(child));
+        }
       } else {
         json.put(child.getNodeName(), child.getTextContent());
       }
