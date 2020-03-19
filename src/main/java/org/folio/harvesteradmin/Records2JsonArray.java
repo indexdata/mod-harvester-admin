@@ -26,13 +26,18 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 /**
- *
+ * Transforms multi-record XML from the Harvester to arrays of JSON records
+ * following FOLIO conventions as closely as possible.
  * @author ne
  */
 public class Records2JsonArray {
-  
+
+  /**
+   * main is meant for troubleshooting the transformation or testing changes to it.
+   * @param args
+   */
   public static void main (String[] args) {
-    String xml = 
+    String xml =
 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
 "<harvestables count=\"9\" max=\"100\" uri=\"http://localhost:8080/harvester/records/harvestables/\" start=\"0\">\n" +
 "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9998/\">\n" +
@@ -61,96 +66,20 @@ public class Records2JsonArray {
 "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
 "        <storageUrl>http://esxh-9.gbv.de:9130/</storageUrl>\n" +
 "    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/10003/\">\n" +
-"        <amountHarvested>0</amountHarvested>\n" +
-"        <currentStatus>NEW</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>10003</id>\n" +
-"        <jobClass>XmlBulkResource</jobClass>\n" +
-"        <lastHarvestFinished>2020-03-16T15:29:23Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2020-03-16T15:29:20Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2020-03-16T15:43:39Z</lastUpdated>\n" +
-"        <name>GBV test</name>\n" +
-"        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://10.0.2.2:9130/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9996/\">\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>true</enabled>\n" +
-"        <id>9996</id>\n" +
-"        <jobClass>XmlBulkResource</jobClass>\n" +
-"        <lastHarvestFinished>2015-06-10T10:32:11Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2015-06-10T10:10:00Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2014-09-24T08:33:27Z</lastUpdated>\n" +
-"        <name>HTTPS test</name>\n" +
-"        <nextHarvestSchedule>2020-06-10T10:10:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9997/\">\n" +
-"        <amountHarvested>100</amountHarvested>\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>9997</id>\n" +
-"        <jobClass>OaiPmhResource</jobClass>\n" +
-"        <lastHarvestFinished>2016-07-22T15:47:40Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2016-07-22T15:46:28Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2016-07-22T15:46:25Z</lastUpdated>\n" +
-"        <message>Stop requested after 100 records</message>\n" +
-"        <name>NASA Technical Reports</name>\n" +
-"        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/2005/\">\n" +
-"        <currentStatus>NEW</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>2005</id>\n" +
-"        <jobClass>OaiPmhResource</jobClass>\n" +
-"        <lastUpdated>2019-01-01T19:10:04Z</lastUpdated>\n" +
-"        <name>SI, Millersville, physicals</name>\n" +
-"        <nextHarvestSchedule>2020-06-10T10:10:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://10.0.2.2:9130/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/2004/\">\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>2004</id>\n" +
-"        <jobClass>OaiPmhResource</jobClass>\n" +
-"        <lastUpdated>2019-01-01T01:01:01Z</lastUpdated>\n" +
-"        <name>SI, Temple, rapid_print_books</name>\n" +
-"        <nextHarvestSchedule>2020-06-10T10:10:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://10.0.2.2:9130/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/2006/\">\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>2006</id>\n" +
-"        <jobClass>OaiPmhResource</jobClass>\n" +
-"        <lastUpdated>2019-01-01T14:18:46Z</lastUpdated>\n" +
-"        <name>SI, Villanova, Main Stacks</name>\n" +
-"        <nextHarvestSchedule>2020-06-10T10:10:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://10.0.2.2:9130/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9999/\">\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>true</enabled>\n" +
-"        <id>9999</id>\n" +
-"        <jobClass>XmlBulkResource</jobClass>\n" +
-"        <lastHarvestFinished>2015-06-10T10:32:11Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2015-06-10T10:10:00Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2014-09-24T08:33:27Z</lastUpdated>\n" +
-"        <name>Test data</name>\n" +
-"        <nextHarvestSchedule>2020-06-10T10:10:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
 "</harvestables>";
-            
+
     Document doc = XMLStringToXMLDocument(xml);
     System.out.println(doc.getDocumentElement().getNodeName());
     System.out.println(doc.getDocumentElement().getChildNodes().getLength());
     System.out.println(doc.getDocumentElement().getFirstChild().getChildNodes().getLength());
     System.out.println(xml2json(xml).encodePrettily());
   }
-    
+
+  /**
+   * Create JSON object from String of XML
+   * @param xml
+   * @return
+   */
   public static JsonObject xml2json(String xml) {
     JsonObject jsonObject = new JsonObject();
     Document doc = XMLStringToXMLDocument(xml);
@@ -161,20 +90,30 @@ public class Records2JsonArray {
     return jsonObject;
   }
 
-  private static Document XMLStringToXMLDocument(String xmlString) 
+  /**
+   * Create DOM from String of XML
+   * @param xmlString
+   * @return XML as DOM
+   */
+  private static Document XMLStringToXMLDocument(String xmlString)
   {
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       DocumentBuilder builder = factory.newDocumentBuilder();
       Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
       return doc;
-    } catch (IOException | ParserConfigurationException | SAXException e) 
+    } catch (IOException | ParserConfigurationException | SAXException e)
     {
       e.printStackTrace();
     }
     return null;
   }
-  
+
+  /**
+   * Creates JSON array of JSON objects from a list of XML records
+   * @param records
+   * @return XML elements as JSON array
+   */
   private static JsonArray xmlRecords2jsonArray (Node records) {
     JsonArray jsonArray = new JsonArray();
     for (Node record : iterable(records)) {
@@ -182,7 +121,12 @@ public class Records2JsonArray {
     }
     return jsonArray;
   }
-    
+
+  /**
+   * Creates a JSON object from an XML element; recursively if necessary
+   * @param node
+   * @return XML element as JSON object
+   */
   private static JsonObject node2json (Node node) {
     JsonObject json = new JsonObject();
     for (Node child : iterable(node)) {
@@ -194,7 +138,12 @@ public class Records2JsonArray {
     }
     return json;
   }
-  
+
+  /**
+   * Determines in an XML element has child element (that needs to be recursed)
+   * @param node
+   * @return true if the XML element contains other XML elements
+   */
   private static boolean hasChildElements(Node node) {
     if (node.getNodeType() == Node.ELEMENT_NODE) {
       for (Node child : iterable(node)) {
@@ -202,7 +151,7 @@ public class Records2JsonArray {
           return true;
         }
       }
-    } 
+    }
     return false;
   }
 
@@ -237,7 +186,7 @@ public class Records2JsonArray {
   /**
    * Creates an Iterable for a nodeList
    * @param nodeList
-   * @return
+   * @return Iterable over XML nodes
    */
   private static Iterable<Node> iterable(final NodeList nodeList) {
     return () -> new Iterator<Node>() {
@@ -260,11 +209,11 @@ public class Records2JsonArray {
   /**
    * Creates an Iterable for the childNodes of node
    * @param node
-   * @return
+   * @return Iterable over XML nodes
    */
   private static Iterable<Node> iterable(Node node) {
     return iterable(node.getChildNodes());
   }
 
-  
+
 }

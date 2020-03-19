@@ -20,7 +20,8 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 
 /**
- *
+ * Request handlers that proxy Harvester APIs and convert between
+ * Harvester XML and FOLIO JSON.
  * @author ne
  */
 public class AdminRecordsHandlers {
@@ -37,6 +38,10 @@ public class AdminRecordsHandlers {
     harvesterPort = Integer.parseInt(System.getenv(HARVESTER_PORT_ENV_VAR));
   }
 
+  /**
+   * Proxies Harvester's GET /harvester/records/storages
+   * @param routingCtx
+   */
   public void handleGetStorages(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -50,6 +55,10 @@ public class AdminRecordsHandlers {
     }
   }
 
+  /**
+   * Proxies Harvester's GET /harvester/records/harvestables
+   * @param routingCtx
+   */
   public void handleGetHarvestables(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -63,6 +72,10 @@ public class AdminRecordsHandlers {
     }
   }
 
+  /**
+   * Proxies Harvester's GET /harvester/records/transformations
+   * @param routingCtx
+   */
   public void handleGetTransformations(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -76,6 +89,10 @@ public class AdminRecordsHandlers {
     }
   }
 
+  /**
+   * Proxies Harvester's GET /harvester/records/steps
+   * @param routingCtx
+   */
   public void handleGetSteps(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -89,6 +106,10 @@ public class AdminRecordsHandlers {
     }
   }
 
+  /**
+   * Proxies Harvester's GET /harvester/records/tsas  (transformation - step associations)
+   * @param routingCtx
+   */
   public void handleGetTransformationSteps(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
@@ -107,6 +128,11 @@ public class AdminRecordsHandlers {
     return (contentType == null || contentType.startsWith("application/json"));
   }
 
+  /**
+   * Handles GET requests to Harvester's records APIs
+   * @param apiPath
+   * @return
+   */
   private Future<JsonObject> getRecords(String apiPath) {
     Promise<JsonObject> promise = Promise.promise();
     harvesterClient.get(harvesterPort, harvesterHost, "/harvester/records/"+apiPath).send(ar -> {

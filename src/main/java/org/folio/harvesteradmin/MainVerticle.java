@@ -6,7 +6,7 @@
 package org.folio.harvesteradmin;
 
 /**
- *
+ * Main point of entry for the harvester-admin service
  * @author ne
  */
 import java.lang.management.ManagementFactory;
@@ -22,6 +22,7 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = LoggerFactory.getLogger("harvester-admin");
   private final static String API_BASE_PATH = "/harvester-admin";
   private AdminRecordsHandlers adminRecordsHandlers;
+
   @Override
   public void start(Promise<Void> promise)  {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
@@ -37,7 +38,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get(API_BASE_PATH+"/storages").handler(adminRecordsHandlers::handleGetStorages);
     router.get(API_BASE_PATH+"/transformations").handler(adminRecordsHandlers::handleGetTransformations);
     router.get(API_BASE_PATH+"/steps").handler(adminRecordsHandlers::handleGetSteps);
-    router.get(API_BASE_PATH+"/transformation-steps").handler(adminRecordsHandlers::handleGetTransformationSteps);
+    router.get(API_BASE_PATH+"/transformation-steps").handler(adminRecordsHandlers::handleGetTransformationSteps); // path is '/tsas/' in Harvester WS
 
     vertx.createHttpServer()
       .requestHandler(router)
