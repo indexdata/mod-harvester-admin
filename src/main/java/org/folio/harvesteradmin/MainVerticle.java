@@ -16,6 +16,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -33,15 +34,21 @@ public class MainVerticle extends AbstractVerticle {
     adminRecordsHandlers = new AdminRecordsHandlers(vertx);
 
     Router router = Router.router(vertx);
-    //router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
+    router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
+
     router.get(API_BASE_PATH+"/harvestables").handler(adminRecordsHandlers::handleGetHarvestables);
     router.get(API_BASE_PATH+"/harvestables/:id").handler(adminRecordsHandlers::handleGetHarvestableById);
+    router.put(API_BASE_PATH+"/harvestables/:id").handler(adminRecordsHandlers::handlePutHarvestableById);
+
     router.get(API_BASE_PATH+"/storages").handler(adminRecordsHandlers::handleGetStorages);
     router.get(API_BASE_PATH+"/storages/:id").handler(adminRecordsHandlers::handleGetStorageById);
+
     router.get(API_BASE_PATH+"/transformations").handler(adminRecordsHandlers::handleGetTransformations);
     router.get(API_BASE_PATH+"/transformations/:id").handler(adminRecordsHandlers::handleGetTransformationById);
+
     router.get(API_BASE_PATH+"/steps").handler(adminRecordsHandlers::handleGetSteps);
     router.get(API_BASE_PATH+"/steps/:id").handler(adminRecordsHandlers::handleGetStepById);
+
     router.get(API_BASE_PATH+"/transformation-steps").handler(adminRecordsHandlers::handleGetTransformationSteps); // path is '/tsas/' in Harvester WS
     router.get(API_BASE_PATH+"/transformation-steps/:id").handler(adminRecordsHandlers::handleGetTransformationStepById);
 

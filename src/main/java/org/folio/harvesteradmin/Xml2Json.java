@@ -38,35 +38,35 @@ public class Xml2Json {
    */
   public static void main (String[] args) {
     String xml =
-"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-"<harvestables count=\"9\" max=\"100\" uri=\"http://localhost:8080/harvester/records/harvestables/\" start=\"0\">\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9998/\">\n" +
-"        <currentStatus>NEW</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>9998</id>\n" +
-"        <jobClass>HarvestConnectorResource</jobClass>\n" +
-"        <lastHarvestFinished>2017-07-21T15:51:25Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2017-07-21T15:53:56Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2017-07-21T15:58:26Z</lastUpdated>\n" +
-"        <name>Harvest Job A</name>\n" +
-"        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/10008/\">\n" +
-"        <amountHarvested>0</amountHarvested>\n" +
-"        <currentStatus>OK</currentStatus>\n" +
-"        <enabled>false</enabled>\n" +
-"        <id>10008</id>\n" +
-"        <jobClass>XmlBulkResource</jobClass>\n" +
-"        <lastHarvestFinished>2020-03-13T18:19:37Z</lastHarvestFinished>\n" +
-"        <lastHarvestStarted>2020-03-13T18:19:33Z</lastHarvestStarted>\n" +
-"        <lastUpdated>2020-03-13T18:19:32Z</lastUpdated>\n" +
-"        <message></message>\n" +
-"        <name>Harvest Job B</name>\n" +
-"        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://localhost:9130/</storageUrl>\n" +
-"    </harvestableBrief>\n" +
-"</harvestables>";
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+      "<harvestables count=\"9\" max=\"100\" uri=\"http://localhost:8080/harvester/records/harvestables/\" start=\"0\">\n" +
+      "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9998/\">\n" +
+      "        <currentStatus>NEW</currentStatus>\n" +
+      "        <enabled>false</enabled>\n" +
+      "        <id>9998</id>\n" +
+      "        <jobClass>HarvestConnectorResource</jobClass>\n" +
+      "        <lastHarvestFinished>2017-07-21T15:51:25Z</lastHarvestFinished>\n" +
+      "        <lastHarvestStarted>2017-07-21T15:53:56Z</lastHarvestStarted>\n" +
+      "        <lastUpdated>2017-07-21T15:58:26Z</lastUpdated>\n" +
+      "        <name>Harvest Job A</name>\n" +
+      "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
+      "        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
+      "    </harvestableBrief>\n" +
+      "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/10008/\">\n" +
+      "        <amountHarvested>0</amountHarvested>\n" +
+      "        <currentStatus>OK</currentStatus>\n" +
+      "        <enabled>false</enabled>\n" +
+      "        <id>10008</id>\n" +
+      "        <jobClass>XmlBulkResource</jobClass>\n" +
+      "        <lastHarvestFinished>2020-03-13T18:19:37Z</lastHarvestFinished>\n" +
+      "        <lastHarvestStarted>2020-03-13T18:19:33Z</lastHarvestStarted>\n" +
+      "        <lastUpdated>2020-03-13T18:19:32Z</lastUpdated>\n" +
+      "        <message></message>\n" +
+      "        <name>Harvest Job B</name>\n" +
+      "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
+      "        <storageUrl>http://localhost:9130/</storageUrl>\n" +
+      "    </harvestableBrief>\n" +
+      "</harvestables>";
 
     Document doc = XMLStringToXMLDocument(xml);
     System.out.println(doc.getDocumentElement().getNodeName());
@@ -148,6 +148,13 @@ public class Xml2Json {
    */
   private static JsonObject node2json (Node node) {
     JsonObject json = new JsonObject();
+    if (node.hasAttributes()) {
+      json.put("attributes",new JsonObject());
+      for (int i=0; i<node.getAttributes().getLength(); i++) {
+        Node attribute = node.getAttributes().item(i);
+        json.getJsonObject("attributes").put(attribute.getNodeName(), attribute.getTextContent());
+      }
+    }
     for (Node child : iterable(node)) {
       if (hasChildElements(child)) {
         if (child.getNodeName().equals("stepAssociations")) {

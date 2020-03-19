@@ -75,10 +75,11 @@ public class AdminRecordsHandlers {
   public void handleGetHarvestables(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
+    String tenantId = getTenant(routingCtx);
     if (!isJsonContentTypeOrNone(routingCtx))  {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      Future<JsonObject> promisedAdminRecord = getRecords("harvestables");
+      Future<JsonObject> promisedAdminRecord = getRecords("harvestables?filter=TENANT(" +tenantId +")");
       promisedAdminRecord.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
@@ -95,6 +96,17 @@ public class AdminRecordsHandlers {
       promisedAdminRecord.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
+    }
+  }
+
+  public void handlePutHarvestableById(RoutingContext routingCtx) {
+    String id = routingCtx.request().getParam("id");
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (!isJsonContentTypeOrNone(routingCtx)) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      String harvestable = routingCtx.getBodyAsString("UTF-8");
+      responseJson(routingCtx,200).end(harvestable);
     }
   }
 
@@ -246,5 +258,7 @@ public class AdminRecordsHandlers {
     return promise.future();
   }
 
-
+  private String getTenant (RoutingContext ctx) {
+    return ctx.request().getHeader("x-okapi-tenant");
+  }
 }
