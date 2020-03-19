@@ -8,6 +8,11 @@ package org.folio.harvesteradmin;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -68,6 +73,26 @@ public class AdminRecordsHandlers {
     }
   }
 
+  public void handlePutStorageById(RoutingContext routingCtx) {
+    String id = routingCtx.request().getParam("id");
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (!isJsonContentTypeOrNone(routingCtx)) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      JsonObject storage = routingCtx.getBodyAsJson();
+      Future<JsonObject> promisedPutResponse = putRecord("storages", id, storage);
+      promisedPutResponse.onComplete( ar -> {
+        if (ar.succeeded()) {
+          logger.debug("PUT harvestable succeeded");
+          responseJson(routingCtx,204).end("PUT storage succeeded");
+        } else {
+          logger.error("PUT harvestable failed: " + ar.cause().getMessage());
+          responseJson(routingCtx,500).end("PUT storage failed: " + ar.cause().getMessage());
+        }
+      });
+    }
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/harvestables
    * @param routingCtx
@@ -105,8 +130,17 @@ public class AdminRecordsHandlers {
     if (!isJsonContentTypeOrNone(routingCtx)) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      String harvestable = routingCtx.getBodyAsString("UTF-8");
-      responseJson(routingCtx,200).end(harvestable);
+      JsonObject harvestable = routingCtx.getBodyAsJson();
+      Future<JsonObject> promisedPutResponse = putRecord("harvestables", id, harvestable);
+      promisedPutResponse.onComplete( ar -> {
+        if (ar.succeeded()) {
+          logger.debug("PUT harvestable succeeded");
+          responseJson(routingCtx,204).end("PUT harvestable succeeded");
+        } else {
+          logger.error("PUT harvestable failed: " + ar.cause().getMessage());
+          responseJson(routingCtx,500).end("PUT harvestable failed: " + ar.cause().getMessage());
+        }
+      });
     }
   }
 
@@ -252,6 +286,41 @@ public class AdminRecordsHandlers {
       } else if (ar.failed()) {
         String fail = ar.cause().getMessage();
         record.put("error", "GET " + apiPath + " failed " + " [" + fail + "]");
+        promise.complete(record);
+      }
+    });
+    return promise.future();
+  }
+
+  private Future<JsonObject> putRecord(String apiPath, String id, JsonObject json) {
+    Buffer buffer = Buffer.buffer("");
+    String xmlString;
+    Document doc;
+    try {
+      doc = Json2Xml.recordJson2xml(json.encode());
+      xmlString = Json2Xml.writeXmlDocumentToString(doc);
+      buffer = Buffer.buffer(xmlString == null ? "" : xmlString);
+      System.out.println(xmlString);
+    } catch (DOMException | ParserConfigurationException e) {
+      logger.error("Error parsing json " + json.encodePrettily());
+    }
+    Promise<JsonObject> promise = Promise.promise();
+    harvesterClient.put(harvesterPort, harvesterHost, "/harvester/records/"+apiPath+"/"+id)
+            .putHeader("Content-Type", "application/xml")
+            .sendBuffer(buffer, ar -> {
+      String resp;
+      JsonObject record = new JsonObject();
+      if (ar.succeeded()) {
+        HttpResponse<Buffer> harvesterResponse = ar.result();
+        if (harvesterResponse != null) {
+        } else {
+          resp = "Response was null";
+          record.put("error", resp);
+        }
+        promise.complete(record);
+      } else {
+        String fail = ar.cause().getMessage();
+        record.put("error", "PUT " + apiPath + " failed " + " [" + fail + "]");
         promise.complete(record);
       }
     });

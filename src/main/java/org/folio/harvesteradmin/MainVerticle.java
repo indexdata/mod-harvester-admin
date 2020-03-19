@@ -42,6 +42,7 @@ public class MainVerticle extends AbstractVerticle {
 
     router.get(API_BASE_PATH+"/storages").handler(adminRecordsHandlers::handleGetStorages);
     router.get(API_BASE_PATH+"/storages/:id").handler(adminRecordsHandlers::handleGetStorageById);
+    router.put(API_BASE_PATH+"/storages/:id").handler(adminRecordsHandlers::handlePutStorageById);
 
     router.get(API_BASE_PATH+"/transformations").handler(adminRecordsHandlers::handleGetTransformations);
     router.get(API_BASE_PATH+"/transformations/:id").handler(adminRecordsHandlers::handleGetTransformationById);
