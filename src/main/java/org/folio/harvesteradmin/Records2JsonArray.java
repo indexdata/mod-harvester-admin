@@ -48,7 +48,7 @@ public class Records2JsonArray {
 "        <lastHarvestFinished>2017-07-21T15:51:25Z</lastHarvestFinished>\n" +
 "        <lastHarvestStarted>2017-07-21T15:53:56Z</lastHarvestStarted>\n" +
 "        <lastUpdated>2017-07-21T15:58:26Z</lastUpdated>\n" +
-"        <name>Europeana API (harvest)</name>\n" +
+"        <name>Harvest Job A</name>\n" +
 "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
 "        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
 "    </harvestableBrief>\n" +
@@ -62,9 +62,9 @@ public class Records2JsonArray {
 "        <lastHarvestStarted>2020-03-13T18:19:33Z</lastHarvestStarted>\n" +
 "        <lastUpdated>2020-03-13T18:19:32Z</lastUpdated>\n" +
 "        <message></message>\n" +
-"        <name>GBV (0046)</name>\n" +
+"        <name>Harvest Job B</name>\n" +
 "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
-"        <storageUrl>http://esxh-9.gbv.de:9130/</storageUrl>\n" +
+"        <storageUrl>http://localhost:9130/</storageUrl>\n" +
 "    </harvestableBrief>\n" +
 "</harvestables>";
 
