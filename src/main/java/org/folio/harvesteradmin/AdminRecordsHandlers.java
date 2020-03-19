@@ -36,11 +36,11 @@ public class AdminRecordsHandlers {
     harvesterHost = System.getenv(HARVESTER_HOST_ENV_VAR);
     harvesterPort = Integer.parseInt(System.getenv(HARVESTER_PORT_ENV_VAR));
   }
-  
+
   public void handleGetStorages(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && !contentType.startsWith("application/json")) {
+    if (!isJsonContentTypeOrNone(routingCtx)) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
       Future<JsonObject> promisedAdminRecords = getRecords("storages");
@@ -49,11 +49,11 @@ public class AdminRecordsHandlers {
       });
     }
   }
-  
+
   public void handleGetHarvestables(RoutingContext routingCtx) {
 
     String contentType = routingCtx.request().getHeader("Content-Type");
-    if (contentType != null && !contentType.startsWith("application/json")) {
+    if (!isJsonContentTypeOrNone(routingCtx))  {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
       Future<JsonObject> promisedAdminRecords = getRecords("harvestables");
@@ -61,6 +61,50 @@ public class AdminRecordsHandlers {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
     }
+  }
+
+  public void handleGetTransformations(RoutingContext routingCtx) {
+
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (!isJsonContentTypeOrNone(routingCtx)) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      Future<JsonObject> promisedAdminRecords = getRecords("transformations");
+      promisedAdminRecords.onComplete( ar -> {
+        responseJson(routingCtx,200).end(ar.result().encodePrettily());
+      });
+    }
+  }
+
+  public void handleGetSteps(RoutingContext routingCtx) {
+
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (!isJsonContentTypeOrNone(routingCtx)) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      Future<JsonObject> promisedAdminRecords = getRecords("steps");
+      promisedAdminRecords.onComplete( ar -> {
+        responseJson(routingCtx,200).end(ar.result().encodePrettily());
+      });
+    }
+  }
+
+  public void handleGetTransformationSteps(RoutingContext routingCtx) {
+
+    String contentType = routingCtx.request().getHeader("Content-Type");
+    if (!isJsonContentTypeOrNone(routingCtx)) {
+      responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
+    } else {
+      Future<JsonObject> promisedAdminRecords = getRecords("tsas");
+      promisedAdminRecords.onComplete( ar -> {
+        responseJson(routingCtx,200).end(ar.result().encodePrettily());
+      });
+    }
+  }
+
+  private boolean isJsonContentTypeOrNone (RoutingContext ctx) {
+    String contentType = ctx.request().getHeader("Content-Type");
+    return (contentType == null || contentType.startsWith("application/json"));
   }
 
   private Future<JsonObject> getRecords(String apiPath) {

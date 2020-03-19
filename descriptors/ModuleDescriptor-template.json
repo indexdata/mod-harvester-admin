@@ -3,148 +3,319 @@
   "name": "Harvester Admin Module",
   "provides": [
     {
-      "id": "harvestables",
+      "id": "harvester-admin",
       "version": "0.1",
       "handlers": [
         {
           "methods": ["GET"],
-          "pathPattern": "/harvestables",
-          "permissionsRequired": ["harvester.harvestables.items.collection.get"]
+          "pathPattern": "/harvester-admin/harvestables",
+          "permissionsRequired": ["harvester-admin.harvestables.items.collection.get"]
         }, {
           "methods": ["GET"],
-          "pathPattern": "/harvestables/{id}",
-          "permissionsRequired": ["harvester.harvestables.items.item.get"]
+          "pathPattern": "/harvester-admin/harvestables/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.items.item.get"]
         }, {
           "methods": ["POST"],
-          "pathPattern": "/harvestables",
-          "permissionsRequired": ["harvester.harvestables.items.item.post"]
+          "pathPattern": "/harvester-admin/harvestables",
+          "permissionsRequired": ["harvester-admin.harvestables.items.item.post"]
         }, {
           "methods": ["PUT"],
-          "pathPattern": "/harvestables/{id}",
-          "permissionsRequired": ["harvester.harvestables.items.item.put"]
+          "pathPattern": "/harvester-admin/harvestables/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.items.item.put"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/harvestables/{id}",
-          "permissionsRequired": ["harvester.harvestables.items.item.delete"]
+          "pathPattern": "/harvester-admin/harvestables/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.items.item.delete"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/harvestables",
-          "permissionsRequired": ["harvester.harvestables.items.collection.delete"]
-        }
-      ]
-    },
-    {
-      "id": "storages",
-      "version": "0.1",
-      "handlers": [
-        {
-          "methods": ["GET"],
-          "pathPattern": "/storages",
-          "permissionsRequired": ["harvester.storages.items.collection.get"]
+          "pathPattern": "/harvester-admin/harvestables",
+          "permissionsRequired": ["harvester-admin.harvestables.items.collection.delete"]
         }, {
           "methods": ["GET"],
-          "pathPattern": "/storages/{id}",
-          "permissionsRequired": ["harvester.storages.items.item.get"]
+          "pathPattern": "/harvester-admin/storages",
+          "permissionsRequired": ["harvester-admin.storages.items.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/storages/{id}",
+          "permissionsRequired": ["harvester-admin.storages.items.item.get"]
         }, {
           "methods": ["POST"],
-          "pathPattern": "/storages",
-          "permissionsRequired": ["harvester.storages.items.item.post"]
+          "pathPattern": "/harvester-admin/storages",
+          "permissionsRequired": ["harvester-admin.storages.items.item.post"]
         }, {
           "methods": ["PUT"],
-          "pathPattern": "/storages/{id}",
-          "permissionsRequired": ["harvester.storages.items.item.put"]
+          "pathPattern": "/harvester-admin/storages/{id}",
+          "permissionsRequired": ["harvester-admin.storages.items.item.put"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/storages/{id}",
-          "permissionsRequired": ["harvester.storages.items.item.delete"]
+          "pathPattern": "/harvester-admin/storages/{id}",
+          "permissionsRequired": ["harvester-admin.storages.items.item.delete"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/storages",
-          "permissionsRequired": ["harvester.storages.items.collection.delete"]
+          "pathPattern": "/harvester-admin/storages",
+          "permissionsRequired": ["harvester-admin.storages.items.collection.delete"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/transformations",
+          "permissionsRequired": ["harvester-admin.transformations.items.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/transformations/{id}",
+          "permissionsRequired": ["harvester-admin.transformations.items.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/transformations",
+          "permissionsRequired": ["harvester-admin.transformations.items.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/transformations/{id}",
+          "permissionsRequired": ["harvester-admin.transformations.items.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/transformations/{id}",
+          "permissionsRequired": ["harvester-admin.transformations.items.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/transformations",
+          "permissionsRequired": ["harvester-admin.transformations.items.collection.delete"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/steps",
+          "permissionsRequired": ["harvester-admin.steps.items.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/steps/{id}",
+          "permissionsRequired": ["harvester-admin.steps.items.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/steps",
+          "permissionsRequired": ["harvester-admin.steps.items.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/steps/{id}",
+          "permissionsRequired": ["harvester-admin.steps.items.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/steps/{id}",
+          "permissionsRequired": ["harvester-admin.steps.items.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/steps",
+          "permissionsRequired": ["harvester-admin.steps.items.collection.delete"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/transformation-steps",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/transformation-steps/{id}",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/transformation-steps",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/transformation-steps/{id}",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/transformation-steps/{id}",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/transformation-steps",
+          "permissionsRequired": ["harvester-admin.transformation-steps.items.collection.delete"]
         }
       ]
     }
-
   ],
   "permissionSets": [
     {
-      "permissionName": "harvester.harvestables.items.collection.get",
+      "permissionName": "harvester-admin.harvestables.items.collection.get",
       "displayName": "harvester admin - get harvestable collection",
       "description": "get harvestable collection from storage"
     },
     {
-      "permissionName": "harvester.harvestables.items.collection.delete",
+      "permissionName": "harvester-admin.harvestables.items.collection.delete",
       "displayName": "harvester admin - delete entire harvestable collection",
       "description": "delete entire harvestable collection from storage"
     },
     {
-      "permissionName": "harvester.harvestables.items.item.get",
+      "permissionName": "harvester-admin.harvestables.items.item.get",
       "displayName": "harvester admin - get individual harvestable",
       "description": "get individual harvestable from storage"
     },
     {
-      "permissionName": "harvester.harvestables.items.item.post",
+      "permissionName": "harvester-admin.harvestables.items.item.post",
       "displayName": "harvester admin - create individual harvestable",
       "description": "create individual harvestable in storage"
     },
     {
-      "permissionName": "harvester.harvestables.items.item.put",
+      "permissionName": "harvester-admin.harvestables.items.item.put",
       "displayName": "harvester admin - modify harvestable",
       "description": "modify harvestable in storage"
     },
     {
-      "permissionName": "harvester.harvestables.items.item.delete",
+      "permissionName": "harvester-admin.harvestables.items.item.delete",
       "displayName": "harvester admin - delete individual harvestable",
       "description": "delete individual harvestable from storage"
     },
     {
-      "permissionName": "harvester.storages.items.collection.get",
+      "permissionName": "harvester-admin.storages.items.collection.get",
       "displayName": "harvester admin - get harvestable collection",
       "description": "get storage collection from storage"
     },
     {
-      "permissionName": "harvester.storages.items.collection.delete",
+      "permissionName": "harvester-admin.storages.items.collection.delete",
       "displayName": "harvester admin - delete entire storage collection",
       "description": "delete entire storage collection from storage"
     },
     {
-      "permissionName": "harvester.storages.items.item.get",
+      "permissionName": "harvester-admin.storages.items.item.get",
       "displayName": "harvester admin - get individual storage",
       "description": "get individual storage from storage"
     },
     {
-      "permissionName": "harvester.storages.items.item.post",
+      "permissionName": "harvester-admin.storages.items.item.post",
       "displayName": "harvester admin - create individual storage",
       "description": "create individual storage in storage"
     },
     {
-      "permissionName": "harvester.storages.items.item.put",
+      "permissionName": "harvester-admin.storages.items.item.put",
       "displayName": "harvester admin - modify storage",
       "description": "modify storage in storage"
     },
     {
-      "permissionName": "harvester.storages.items.item.delete",
+      "permissionName": "harvester-admin.storages.items.item.delete",
       "displayName": "harvester admin - delete individual storage",
       "description": "delete individual storage from storage"
     },
     {
-      "permissionName": "harvester.all",
+      "permissionName": "harvester-admin.transformations.items.collection.get",
+      "displayName": "harvester admin - get harvestable collection",
+      "description": "get transformation collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformations.items.collection.delete",
+      "displayName": "harvester admin - delete entire transformation collection",
+      "description": "delete entire transformation collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformations.items.item.get",
+      "displayName": "harvester admin - get individual transformation",
+      "description": "get individual transformation from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformations.items.item.post",
+      "displayName": "harvester admin - create individual transformation",
+      "description": "create individual transformation in transformation"
+    },
+    {
+      "permissionName": "harvester-admin.transformations.items.item.put",
+      "displayName": "harvester admin - modify transformation",
+      "description": "modify transformation in transformation"
+    },
+    {
+      "permissionName": "harvester-admin.transformations.items.item.delete",
+      "displayName": "harvester admin - delete individual transformation",
+      "description": "delete individual transformation from storage"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.collection.get",
+      "displayName": "harvester admin - get harvestable collection",
+      "description": "get step collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.collection.delete",
+      "displayName": "harvester admin - delete entire step collection",
+      "description": "delete entire step collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.item.get",
+      "displayName": "harvester admin - get individual step",
+      "description": "get individual step from storage"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.item.post",
+      "displayName": "harvester admin - create individual step",
+      "description": "create individual step in step"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.item.put",
+      "displayName": "harvester admin - modify step",
+      "description": "modify step in step"
+    },
+    {
+      "permissionName": "harvester-admin.steps.items.item.delete",
+      "displayName": "harvester admin - delete individual step",
+      "description": "delete individual step from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.collection.get",
+      "displayName": "harvester admin - get harvestable collection",
+      "description": "get transformation-step collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.collection.delete",
+      "displayName": "harvester admin - delete entire transformation-step collection",
+      "description": "delete entire transformation-step collection from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.item.get",
+      "displayName": "harvester admin - get individual transformation-step",
+      "description": "get individual transformation-step from storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.item.post",
+      "displayName": "harvester admin - create individual transformation-step",
+      "description": "create individual transformation-step in storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.item.put",
+      "displayName": "harvester admin - modify transformation-step",
+      "description": "modify transformation-step in storage"
+    },
+    {
+      "permissionName": "harvester-admin.transformation-steps.items.item.delete",
+      "displayName": "harvester admin - delete individual transformation-step",
+      "description": "delete individual transformation-step from storage"
+    },
+    {
+      "permissionName": "harvester-admin.all",
       "displayName": "Harvester admin module - all permissions",
       "description": "Entire set of permissions needed to manage the Harvester",
       "subPermissions": [
-        "harvester.harvestables.items.collection.get",
-        "harvester.harvestables.items.item.get",
-        "harvester.harvestables.items.item.post",
-        "harvester.harvestables.items.item.put",
-        "harvester.harvestables.items.item.delete",
-        "harvester.harvestables.items.collection.delete",
-        "harvester.storages.items.collection.get",
-        "harvester.storages.items.item.get",
-        "harvester.storages.items.item.post",
-        "harvester.storages.items.item.put",
-        "harvester.storages.items.item.delete",
-        "harvester.storages.items.collection.delete"
-
+        "harvester-admin.harvestables.items.collection.get",
+        "harvester-admin.harvestables.items.item.get",
+        "harvester-admin.harvestables.items.item.post",
+        "harvester-admin.harvestables.items.item.put",
+        "harvester-admin.harvestables.items.item.delete",
+        "harvester-admin.harvestables.items.collection.delete",
+        "harvester-admin.storages.items.collection.get",
+        "harvester-admin.storages.items.item.get",
+        "harvester-admin.storages.items.item.post",
+        "harvester-admin.storages.items.item.put",
+        "harvester-admin.storages.items.item.delete",
+        "harvester-admin.storages.items.collection.delete",
+        "harvester-admin.transformations.items.collection.get",
+        "harvester-admin.transformations.items.item.get",
+        "harvester-admin.transformations.items.item.post",
+        "harvester-admin.transformations.items.item.put",
+        "harvester-admin.transformations.items.item.delete",
+        "harvester-admin.transformations.items.collection.delete",
+        "harvester-admin.steps.items.collection.get",
+        "harvester-admin.steps.items.item.get",
+        "harvester-admin.steps.items.item.post",
+        "harvester-admin.steps.items.item.put",
+        "harvester-admin.steps.items.item.delete",
+        "harvester-admin.steps.items.collection.delete",
+        "harvester-admin.transformation-steps.items.collection.get",
+        "harvester-admin.transformation-steps.items.item.get",
+        "harvester-admin.transformation-steps.items.item.post",
+        "harvester-admin.transformation-steps.items.item.put",
+        "harvester-admin.transformation-steps.items.item.delete",
+        "harvester-admin.transformation-steps.items.collection.delete"
       ]
     }
   ],

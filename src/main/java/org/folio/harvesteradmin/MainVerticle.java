@@ -20,6 +20,7 @@ import io.vertx.ext.web.Router;
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("harvester-admin");
+  private final static String API_BASE_PATH = "/harvester-admin";
   private AdminRecordsHandlers adminRecordsHandlers;
   @Override
   public void start(Promise<Void> promise)  {
@@ -27,12 +28,16 @@ public class MainVerticle extends AbstractVerticle {
     logger.info("Starting Harvester admin service "
       + ManagementFactory.getRuntimeMXBean().getName()
       + " on port " + port);
+
     adminRecordsHandlers = new AdminRecordsHandlers(vertx);
 
     Router router = Router.router(vertx);
     //router.put("/*").handler(BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
-    router.get("/harvestables").handler(adminRecordsHandlers::handleGetHarvestables);
-    router.get("/storages").handler(adminRecordsHandlers::handleGetStorages);
+    router.get(API_BASE_PATH+"/harvestables").handler(adminRecordsHandlers::handleGetHarvestables);
+    router.get(API_BASE_PATH+"/storages").handler(adminRecordsHandlers::handleGetStorages);
+    router.get(API_BASE_PATH+"/transformations").handler(adminRecordsHandlers::handleGetTransformations);
+    router.get(API_BASE_PATH+"/steps").handler(adminRecordsHandlers::handleGetSteps);
+    router.get(API_BASE_PATH+"/transformation-steps").handler(adminRecordsHandlers::handleGetTransformationSteps);
 
     vertx.createHttpServer()
       .requestHandler(router)
