@@ -53,7 +53,7 @@ public class AdminRecordsHandlers {
     if (!isJsonContentTypeOrNone(routingCtx)) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      Future<JsonObject> promisedAdminRecords = getRecords("storages");
+      Future<JsonObject> promisedAdminRecords = getRecords("storages/?"+acl(routingCtx));
       promisedAdminRecords.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
@@ -104,7 +104,7 @@ public class AdminRecordsHandlers {
     if (!isJsonContentTypeOrNone(routingCtx))  {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      Future<JsonObject> promisedAdminRecord = getRecords("harvestables"); // ?filter=TENANT(" +tenantId +")");
+      Future<JsonObject> promisedAdminRecord = getRecords("harvestables?"+acl(routingCtx));
       promisedAdminRecord.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
@@ -154,7 +154,7 @@ public class AdminRecordsHandlers {
     if (!isJsonContentTypeOrNone(routingCtx)) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      Future<JsonObject> promisedAdminRecords = getRecords("transformations");
+      Future<JsonObject> promisedAdminRecords = getRecords("transformations/?"+acl(routingCtx));
       promisedAdminRecords.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
@@ -184,7 +184,7 @@ public class AdminRecordsHandlers {
     if (!isJsonContentTypeOrNone(routingCtx)) {
       responseError(routingCtx, 400, "Only accepts Content-Type application/json, was: "+ contentType);
     } else {
-      Future<JsonObject> promisedAdminRecords = getRecords("steps");
+      Future<JsonObject> promisedAdminRecords = getRecords("steps/?"+acl(routingCtx));
       promisedAdminRecords.onComplete( ar -> {
         responseJson(routingCtx,200).end(ar.result().encodePrettily());
       });
@@ -325,6 +325,10 @@ public class AdminRecordsHandlers {
       }
     });
     return promise.future();
+  }
+
+  private String acl(RoutingContext ctx) {
+    return "acl="+getTenant(ctx);
   }
 
   private String getTenant (RoutingContext ctx) {
