@@ -30,7 +30,7 @@ import io.vertx.core.logging.LoggerFactory;
 /**
  * Transforms Harvester XML to JSON following FOLIO conventions as closely as possible.
  *
- * Note: This class knows about Harvester records, in particular that there is
+ * Note: This class knows about Harvester records specifics, in particular that there is
  * an element named 'stedAssociations', which must be treated as a repeatable element
  * -- even if there's just one (or no) occurrence of it.
  *
@@ -42,7 +42,7 @@ public class Xml2Json {
 
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
-   * @param args
+   * @param args Arguments ignored
    */
   public static void main (String[] args) {
     System.out.println(recordSetXml2json(TestRecords.xmlSampleHarvestables()).encodePrettily());
@@ -62,31 +62,39 @@ public class Xml2Json {
   public static JsonObject recordSetXml2json(String xml) {
     JsonObject jsonObject = new JsonObject();
     Document doc = XMLStringToXMLDocument(xml);
-    stripWhiteSpaceNodes(doc);
-    Node records = doc.getDocumentElement();
-    jsonObject.put(doc.getDocumentElement().getNodeName(),xmlRecords2jsonArray(records));
-    int recordCount = Integer.parseInt(records.getAttributes().getNamedItem("count").getTextContent());
-    jsonObject.put("totalRecords", recordCount);
+    if (doc != null)
+    {
+      stripWhiteSpaceNodes( doc );
+      Node records = doc.getDocumentElement();
+      jsonObject.put( doc.getDocumentElement().getNodeName(), xmlRecords2jsonArray( records ) );
+      int recordCount = Integer.parseInt( records.getAttributes().getNamedItem( "count" ).getTextContent() );
+      jsonObject.put( "totalRecords", recordCount );
+    }
     return jsonObject;
   }
 
   /**
    * Creates JSON object from XML String containing non-repeatable elements
-   * @param xml
-   * @return
+   * @param xml The XML to convert
+   * @return JsonObject created from the provided XML
    */
   public static JsonObject recordXml2Json (String xml) {
     JsonObject jsonObject;
     Document doc = XMLStringToXMLDocument(xml);
-    stripWhiteSpaceNodes(doc);
-    jsonObject = recurseIntoNode(doc);
+    if (doc != null)
+    {
+      stripWhiteSpaceNodes( doc );
+      jsonObject = recurseIntoNode( doc );
+    } else {
+      jsonObject = new JsonObject();
+    }
     return jsonObject;
   }
 
   /**
    * Creates JSON array of JSON objects from a Node known to contain repeatable
    * elements
-   * @param records
+   * @param records An XML node with repeatable elements
    * @return XML elements as JSON array
    */
   private static JsonArray xmlRecords2jsonArray (Node records) {
@@ -131,8 +139,8 @@ public class Xml2Json {
   }
 
   /**
-   * Determines in an XML element has child element (that needs to be recursed)
-   * @param node
+   * Determines if an XML element has child elements
+   * @param node element to expect for child elements
    * @return true if the XML element contains other XML elements
    */
   private static boolean hasChildElements(Node node) {
@@ -148,11 +156,11 @@ public class Xml2Json {
 
   /**
    * Remove whitespace text nodes (indentation) between elements
-   * @param node
+   * @param node XML node to strip between-elements whitespace from
    */
   private static void stripWhiteSpaceNodes(Node node) {
     // Clean up whitespace text nodes between elements
-    List<Node> whiteSpaceNodes = new ArrayList();
+    List<Node> whiteSpaceNodes = new ArrayList<>();
     findWhiteSpaceNodes(node, whiteSpaceNodes);
     for (Node nodeToDelete : whiteSpaceNodes) {
       nodeToDelete.getParentNode().removeChild(nodeToDelete);
@@ -176,7 +184,7 @@ public class Xml2Json {
 
   /**
    * Creates an Iterable for a nodeList
-   * @param nodeList
+   * @param nodeList List of XML nodes to iterate over
    * @return Iterable over XML nodes
    */
   private static Iterable<Node> iterable(final NodeList nodeList) {
@@ -199,7 +207,7 @@ public class Xml2Json {
 
   /**
    * Creates an Iterable for the childNodes of node
-   * @param node
+   * @param node The node whose children to iterate
    * @return Iterable over XML nodes
    */
   private static Iterable<Node> iterable(Node node) {
@@ -208,15 +216,14 @@ public class Xml2Json {
 
   /**
    * Create DOM from String of XML
-   * @param xmlString
-   * @return XML as DOM
+   * @param xmlString String to build XML DOM from
+   * @return XML as DOM or null if an exception occurred
    */
   private static Document XMLStringToXMLDocument(String xmlString) {
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       DocumentBuilder builder = factory.newDocumentBuilder();
-      Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
-      return doc;
+      return builder.parse(new InputSource(new StringReader(xmlString)));
     } catch (IOException | ParserConfigurationException | SAXException e) {
       logger.error(e.getMessage());
     }
