@@ -5,24 +5,23 @@
  */
 package org.folio.harvesteradmin;
 
-import static org.folio.okapi.common.HttpResponse.responseError;
-import static org.folio.okapi.common.HttpResponse.responseJson;
-
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+
+import javax.xml.parsers.ParserConfigurationException;
+
+import static org.folio.okapi.common.HttpResponse.responseError;
+import static org.folio.okapi.common.HttpResponse.responseJson;
 
 /**
  * Request handlers that proxy Harvester APIs and convert between
@@ -45,7 +44,6 @@ public class AdminRecordsHandlers {
 
   /**
    * Proxies Harvester's GET /harvester/records/storages
-   * @param routingCtx
    */
   public void handleGetStorages(RoutingContext routingCtx) {
 
@@ -95,7 +93,6 @@ public class AdminRecordsHandlers {
 
   /**
    * Proxies Harvester's GET /harvester/records/harvestables
-   * @param routingCtx
    */
   public void handleGetHarvestables(RoutingContext routingCtx) {
 
@@ -146,7 +143,6 @@ public class AdminRecordsHandlers {
 
   /**
    * Proxies Harvester's GET /harvester/records/transformations
-   * @param routingCtx
    */
   public void handleGetTransformations(RoutingContext routingCtx) {
 
@@ -176,7 +172,6 @@ public class AdminRecordsHandlers {
 
   /**
    * Proxies Harvester's GET /harvester/records/steps
-   * @param routingCtx
    */
   public void handleGetSteps(RoutingContext routingCtx) {
 
@@ -206,7 +201,6 @@ public class AdminRecordsHandlers {
 
   /**
    * Proxies Harvester's GET /harvester/records/tsas  (transformation - step associations)
-   * @param routingCtx
    */
   public void handleGetTransformationSteps(RoutingContext routingCtx) {
 
@@ -312,10 +306,10 @@ public class AdminRecordsHandlers {
       JsonObject record = new JsonObject();
       if (ar.succeeded()) {
         HttpResponse<Buffer> harvesterResponse = ar.result();
-        if (harvesterResponse != null) {
-        } else {
+        if ( harvesterResponse == null )
+        {
           resp = "Response was null";
-          record.put("error", resp);
+          record.put( "error", resp );
         }
         promise.complete(record);
       } else {
