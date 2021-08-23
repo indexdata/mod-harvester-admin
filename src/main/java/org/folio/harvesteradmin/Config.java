@@ -38,7 +38,7 @@ public class Config
 
     private void setLogLevel()
     {
-        Optional<String> levelKey = System.getProperties().keySet().stream().map( key -> key.toString() ).filter(
+        Optional<String> levelKey = System.getProperties().keySet().stream().map( Object::toString ).filter(
                 key -> key.equalsIgnoreCase( LOG_LEVEL_SYS_PROP ) ).findFirst();
         if ( levelKey.isPresent() )
         {

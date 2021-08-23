@@ -237,8 +237,9 @@ public class AdminRecordsHandlers {
 
   /**
    * Handles GET requests to Harvester's records APIs
-   * @param apiPath
-   * @return
+   *
+   * @param apiPath The sub-path of the particular type of entities to fetch
+   * @return Promised JSON object with a list of records or an error response
    */
   private Future<JsonObject> getRecords(String apiPath) {
     Promise<JsonObject> promise = Promise.promise();

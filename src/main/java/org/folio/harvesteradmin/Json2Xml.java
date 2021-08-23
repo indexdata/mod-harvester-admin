@@ -34,7 +34,6 @@ public class Json2Xml {
 
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
-   * @param args
    */
   public static void main (String[] args) {
 
@@ -56,8 +55,6 @@ public class Json2Xml {
    *
    * @param json structure to transform
    * @return XML document
-   * @throws DOMException
-   * @throws ParserConfigurationException
    */
   public static Document recordJson2xml(String json) throws DOMException, ParserConfigurationException {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -79,14 +76,13 @@ public class Json2Xml {
 
   /**
    * Recursively creates XML tree from JSON tree
+   * <p>
+   * Note: This method knows about Harvester record features, in particular that elements with an 'entityType' child
+   * must be given an entity type attribute within an XMLSchema-instance name space.
    *
-   * Note: This method knows about Harvester record features, in particular that
-   * elements with an 'entityType' child must be given an entity type attribute
-   * within an XMLSchema-instance name space.
-   *
-   * @param object
-   * @param doc
-   * @param node
+   * @param object The JSON object to traverse
+   * @param doc    The XML document to add elements to
+   * @param node   The XML element corresponding to the JSON object
    */
   public static void recurseIntoJsonObject (JsonObject object, Document doc, Element node)
   {
@@ -146,7 +142,7 @@ public class Json2Xml {
 
   /**
    * Create XML String from document DOM
-   * @param xmlDocument
+   * @param xmlDocument  The XML document to be written to a String
    * @return XML String
    */
   public static String writeXmlDocumentToString(Document xmlDocument) {
