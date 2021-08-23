@@ -812,18 +812,7 @@ public class TestRecords {
   }
 
   public static String xmlSampleHarvestables() {
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-      "<harvestables count=\"9\" max=\"100\" uri=\"http://localhost:8080/harvester/records/harvestables/\" start=\"0\">\n" +
-      "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9998/\">\n" +
-      "        <currentStatus>NEW</currentStatus>\n" +
-      "        <enabled>false</enabled>\n" +
-      "        <id>9998</id>\n" +
-      "        <jobClass>HarvestConnectorResource</jobClass>\n" +
-      "        <lastHarvestFinished>2017-07-21T15:51:25Z</lastHarvestFinished>\n" +
-      "        <lastHarvestStarted>2017-07-21T15:53:56Z</lastHarvestStarted>\n" +
-      "        <lastUpdated>2017-07-21T15:58:26Z</lastUpdated>\n" +
-      "        <name>Harvest Job A</name>\n" +
-      "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" + "<harvestables count=\"2\" max=\"100\" uri=\"http://localhost:8080/harvester/records/harvestables/\" start=\"0\">\n" + "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/9998/\">\n" + "        <currentStatus>NEW</currentStatus>\n" + "        <enabled>false</enabled>\n" + "        <id>9998</id>\n" + "        <jobClass>HarvestConnectorResource</jobClass>\n" + "        <lastHarvestFinished>2017-07-21T15:51:25Z</lastHarvestFinished>\n" + "        <lastHarvestStarted>2017-07-21T15:53:56Z</lastHarvestStarted>\n" + "        <lastUpdated>2017-07-21T15:58:26Z</lastUpdated>\n" + "        <name>Harvest Job A</name>\n" + "        <nextHarvestSchedule>2020-03-19T00:00:00Z</nextHarvestSchedule>\n" +
       "        <storageUrl>http://localhost:8983/solr/lui/</storageUrl>\n" +
       "    </harvestableBrief>\n" +
       "    <harvestableBrief uri=\"http://localhost:8080/harvester/records/harvestables/10008/\">\n" +

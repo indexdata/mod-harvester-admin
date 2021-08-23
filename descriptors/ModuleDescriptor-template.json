@@ -103,29 +103,58 @@
           "pathPattern": "/harvester-admin/steps",
           "permissionsRequired": ["harvester-admin.steps.collection.delete"]
         }, {
-          "methods": ["GET"],
-          "pathPattern": "/harvester-admin/transformation-steps",
-          "permissionsRequired": ["harvester-admin.transformation-steps.collection.get"]
-        }, {
-          "methods": ["GET"],
-          "pathPattern": "/harvester-admin/transformation-steps/{id}",
-          "permissionsRequired": ["harvester-admin.transformation-steps.item.get"]
-        }, {
-          "methods": ["POST"],
-          "pathPattern": "/harvester-admin/transformation-steps",
-          "permissionsRequired": ["harvester-admin.transformation-steps.item.post"]
-        }, {
-          "methods": ["PUT"],
-          "pathPattern": "/harvester-admin/transformation-steps/{id}",
-          "permissionsRequired": ["harvester-admin.transformation-steps.item.put"]
-        }, {
-          "methods": ["DELETE"],
-          "pathPattern": "/harvester-admin/transformation-steps/{id}",
-          "permissionsRequired": ["harvester-admin.transformation-steps.item.delete"]
-        }, {
-          "methods": ["DELETE"],
-          "pathPattern": "/harvester-admin/transformation-steps",
-          "permissionsRequired": ["harvester-admin.transformation-steps.collection.delete"]
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/harvester-admin/tsas",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.collection.get"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/harvester-admin/tsas/{id}",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.item.get"
+          ]
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/harvester-admin/tsas",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.item.post"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/harvester-admin/tsas/{id}",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.item.put"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/harvester-admin/tsas/{id}",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.item.delete"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/harvester-admin/tsas",
+          "permissionsRequired": [
+            "harvester-admin.transformations-steps.collection.delete"
+          ]
         }
       ]
     }
@@ -252,32 +281,32 @@
       "description": "delete individual step from storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.collection.get",
+      "permissionName": "harvester-admin.transformations-steps.collection.get",
       "displayName": "harvester admin - get harvestable collection",
       "description": "get transformation-step collection from storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.collection.delete",
+      "permissionName": "harvester-admin.transformations-steps.collection.delete",
       "displayName": "harvester admin - delete entire transformation-step collection",
       "description": "delete entire transformation-step collection from storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.item.get",
+      "permissionName": "harvester-admin.transformations-steps.item.get",
       "displayName": "harvester admin - get individual transformation-step",
       "description": "get individual transformation-step from storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.item.post",
+      "permissionName": "harvester-admin.transformations-steps.item.post",
       "displayName": "harvester admin - create individual transformation-step",
       "description": "create individual transformation-step in storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.item.put",
+      "permissionName": "harvester-admin.transformations-steps.item.put",
       "displayName": "harvester admin - modify transformation-step",
       "description": "modify transformation-step in storage"
     },
     {
-      "permissionName": "harvester-admin.transformation-steps.item.delete",
+      "permissionName": "harvester-admin.transformations-steps.item.delete",
       "displayName": "harvester admin - delete individual transformation-step",
       "description": "delete individual transformation-step from storage"
     },
@@ -310,12 +339,12 @@
         "harvester-admin.steps.item.put",
         "harvester-admin.steps.item.delete",
         "harvester-admin.steps.collection.delete",
-        "harvester-admin.transformation-steps.collection.get",
-        "harvester-admin.transformation-steps.item.get",
-        "harvester-admin.transformation-steps.item.post",
-        "harvester-admin.transformation-steps.item.put",
-        "harvester-admin.transformation-steps.item.delete",
-        "harvester-admin.transformation-steps.collection.delete"
+        "harvester-admin.transformations-steps.collection.get",
+        "harvester-admin.transformations-steps.item.get",
+        "harvester-admin.transformations-steps.item.post",
+        "harvester-admin.transformations-steps.item.put",
+        "harvester-admin.transformations-steps.item.delete",
+        "harvester-admin.transformations-steps.collection.delete"
       ]
     }
   ],

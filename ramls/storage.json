@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Storage configuration",
+  "type": "object",
+  "properties": {
+    "storage": {
+      "type": "object",
+      "description": "Storage configuration",
+      "oneOf": [
+        {
+          "properties": {
+            "solrStorage": {
+              "type": "object",
+              "description": "Configuration of a Solr storage",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "inventoryStorage": {
+              "type": "object",
+              "description": "Configuration of a FOLIO Inventory storage",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

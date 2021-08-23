@@ -5,6 +5,18 @@
  */
 package org.folio.harvesteradmin;
 
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -12,40 +24,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-
 /**
  * Transforms Harvester XML to JSON following FOLIO conventions as closely as possible.
- *
- * Note: This class knows about Harvester records specifics, in particular that there is
- * an element named 'stedAssociations', which must be treated as a repeatable element
- * -- even if there's just one (or no) occurrence of it.
+ * <p>
+ * Note: This class knows about Harvester records specifics, in particular that there is an element named
+ * 'stepAssociations', which must be treated as a repeatable element -- even if there's just one (or no) occurrence of
+ * it.
  *
  * @author ne
  */
 public class Xml2Json {
 
-  private static final Logger logger = LoggerFactory.getLogger("harvester-admin");
+  private static final Logger logger = Logger.getLogger( "harvester-admin");
 
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
    * @param args Arguments ignored
    */
   public static void main (String[] args) {
-    System.out.println(recordSetXml2json(TestRecords.xmlSampleHarvestables()).encodePrettily());
+    System.out.println( recordSetXml2json( TestRecords.xmlSampleHarvestables() ).encodePrettily() );
+    System.out.println( recordXml2Json( TestRecords.xmlSampleHarvestable() ).encodePrettily() );
   }
 
   /**
@@ -188,17 +186,20 @@ public class Xml2Json {
    * @return Iterable over XML nodes
    */
   private static Iterable<Node> iterable(final NodeList nodeList) {
-    return () -> new Iterator<Node>() {
+    return () -> new Iterator<>()
+    {
       private int index = 0;
 
       @Override
-      public boolean hasNext() {
-          return index < nodeList.getLength();
+      public boolean hasNext()
+      {
+        return index < nodeList.getLength();
       }
 
       @Override
-      public Node next() {
-          if (!hasNext())
+      public Node next()
+      {
+        if ( !hasNext())
               throw new NoSuchElementException();
           return nodeList.item(index++);
       }

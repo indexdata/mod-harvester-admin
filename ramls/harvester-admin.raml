@@ -1,0 +1,24 @@
+title: Harvester Admin
+version: v1.0
+protocols: [ HTTP, HTTPS ]
+baseUri: http://localhost
+
+documentation:
+  - title: Harvester Admin
+    content: APIs for configuring harvest jobs
+
+types:
+  harvestable: !include harvestable.json
+  storage: !include storage.json
+
+/harvester-admin:
+  /harvestables:
+    displayName: Harvest configurations
+  /transformations:
+    displayName: Transformation pipelines
+  /steps:
+    displayName: Transformation steps
+  /transformation-steps
+    displayName: Transformation-step associations
+  /storages
+    displayName: Storage configurations
