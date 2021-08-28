@@ -34,19 +34,23 @@ public class Json2Xml {
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
    */
-  public static void main (String[] args) {
-    try {
-      Document doc = recordJson2xml( TestRecords.jsonSampleHarvestable() );
+  public static void main( String[] args ) throws TransformerException
+  {
+    try
+    {
+      Document doc = recordJson2harvesterXml( TestRecords.jsonSampleHarvestable() );
       System.out.println( writeXmlDocumentToString( doc ) );
 
       JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
       if ( jsonObject != null )
       {
-        Document doc2 = recordJson2xml( jsonObject.encodePrettily() );
+        Document doc2 = recordJson2harvesterXml( jsonObject.encodePrettily() );
         System.out.println( writeXmlDocumentToString( doc2 ) );
       }
 
-    } catch (DOMException | ParserConfigurationException e) {
+    }
+    catch ( DOMException | ParserConfigurationException e )
+    {
       logger.error(e.getMessage());
     }
   }
@@ -57,12 +61,13 @@ public class Json2Xml {
    * @param json structure to transform
    * @return XML document
    */
-  public static Document recordJson2xml(String json) throws DOMException, ParserConfigurationException {
+  public static Document recordJson2harvesterXml( String json ) throws DOMException, ParserConfigurationException
+  {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Document doc = docBuilder.newDocument();
 
-    JsonObject jsonObject = new JsonObject(json);
+    JsonObject jsonObject = new JsonObject( json );
     for ( Entry<String, Object> jsonProperty : jsonObject )
     {
       if ( jsonProperty.getValue() instanceof JsonObject )
@@ -143,21 +148,18 @@ public class Json2Xml {
 
   /**
    * Create XML String from document DOM
-   * @param xmlDocument  The XML document to be written to a String
+   *
+   * @param xmlDocument The XML document to be written to a String
    * @return XML String
    */
-  public static String writeXmlDocumentToString(Document xmlDocument) {
+  public static String writeXmlDocumentToString( Document xmlDocument ) throws TransformerException
+  {
     TransformerFactory tf = TransformerFactory.newInstance();
     Transformer transformer;
-    try {
-        transformer = tf.newTransformer();
-        StringWriter writer = new StringWriter();
-        transformer.transform(new DOMSource(xmlDocument), new StreamResult(writer));
-      return writer.getBuffer().toString();
-    } catch (TransformerException e) {
-        e.printStackTrace();
-    }
-    return null;
+    transformer = tf.newTransformer();
+    StringWriter writer = new StringWriter();
+    transformer.transform( new DOMSource( xmlDocument ), new StreamResult( writer ) );
+    return writer.getBuffer().toString();
   }
 
 }

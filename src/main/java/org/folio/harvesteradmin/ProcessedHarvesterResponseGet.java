@@ -27,7 +27,7 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse
         else
         {
             statusCode = 500;
-            errorMessage = "GET request to " + apiPath + " failed " + ( query != null ? " for query " + query : "" ) + ". Body " + bodyAsString + ". Cause: " + response.cause();
+            errorMessage = "GET request to " + apiPath + " failed" + ( query != null ? " for query " + query : "" ) + ". Cause: " + response.cause().getMessage();
         }
     }
 }

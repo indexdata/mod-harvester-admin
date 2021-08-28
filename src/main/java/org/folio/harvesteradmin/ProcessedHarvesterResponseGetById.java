@@ -57,7 +57,7 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
         else
         {
             statusCode = 500;
-            errorMessage = apiPath + "/" + id + " failed with " + response.cause().getMessage();
+            errorMessage = "GET request to " + apiPath + "/" + id + " failed with: " + response.cause().getMessage();
         }
     }
 
