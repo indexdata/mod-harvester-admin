@@ -29,21 +29,22 @@ import java.util.Map.Entry;
  */
 public class Json2Xml {
 
-
   private static final Logger logger = Logger.getLogger( "harvester-admin" );
 
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
    */
   public static void main (String[] args) {
-
     try {
-      Document doc = recordJson2xml(TestRecords.jsonSampleHarvestable());
-      System.out.println(writeXmlDocumentToString(doc));
+      Document doc = recordJson2xml( TestRecords.jsonSampleHarvestable() );
+      System.out.println( writeXmlDocumentToString( doc ) );
 
-      JsonObject jsonObject = Xml2Json.recordXml2Json(TestRecords.xmlSampleHarvestable());
-      Document doc2 = recordJson2xml(jsonObject.encodePrettily());
-      System.out.println(writeXmlDocumentToString(doc2));
+      JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
+      if ( jsonObject != null )
+      {
+        Document doc2 = recordJson2xml( jsonObject.encodePrettily() );
+        System.out.println( writeXmlDocumentToString( doc2 ) );
+      }
 
     } catch (DOMException | ParserConfigurationException e) {
       logger.error(e.getMessage());

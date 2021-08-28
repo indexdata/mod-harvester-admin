@@ -59,32 +59,52 @@ public class Xml2Json {
    */
   public static JsonObject recordSetXml2json(String xml) {
     JsonObject jsonObject = new JsonObject();
-    Document doc = XMLStringToXMLDocument(xml);
-    if (doc != null)
+    try
     {
-      stripWhiteSpaceNodes( doc );
-      Node records = doc.getDocumentElement();
-      jsonObject.put( doc.getDocumentElement().getNodeName(), xmlRecords2jsonArray( records ) );
-      int recordCount = Integer.parseInt( records.getAttributes().getNamedItem( "count" ).getTextContent() );
-      jsonObject.put( "totalRecords", recordCount );
+      Document doc = XMLStringToXMLDocument( xml );
+      if ( doc != null )
+      {
+        stripWhiteSpaceNodes( doc );
+        Node records = doc.getDocumentElement();
+        jsonObject.put( doc.getDocumentElement().getNodeName(), xmlRecords2jsonArray( records ) );
+        int recordCount = Integer.parseInt( records.getAttributes().getNamedItem( "count" ).getTextContent() );
+        jsonObject.put( "totalRecords", recordCount );
+      }
+    }
+    catch ( IOException | ParserConfigurationException | SAXException e )
+    {
+      logger.error( "Couldn't parse string [" + xml + "] as XML document: " + e.getMessage() );
     }
     return jsonObject;
   }
 
   /**
    * Creates JSON object from XML String containing non-repeatable elements
+   *
    * @param xml The XML to convert
    * @return JsonObject created from the provided XML
    */
-  public static JsonObject recordXml2Json (String xml) {
-    JsonObject jsonObject;
-    Document doc = XMLStringToXMLDocument(xml);
-    if (doc != null)
+  public static JsonObject recordXml2Json( String xml )
+  {
+    try
+    {
+      Document doc = XMLStringToXMLDocument( xml );
+      return recordXml2Json( doc );
+    }
+    catch ( IOException | ParserConfigurationException | SAXException e )
+    {
+      logger.error( "Couldn't parse string [" + xml + "] as XML document: " + e.getMessage() );
+    }
+    return null;
+  }
+
+  public static JsonObject recordXml2Json( Document doc )
+  {
+    JsonObject jsonObject = null;
+    if ( doc != null )
     {
       stripWhiteSpaceNodes( doc );
       jsonObject = recurseIntoNode( doc );
-    } else {
-      jsonObject = new JsonObject();
     }
     return jsonObject;
   }
@@ -211,24 +231,22 @@ public class Xml2Json {
    * @param node The node whose children to iterate
    * @return Iterable over XML nodes
    */
-  private static Iterable<Node> iterable(Node node) {
-    return iterable(node.getChildNodes());
+  private static Iterable<Node> iterable(Node node )
+  {
+    return iterable( node.getChildNodes() );
   }
 
   /**
    * Create DOM from String of XML
+   *
    * @param xmlString String to build XML DOM from
    * @return XML as DOM or null if an exception occurred
    */
-  private static Document XMLStringToXMLDocument(String xmlString) {
-    try {
-      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-      DocumentBuilder builder = factory.newDocumentBuilder();
-      return builder.parse(new InputSource(new StringReader(xmlString)));
-    } catch (IOException | ParserConfigurationException | SAXException e) {
-      logger.error(e.getMessage());
-    }
-    return null;
+  public static Document XMLStringToXMLDocument( String xmlString ) throws IOException, ParserConfigurationException, SAXException
+  {
+    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = factory.newDocumentBuilder();
+    return builder.parse( new InputSource( new StringReader( xmlString)));
   }
 
 }
