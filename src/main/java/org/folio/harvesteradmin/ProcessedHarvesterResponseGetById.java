@@ -13,7 +13,7 @@ import java.io.IOException;
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse
 {
 
-    public ProcessedHarvesterResponseGetById( AsyncResult<HttpResponse<Buffer>> response, String requestString )
+    public ProcessedHarvesterResponseGetById( AsyncResult<HttpResponse<Buffer>> response, String apiPath, String id )
     {
         if ( response.succeeded() )
         {
@@ -46,18 +46,18 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
             else if ( notFound( harvesterStatusCode, bodyAsString ) )
             {
                 statusCode = 404;
-                errorMessage = requestString + " not found";
+                errorMessage = apiPath + "/" + id + " not found";
             }
             else
             {
                 statusCode = harvesterStatusCode;
-                errorMessage = requestString + " encountered error reported as (" + harvesterStatusCode + ") [" + bodyAsString + "] by the harvester";
+                errorMessage = apiPath + "/" + id + " encountered error reported as (" + harvesterStatusCode + ") [" + bodyAsString + "] by the harvester";
             }
         }
         else
         {
             statusCode = 500;
-            errorMessage = requestString + " failed with " + response.cause().getMessage();
+            errorMessage = apiPath + "/" + id + " failed with " + response.cause().getMessage();
         }
     }
 

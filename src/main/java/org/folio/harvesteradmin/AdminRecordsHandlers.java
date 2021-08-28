@@ -42,53 +42,14 @@ public class AdminRecordsHandlers {
    */
   public void handleGetStorages(RoutingContext routingCtx)
   {
-    String contentType = routingCtx.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingCtx ) )
-    {
-      responseError( routingCtx, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      Future<JsonObject> promisedAdminRecords = getRecords( HARVESTER_STORAGES_PATH ); // /?"+acl(routingCtx));
-      promisedAdminRecords.onComplete( ar -> responseJson( routingCtx, 200 ).end( ar.result().encodePrettily() ) );
-    }
+    getRecordsAndRespond( routingCtx, HARVESTER_STORAGES_PATH );
   }
 
   public void handleGetStorageById( RoutingContext routingContext )
   {
-    getByIdAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
+    getRecordByIdAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
-  private void getByIdAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
-  {
-    String id = routingContext.request().getParam( "id" );
-    String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
-    {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
-        ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar,
-                routingContext.normalizedPath() );
-        if ( response.getStatusCode() == 200 )
-        {
-          responseJson( routingContext, response.getStatusCode() ).end(
-                  response.getJsonResponse().getJsonObject( rootProperty ).encodePrettily() );
-        }
-        else
-        {
-          if ( response.getStatusCode() == 500 )
-          {
-            logger.error(
-                    " GET by ID (" + id + ") to " + apiPath + " encountered a server error: " + response.getErrorMessage() );
-          }
-          responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
-        }
-      } );
-    }
-  }
 
   public void handlePutStorage( RoutingContext routingCtx )
   {
@@ -123,22 +84,12 @@ public class AdminRecordsHandlers {
    */
   public void handleGetHarvestables(RoutingContext routingCtx)
   {
-    String contentType = routingCtx.request().getHeader( HEADER_CONTENT_TYPE );
-    String tenantId = getTenant( routingCtx );
-    if ( !isJsonContentTypeOrNone( routingCtx ) )
-    {
-      responseError( routingCtx, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      Future<JsonObject> promisedAdminRecord = getRecords( HARVESTER_HARVESTABLES_PATH ); //?"+acl(routingCtx));
-      promisedAdminRecord.onComplete( ar -> responseJson( routingCtx, 200 ).end( ar.result().encodePrettily() ) );
-    }
+    getRecordsAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH );
   }
 
   public void handleGetHarvestableById( RoutingContext routingContext )
   {
-    getByIdAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
+    getRecordByIdAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
   }
 
   public void handlePutHarvestable( RoutingContext routingCtx )
@@ -174,21 +125,12 @@ public class AdminRecordsHandlers {
    */
   public void handleGetTransformations(RoutingContext routingCtx)
   {
-    String contentType = routingCtx.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingCtx ) )
-    {
-      responseError( routingCtx, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      Future<JsonObject> promisedAdminRecords = getRecords( HARVESTER_TRANSFORMATIONS_PATH ); // /?"+acl(routingCtx));
-      promisedAdminRecords.onComplete( ar -> responseJson( routingCtx, 200 ).end( ar.result().encodePrettily() ) );
-    }
+    getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_PATH );
   }
 
   public void handleGetTransformationById( RoutingContext routingContext )
   {
-    getByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
+    getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
   /**
@@ -196,21 +138,12 @@ public class AdminRecordsHandlers {
    */
   public void handleGetSteps( RoutingContext routingCtx )
   {
-    String contentType = routingCtx.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingCtx ) )
-    {
-      responseError( routingCtx, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      Future<JsonObject> promisedAdminRecords = getRecords( HARVESTER_STEPS_PATH ); // /?"+acl(routingCtx));
-      promisedAdminRecords.onComplete( ar -> responseJson( routingCtx, 200 ).end( ar.result().encodePrettily() ) );
-    }
+    getRecordsAndRespond( routingCtx, HARVESTER_STEPS_PATH );
   }
 
   public void handleGetStepById( RoutingContext routingContext )
   {
-    getByIdAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
+    getRecordByIdAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
   /**
@@ -218,73 +151,73 @@ public class AdminRecordsHandlers {
    */
   public void handleGetTransformationSteps( RoutingContext routingCtx )
   {
-    String contentType = routingCtx.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingCtx ) )
-    {
-      responseError( routingCtx, 400, "Only accepts Content-Type application/json, was: " + contentType );
-    }
-    else
-    {
-      Future<JsonObject> promisedAdminRecords = getRecords( HARVESTER_TRANSFORMATIONS_STEPS_PATH );
-      promisedAdminRecords.onComplete( ar -> {
-        responseJson( routingCtx, 200 ).end( ar.result().encodePrettily() );
-      } );
-    }
+    getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
   public void handleGetTransformationStepById( RoutingContext routingContext )
   {
-    getByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+    getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
-  private boolean isJsonContentTypeOrNone( RoutingContext ctx )
+  private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
   {
-    String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
-    return ( contentType == null || contentType.startsWith( "application/json" ) );
-  }
-
-  /**
-   * Handles GET requests to Harvester's records APIs
-   *
-   * @param apiPath The sub-path of the particular type of entities to fetch
-   * @return Promised JSON object with a list of records or an error response
-   */
-  private Future<JsonObject> getRecords(String apiPath) {
-    Promise<JsonObject> promise = Promise.promise();
-    harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath ).send( ar -> {
-      String resp;
-      JsonObject records = new JsonObject();
-      if ( ar.succeeded() )
-      {
-        HttpResponse<Buffer> harvesterResponse = ar.result();
-        if ( harvesterResponse != null )
+    String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
+    if ( !isJsonContentTypeOrNone( routingContext ) )
+    {
+      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+    }
+    else
+    {
+      harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath ).send( ar -> {
+        ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, apiPath, null );
+        if ( response.getStatusCode() == 200 )
         {
-          resp = harvesterResponse.bodyAsString();
-          records = Xml2Json.recordSetXml2json( resp );
+          responseJson( routingContext, response.getStatusCode() ).end( response.getJsonResponse().encodePrettily() );
         }
         else
         {
-          resp = "Response was null";
-          records.put( "error", resp );
+          logger.error( "GET " + apiPath + " encountered a server error: " + response.getErrorMessage() );
+          responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
         }
-        promise.complete( records );
-      }
-      else if ( ar.failed() )
-      {
-        String fail = ar.cause().getMessage();
-        records.put( "error", "GET " + apiPath + " failed " + " [" + fail + "]" );
-        promise.complete( records );
-      }
-    } );
-    return promise.future();
+      } );
+    }
+  }
+
+  private void getRecordByIdAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  {
+    String id = routingContext.request().getParam( "id" );
+    String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
+    if ( !isJsonContentTypeOrNone( routingContext ) )
+    {
+      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+    }
+    else
+    {
+      harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
+        ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar, apiPath, id );
+        if ( response.getStatusCode() == 200 )
+        {
+          responseJson( routingContext, response.getStatusCode() ).end(
+                  response.getJsonResponse().getJsonObject( rootProperty ).encodePrettily() );
+        }
+        else
+        {
+          if ( response.getStatusCode() == 500 )
+          {
+            logger.error(
+                    " GET by ID (" + id + ") to " + apiPath + " encountered a server error: " + response.getErrorMessage() );
+          }
+          responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
+        }
+      } );
+    }
   }
 
   private Future<ProcessedHarvesterResponseGetById> getHarvesterRecordById( String apiPath, String id )
   {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
     harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
-      ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar,
-              "GET " + apiPath + "/" + id );
+      ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar, apiPath, id );
       promise.complete( adaptedResponse );
     } );
     return promise.future();
@@ -342,11 +275,19 @@ public class AdminRecordsHandlers {
     return promise.future();
   }
 
-  private String acl(RoutingContext ctx) {
-    return "acl="+getTenant(ctx);
+  private String acl( RoutingContext ctx )
+  {
+    return "acl=" + getTenant( ctx );
   }
 
-  private String getTenant (RoutingContext ctx) {
-    return ctx.request().getHeader("x-okapi-tenant");
+  private boolean isJsonContentTypeOrNone( RoutingContext ctx )
+  {
+    String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
+    return ( contentType == null || contentType.startsWith( "application/json" ) );
+  }
+
+  private String getTenant( RoutingContext ctx )
+  {
+    return ctx.request().getHeader( "x-okapi-tenant" );
   }
 }
