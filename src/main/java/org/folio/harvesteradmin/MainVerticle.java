@@ -49,12 +49,15 @@ public class MainVerticle extends AbstractVerticle
 
     router.get( THIS_TRANSFORMATIONS_PATH ).handler( adminRecordsHandlers::handleGetTransformations );
     router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationById );
+    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformation );
 
     router.get( THIS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetSteps );
     router.get( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetStepById );
+    router.put( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutStep );
 
     router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetTransformationSteps );
     router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationStepById );
+    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformationStep );
 
     vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
       if ( result.succeeded() )

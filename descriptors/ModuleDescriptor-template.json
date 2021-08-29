@@ -95,14 +95,24 @@
           "pathPattern": "/harvester-admin/steps/{id}",
           "permissionsRequired": ["harvester-admin.steps.item.put"]
         }, {
-          "methods": ["DELETE"],
+          "methods": [
+            "DELETE"
+          ],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": ["harvester-admin.steps.item.delete"]
-        }, {
-          "methods": ["DELETE"],
+          "permissionsRequired": [
+            "harvester-admin.steps.item.delete"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": ["harvester-admin.steps.collection.delete"]
-        }, {
+          "permissionsRequired": [
+            "harvester-admin.steps.collection.delete"
+          ]
+        },
+        {
           "methods": [
             "GET"
           ],

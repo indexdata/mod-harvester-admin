@@ -86,6 +86,11 @@ public class AdminRecordsHandlers {
     getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
+  public void handlePutTransformation( RoutingContext routingContext )
+  {
+    putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/steps
    */
@@ -99,6 +104,12 @@ public class AdminRecordsHandlers {
     getRecordByIdAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
+  public void handlePutStep( RoutingContext routingContext )
+  {
+    logger.debug( "In handlePutStep" );
+    putRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/tsas  (transformation - step associations)
    */
@@ -110,6 +121,11 @@ public class AdminRecordsHandlers {
   public void handleGetTransformationStepById( RoutingContext routingContext )
   {
     getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+  }
+
+  public void handlePutTransformationStep( RoutingContext routingContext )
+  {
+    putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
   private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
