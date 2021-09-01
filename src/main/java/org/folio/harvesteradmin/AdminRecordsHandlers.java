@@ -39,9 +39,9 @@ public class AdminRecordsHandlers {
   /**
    * Proxies Harvester's GET /harvester/records/storages
    */
-  public void handleGetStorages(RoutingContext routingCtx)
+  public void handleGetStorages( RoutingContext routingContext )
   {
-    getRecordsAndRespond( routingCtx, HARVESTER_STORAGES_PATH );
+    getRecordsAndRespond( routingContext, HARVESTER_STORAGES_PATH );
   }
 
   public void handleGetStorageById( RoutingContext routingContext )
@@ -49,15 +49,20 @@ public class AdminRecordsHandlers {
     getRecordByIdAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
-  public void handlePutStorage( RoutingContext routingCtx )
+  public void handlePutStorage( RoutingContext routingContext )
   {
-    putRecordAndRespond( routingCtx, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
+    putRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
+  }
+
+  public void handlePostStorage( RoutingContext routingContext )
+  {
+    postRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
   /**
    * Proxies Harvester's GET /harvester/records/harvestables
    */
-  public void handleGetHarvestables(RoutingContext routingCtx)
+  public void handleGetHarvestables( RoutingContext routingCtx )
   {
     getRecordsAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH );
   }
@@ -72,6 +77,10 @@ public class AdminRecordsHandlers {
     putRecordAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
   }
 
+  public void handlePostHarvestable( RoutingContext routingContext )
+  {
+    postRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
+  }
 
   /**
    * Proxies Harvester's GET /harvester/records/transformations
@@ -91,6 +100,11 @@ public class AdminRecordsHandlers {
     putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
+  public void handlePostTransformation( RoutingContext routingContext )
+  {
+    postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/steps
    */
@@ -106,8 +120,12 @@ public class AdminRecordsHandlers {
 
   public void handlePutStep( RoutingContext routingContext )
   {
-    logger.debug( "In handlePutStep" );
     putRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
+  }
+
+  public void handlePostStep( RoutingContext routingContext )
+  {
+    postRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
   /**
@@ -126,6 +144,11 @@ public class AdminRecordsHandlers {
   public void handlePutTransformationStep( RoutingContext routingContext )
   {
     putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+  }
+
+  public void handlePostTransformationStep( RoutingContext routingContext )
+  {
+    postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
   private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
@@ -244,6 +267,98 @@ public class AdminRecordsHandlers {
                   "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
         }
       } );
+    }
+  }
+
+  private void postRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  {
+    JsonObject requestJson = routingContext.getBodyAsJson();
+    logger.debug( "POST body: " + requestJson.encodePrettily() );
+    String id = requestJson.getString( "id" );
+    String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
+    if ( !isJsonContentTypeOrNone( routingContext ) )
+    {
+      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+    }
+    else
+    {
+      if ( id == null )
+      {
+        doPostAndRespond( routingContext, apiPath, rootProperty, null );
+      }
+      else
+      {
+        lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
+          if ( idLookUp.succeeded() )
+          {
+            int idLookUpStatus = idLookUp.result().getStatusCode();
+            if ( idLookUpStatus == 200 )
+            {
+              responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
+            }
+            else if ( idLookUpStatus == 404 )
+            {
+              doPostAndRespond( routingContext, apiPath, rootProperty, id );
+            }
+            else
+            {
+              responseText( routingContext, idLookUpStatus ).end(
+                      "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUp.result().getErrorMessage() );
+            }
+          }
+          else
+          {
+            responseText( routingContext, 500 ).end(
+                    "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
+          }
+        } );
+      }
+
+    }
+  }
+
+  private void doPostAndRespond( RoutingContext routingContext, String apiPath, String rootProperty, String id )
+  {
+    try
+    {
+      String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
+      harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
+              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
+        if ( ar.succeeded() )
+        {
+          String location = ar.result().getHeader( "Location" );
+          if ( ar.result().statusCode() == 201 && location != null )
+          {
+            String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
+            lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete( lookUpNewRecord -> {
+              if ( lookUpNewRecord.succeeded() )
+              {
+                responseJson( routingContext, 201 ).end( lookUpNewRecord.result().getJsonResponse().encodePrettily() );
+              }
+              else
+              {
+                responseText( routingContext, 500 ).end(
+                        "There was a problem verifying the creation of " + apiPath + "/" + id + ": " + lookUpNewRecord.cause().getMessage() );
+              }
+            } );
+          }
+          else
+          {
+            responseText( routingContext, ar.result().statusCode() ).end(
+                    "There was a problem POSTing to " + apiPath + ": " + ar.result().statusMessage() );
+          }
+        }
+        else
+        {
+          responseText( routingContext, 500 ).end(
+                  "There was an error PUTting to " + apiPath + ": " + ar.cause().getMessage() );
+        }
+      } );
+    }
+    catch ( TransformerException | ParserConfigurationException e )
+    {
+      logger.error( "Error parsing json " + routingContext.getBodyAsJson() );
+      responseText( routingContext, 500 ).end( "Error parsing json " + routingContext.getBodyAsJson() );
     }
   }
 
