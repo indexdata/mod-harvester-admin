@@ -44,26 +44,31 @@ public class MainVerticle extends AbstractVerticle
     router.get( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handleGetHarvestableById );
     router.put( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handlePutHarvestable );
     router.post( THIS_HARVESTABLES_PATH ).handler( adminRecordsHandlers::handlePostHarvestable );
+    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handleDeleteHarvestable );
 
     router.get( THIS_STORAGES_PATH ).handler( adminRecordsHandlers::handleGetStorages );
     router.get( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handleGetStorageById );
     router.put( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handlePutStorage );
     router.post( THIS_STORAGES_PATH ).handler( adminRecordsHandlers::handlePostStorage );
+    router.delete( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handleDeleteStorage );
 
     router.get( THIS_TRANSFORMATIONS_PATH ).handler( adminRecordsHandlers::handleGetTransformations );
     router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationById );
     router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformation );
     router.post( THIS_TRANSFORMATIONS_PATH ).handler( adminRecordsHandlers::handlePostTransformation );
+    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteTransformation );
 
     router.get( THIS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetSteps );
     router.get( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetStepById );
     router.put( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutStep );
     router.post( THIS_STEPS_PATH ).handler( adminRecordsHandlers::handlePostStep );
+    router.delete( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteStep );
 
     router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetTransformationSteps );
     router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationStepById );
     router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformationStep );
     router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( adminRecordsHandlers::handlePostTransformationStep );
+    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteTransformationStep );
 
     vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
       if ( result.succeeded() )

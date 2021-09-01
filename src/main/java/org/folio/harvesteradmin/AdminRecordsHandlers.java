@@ -59,6 +59,11 @@ public class AdminRecordsHandlers {
     postRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
+  public void handleDeleteStorage( RoutingContext routingContext )
+  {
+    deleteRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/harvestables
    */
@@ -80,6 +85,11 @@ public class AdminRecordsHandlers {
   public void handlePostHarvestable( RoutingContext routingContext )
   {
     postRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
+  }
+
+  public void handleDeleteHarvestable( RoutingContext routingContext )
+  {
+    deleteRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH );
   }
 
   /**
@@ -105,6 +115,11 @@ public class AdminRecordsHandlers {
     postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
+  public void handleDeleteTransformation( RoutingContext routingContext )
+  {
+    deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/steps
    */
@@ -128,6 +143,11 @@ public class AdminRecordsHandlers {
     postRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
+  public void handleDeleteStep( RoutingContext routingContext )
+  {
+    deleteRecordAndRespond( routingContext, HARVESTER_STEPS_PATH );
+  }
+
   /**
    * Proxies Harvester's GET /harvester/records/tsas  (transformation - step associations)
    */
@@ -149,6 +169,11 @@ public class AdminRecordsHandlers {
   public void handlePostTransformationStep( RoutingContext routingContext )
   {
     postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+  }
+
+  public void handleDeleteTransformationStep( RoutingContext routingContext )
+  {
+    deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
   private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
@@ -360,6 +385,53 @@ public class AdminRecordsHandlers {
       logger.error( "Error parsing json " + routingContext.getBodyAsJson() );
       responseText( routingContext, 500 ).end( "Error parsing json " + routingContext.getBodyAsJson() );
     }
+  }
+
+  public void deleteRecordAndRespond( RoutingContext routingContext, String apiPath )
+  {
+    String id = routingContext.request().getParam( "id" );
+    lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
+      if ( idLookUp.succeeded() )
+      {
+        int idLookUpStatus = idLookUp.result().getStatusCode();
+        if ( idLookUpStatus == 404 )
+        {
+          responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
+        }
+        else if ( idLookUpStatus == 200 )
+        {
+          harvesterClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
+            if ( ar.succeeded() )
+            {
+              if ( ar.result().statusCode() == 204 )
+              {
+                responseText( routingContext, ar.result().statusCode() ).end( apiPath + "/" + id + " deleted" );
+              }
+              else
+              {
+                responseText( routingContext, ar.result().statusCode() ).end(
+                        "There was a problem deleting " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
+              }
+            }
+            else
+            {
+              responseText( routingContext, 500 ).end(
+                      "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
+            }
+          } );
+        }
+        else
+        {
+          responseText( routingContext, idLookUpStatus ).end(
+                  "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().getErrorMessage() );
+        }
+      }
+      else
+      {
+        responseText( routingContext, 500 ).end(
+                "Could not look up record " + apiPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
+      }
+    } );
   }
 
   private String wrapJsonAndConvertToXml( JsonObject json, String rootProperty ) throws ParserConfigurationException, TransformerException
