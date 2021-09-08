@@ -10,6 +10,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 
+
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse
 {
 
@@ -25,15 +26,24 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
                 try
                 {
                     Document doc = Xml2Json.XMLStringToXMLDocument( bodyAsString );
-                    jsonObject = Xml2Json.recordXml2Json( doc );
-                    if ( jsonObject == null )
+                    JsonObject transformed = Xml2Json.recordXml2Json( doc );
+                    if ( transformed == null )
                     {
                         errorMessage = "Attempted transformation of the Harvester response [" + bodyAsString + "] failed to produce a JSON object";
                         statusCode = 500;
                     }
                     else
                     {
-                        statusCode = 200;
+                        jsonObject = getRootObject( transformed );
+                        if ( jsonObject == null )
+                        {
+                            errorMessage = "Did not find one and only one top-level object in the transformed JSON: " + transformed.encodePrettily();
+                            statusCode = 500;
+                        }
+                        else
+                        {
+                            statusCode = 200;
+                        }
                     }
                 }
                 catch ( IOException | ParserConfigurationException | SAXException e )
@@ -61,10 +71,28 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
         }
     }
 
+    private JsonObject getRootObject( JsonObject json )
+    {
+        Object[] properties = json.fieldNames().toArray();
+        if ( properties.length != 1 )
+        {
+            return null;
+        }
+        else
+        {
+            return json.getJsonObject( properties[0].toString() );
+        }
+    }
+
     private boolean notFound( int originalStatusCode, String responseBody )
     {
         return ( originalStatusCode == 500 && responseBody.contains( "NullPointerException" ) && responseBody.contains(
                 "Converter.getId(" ) );
+    }
+
+    public boolean found()
+    {
+        return ( statusCode == 200 );
     }
 
 }
