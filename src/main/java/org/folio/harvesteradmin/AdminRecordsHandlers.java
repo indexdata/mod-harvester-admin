@@ -17,6 +17,8 @@ import org.w3c.dom.Document;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import static org.folio.harvesteradmin.ApiStatics.*;
 import static org.folio.okapi.common.HttpResponse.*;
@@ -171,6 +173,7 @@ public class AdminRecordsHandlers {
     postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
+
   public void handleDeleteTransformationStep( RoutingContext routingContext )
   {
     deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
@@ -185,15 +188,18 @@ public class AdminRecordsHandlers {
     }
     else
     {
-      harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath ).send( ar -> {
-        ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, apiPath, null );
+      String query = routingContext.request().getParam( "query" );
+      String pathAndQuery = apiPath + ( query == null || query.isEmpty() ? "" : "?query=" + URLEncoder.encode( query,
+              StandardCharsets.UTF_8 ) );
+      harvesterClient.get( Config.harvesterPort, Config.harvesterHost, pathAndQuery ).send( ar -> {
+        ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, apiPath, query );
         if ( response.getStatusCode() == 200 )
         {
           responseJson( routingContext, response.getStatusCode() ).end( response.getJsonResponse().encodePrettily() );
         }
         else
         {
-          logger.error( "GET " + apiPath + " encountered a server error: " + response.getErrorMessage() );
+          logger.error( "GET " + pathAndQuery + " encountered a server error: " + response.getErrorMessage() );
           responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
         }
       } );
@@ -295,11 +301,11 @@ public class AdminRecordsHandlers {
     }
   }
 
+
   private void postRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     JsonObject requestJson = routingContext.getBodyAsJson();
     logger.debug( "POST body: " + requestJson.encodePrettily() );
-    String id = requestJson.getString( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( !isJsonContentTypeOrNone( routingContext ) )
     {
@@ -307,6 +313,7 @@ public class AdminRecordsHandlers {
     }
     else
     {
+      String id = requestJson.getString( "id" );
       if ( id == null )
       {
         doPostAndRespond( routingContext, apiPath, rootProperty, null );
@@ -328,17 +335,16 @@ public class AdminRecordsHandlers {
             else
             {
               responseText( routingContext, idLookUpStatus ).end(
-                      "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUp.result().getErrorMessage() );
+                      "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
             }
           }
           else
           {
             responseText( routingContext, 500 ).end(
-                    "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
+                    "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
           }
         } );
       }
-
     }
   }
 
@@ -358,7 +364,8 @@ public class AdminRecordsHandlers {
             lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete( lookUpNewRecord -> {
               if ( lookUpNewRecord.succeeded() )
               {
-                responseJson( routingContext, 201 ).end( lookUpNewRecord.result().getJsonResponse().encodePrettily() );
+                responseJson( routingContext, 201 ).end(
+                        lookUpNewRecord.result().getJsonResponse().getJsonObject( rootProperty ).encodePrettily() );
               }
               else
               {
@@ -376,7 +383,7 @@ public class AdminRecordsHandlers {
         else
         {
           responseText( routingContext, 500 ).end(
-                  "There was an error PUTting to " + apiPath + ": " + ar.cause().getMessage() );
+                  "There was an error POSTing to " + apiPath + ": " + ar.cause().getMessage() );
         }
       } );
     }
@@ -390,10 +397,12 @@ public class AdminRecordsHandlers {
   public void deleteRecordAndRespond( RoutingContext routingContext, String apiPath )
   {
     String id = routingContext.request().getParam( "id" );
+    logger.debug( "Looking up " + apiPath + "/" + id + " before attempting delete" );
     lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
       if ( idLookUp.succeeded() )
       {
         int idLookUpStatus = idLookUp.result().getStatusCode();
+        logger.debug( "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUpStatus );
         if ( idLookUpStatus == 404 )
         {
           responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
@@ -410,7 +419,7 @@ public class AdminRecordsHandlers {
               else
               {
                 responseText( routingContext, ar.result().statusCode() ).end(
-                        "There was a problem deleting " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
+                        "Could not delete " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
               }
             }
             else
