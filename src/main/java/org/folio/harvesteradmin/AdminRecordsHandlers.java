@@ -9,6 +9,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
@@ -19,6 +20,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.folio.harvesteradmin.ApiStatics.*;
 import static org.folio.okapi.common.HttpResponse.*;
@@ -38,9 +40,7 @@ public class AdminRecordsHandlers {
     logger.setLevel( Config.logLevel );
   }
 
-  /**
-   * Proxies Harvester's GET /harvester/records/storages
-   */
+  // Handling STORAGES
   public void handleGetStorages( RoutingContext routingContext )
   {
     getRecordsAndRespond( routingContext, HARVESTER_STORAGES_PATH );
@@ -66,9 +66,7 @@ public class AdminRecordsHandlers {
     deleteRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH );
   }
 
-  /**
-   * Proxies Harvester's GET /harvester/records/harvestables
-   */
+  // Handling HARVESTABLES
   public void handleGetHarvestables( RoutingContext routingCtx )
   {
     getRecordsAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH );
@@ -94,9 +92,7 @@ public class AdminRecordsHandlers {
     deleteRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH );
   }
 
-  /**
-   * Proxies Harvester's GET /harvester/records/transformations
-   */
+  // Handling TRANSFORMATIONS
   public void handleGetTransformations( RoutingContext routingCtx )
   {
     getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_PATH );
@@ -122,9 +118,7 @@ public class AdminRecordsHandlers {
     deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
   }
 
-  /**
-   * Proxies Harvester's GET /harvester/records/steps
-   */
+  // Handling STEPS
   public void handleGetSteps( RoutingContext routingCtx )
   {
     getRecordsAndRespond( routingCtx, HARVESTER_STEPS_PATH );
@@ -150,9 +144,7 @@ public class AdminRecordsHandlers {
     deleteRecordAndRespond( routingContext, HARVESTER_STEPS_PATH );
   }
 
-  /**
-   * Proxies Harvester's GET /harvester/records/tsas  (transformation - step associations)
-   */
+  // Handling TRANSFORMATION-STEP ASSOCIATIONS
   public void handleGetTransformationSteps( RoutingContext routingCtx )
   {
     getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
@@ -170,20 +162,21 @@ public class AdminRecordsHandlers {
 
   public void handlePostTransformationStep( RoutingContext routingContext )
   {
-    postTsasAndRespond( routingContext );
-    // postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+    postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
-
 
   public void handleDeleteTransformationStep( RoutingContext routingContext )
   {
     deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
+
+  // Harvester requests
+
   private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
   {
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
+    if ( isNonJsonContentType( routingContext ) )
     {
       responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
     }
@@ -211,7 +204,7 @@ public class AdminRecordsHandlers {
   {
     String id = routingContext.request().getParam( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
+    if ( isNonJsonContentType( routingContext ) )
     {
       responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
     }
@@ -240,7 +233,7 @@ public class AdminRecordsHandlers {
   {
     String id = routingContext.request().getParam( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
+    if ( isNonJsonContentType( routingContext ) )
     {
       responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
     }
@@ -304,68 +297,64 @@ public class AdminRecordsHandlers {
 
   private void postRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
-    JsonObject requestJson = routingContext.getBodyAsJson();
-    logger.debug( "POST body: " + requestJson.encodePrettily() );
-    String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
+    if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      postTsasAndRespond( routingContext );
     }
     else
     {
-      String id = requestJson.getString( "id" );
-      if ( id == null )
+      JsonObject requestJson = routingContext.getBodyAsJson();
+      logger.debug( "POST body: " + requestJson.encodePrettily() );
+      String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
+      if ( isNonJsonContentType( routingContext ) )
       {
-        doPostAndRespond( routingContext, apiPath, rootProperty, null );
+        responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
       }
       else
       {
-        lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
-          if ( idLookUp.succeeded() )
-          {
-            int idLookUpStatus = idLookUp.result().getStatusCode();
-            if ( idLookUpStatus == 200 )
+        String id = requestJson.getString( "id" );
+        if ( id == null )
+        {
+          doPostAndRespond( routingContext, apiPath, rootProperty, null );
+        }
+        else
+        {
+          lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
+            if ( idLookUp.succeeded() )
             {
-              responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
-            }
-            else if ( idLookUpStatus == 404 )
-            {
-              doPostAndRespond( routingContext, apiPath, rootProperty, id );
+              int idLookUpStatus = idLookUp.result().getStatusCode();
+              if ( idLookUpStatus == 200 )
+              {
+                responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
+              }
+              else if ( idLookUpStatus == 404 )
+              {
+                doPostAndRespond( routingContext, apiPath, rootProperty, id );
+              }
+              else
+              {
+                responseText( routingContext, idLookUpStatus ).end(
+                        "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+              }
             }
             else
             {
-              responseText( routingContext, idLookUpStatus ).end(
-                      "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+              responseText( routingContext, 500 ).end(
+                      "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
             }
-          }
-          else
-          {
-            responseText( routingContext, 500 ).end(
-                    "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
-          }
-        } );
+          } );
+        }
       }
     }
   }
 
   private void postTsasAndRespond( RoutingContext routingContext )
   {
-    // Check content type
-    // Check if JSON body has ID
-    // If so, check if record with that ID exists
-    // If so, respond with 422
-    // Check if step exists, if not: respond with 422
-    // GET the transformation
-    // If the transformation doesn't exist: respond with 422
-    // Insert the tsa in the transformation JSON
-    // PUT the transformation
-    // POST the tsa
-
     JsonObject requestJson = routingContext.getBodyAsJson();
     logger.debug( "POST body: " + requestJson.encodePrettily() );
     // Check content type
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-    if ( !isJsonContentTypeOrNone( routingContext ) )
+    if ( isNonJsonContentType( routingContext ) )
     {
       responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
     }
@@ -388,61 +377,7 @@ public class AdminRecordsHandlers {
             }
             else if ( idLookUpStatus == 404 )
             {
-              // Get the transformation ID from the step association
-              String transformationId = requestJson.getJsonObject( "transformationStepAssociation" ).getString(
-                      "transformation" );
-              // Get the transformation
-              lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete(
-                      transformationById -> {
-                        if ( transformationById.succeeded() && transformationById.result().found() )
-                        {
-                          // Insert the tsa in the transformation JSON
-                          JsonObject transformation = transformationById.result().jsonObject;
-                          transformation.getJsonObject( "basicTransformation" ).getJsonArray( "stepAssociations" ).add(
-                                  requestJson.getJsonObject( "transformationStepAssociation" ) );
-                          try
-                          {
-                            // PUT the transformation
-                            String xml = wrapJsonAndConvertToXml( transformation, TRANSFORMATION_ROOT_PROPERTY );
-                            harvesterClient.put( Config.harvesterPort, Config.harvesterHost,
-                                    HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).putHeader(
-                                    ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer(
-                                    Buffer.buffer( xml ), ar -> {
-                                      if ( ar.succeeded() )
-                                      {
-                                        if ( ar.result().statusCode() == 204 )
-                                        {
-                                          // POST the tsa
-                                          doPostAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
-                                                  TRANSFORMATION_STEP_ROOT_PROPERTY, id );
-                                        }
-                                        else
-                                        {
-                                          responseText( routingContext, ar.result().statusCode() ).end(
-                                                  "There was a problem PUTting to " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + ": " + ar.result().statusMessage() );
-                                        }
-                                      }
-                                      else
-                                      {
-                                        responseText( routingContext, 500 ).end(
-                                                "There was an error PUTting to " + HARVESTER_TRANSFORMATIONS_PATH + "/" + id + ": " + ar.cause().getMessage() );
-                                      }
-                                    } );
-
-                          }
-                          catch ( TransformerException | ParserConfigurationException xe )
-                          {
-                            logger.error( "Error parsing json " + transformation );
-                            responseText( routingContext, 500 ).end( "Error parsing json " + transformation );
-                          }
-                        }
-                        else
-                        {
-                          // If the transformation doesn't exist: respond with 422
-                          responseText( routingContext, 422 ).end(
-                                  "Problem POSTing " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + ", could not retrieve referenced transformation with ID " + transformationId + ": " + transformationById.cause().toString() );
-                        }
-                      } );
+              doPostTsaPutTransformationAndRespond( routingContext );
             }
             else
             {
@@ -460,63 +395,144 @@ public class AdminRecordsHandlers {
       else
       {
         // There was no association ID in the request JSON
-        // Get the transformation
-        String transformationId = requestJson.getJsonObject( "transformationStepAssociation" ).getString(
-                "transformation" );
-        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete(
-                transformationById -> {
-                  if ( transformationById.succeeded() && transformationById.result().found() )
-                  {
-                    // Insert the tsa in the transformation JSON
-                    JsonObject transformation = transformationById.result().jsonObject;
-                    transformation.getJsonObject( "basicTransformation" ).getJsonArray( "stepAssociations" ).add(
-                            requestJson.getJsonObject( "transformationStepAssociation" ) );
-                    try
-                    {
-                      // PUT the transformation
-                      String xml = wrapJsonAndConvertToXml( transformation, TRANSFORMATION_ROOT_PROPERTY );
-                      harvesterClient.put( Config.harvesterPort, Config.harvesterHost,
-                              HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).putHeader(
-                              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ),
-                              ar -> {
-                                if ( ar.succeeded() )
-                                {
-                                  if ( ar.result().statusCode() == 204 )
-                                  {
-                                    // POST the tsa
-                                    doPostAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
-                                            TRANSFORMATION_STEP_ROOT_PROPERTY, null );
-                                  }
-                                  else
-                                  {
-                                    responseText( routingContext, ar.result().statusCode() ).end(
-                                            "There was a problem PUTting to " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + ": " + ar.result().statusMessage() );
-                                  }
-                                }
-                                else
-                                {
-                                  responseText( routingContext, 500 ).end(
-                                          "There was an error PUTting to " + HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId + ": " + ar.cause().getMessage() );
-                                }
-                              } );
-
-                    }
-                    catch ( TransformerException | ParserConfigurationException xe )
-                    {
-                      logger.error( "Error parsing json " + transformation );
-                      responseText( routingContext, 500 ).end( "Error parsing json " + transformation );
-                    }
-                  }
-                  else
-                  {
-                    // If the transformation doesn't exist: respond with 422
-                    responseText( routingContext, 422 ).end(
-                            "Problem POSTing " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + ", could not retrieve referenced transformation with ID " + transformationId + ": " + transformationById.cause() );
-                  }
-                } );
+        doPostTsaPutTransformationAndRespond( routingContext );
 
       }
     }
+  }
+
+  private JsonArray insertStepIntoPipeline( JsonArray existingSteps, JsonObject updatingStep )
+  {
+    logger.debug( "Inserting/moving step: " + updatingStep.encodePrettily() );
+    JsonArray updatedListOfSteps = new JsonArray();
+    int positionOfUpdatingStep = Integer.parseInt( updatingStep.getString( "position" ) );
+    List<JsonObject> existingList = existingSteps.copy().getList();
+    for ( JsonObject existingStep : existingList )
+    {
+      if ( existingStep.getString( "id" ).equals( updatingStep.getString( "id" ) ) )
+      {
+        existingList.remove( existingStep );
+        break;
+      }
+    }
+    existingList.add( Math.min( positionOfUpdatingStep - 1, existingList.size() ), updatingStep.copy() );
+    for ( int i = 0; i < existingList.size(); i++ )
+    {
+      JsonObject step = existingList.get( i );
+      step.put( "position", Integer.toString( i + 1 ) );
+      updatedListOfSteps.add( step );
+    }
+    logger.debug( "Constructed new pipeline " + updatedListOfSteps.encodePrettily() );
+    return updatedListOfSteps;
+  }
+
+  private void doPostTsaPutTransformationAndRespond( RoutingContext routingContext )
+  {
+    doPost( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY ).onComplete(
+            result -> {
+              if ( result.succeeded() && result.result() != null )
+              {
+                JsonObject transformationStepAssociation = result.result().jsonObject.getJsonObject(
+                        "transformationStepAssociation" );
+                logger.debug( "Posted TSA, got: " + transformationStepAssociation.encodePrettily() );
+                // Get the transformation
+                String transformationId = transformationStepAssociation.getString( "transformation" );
+                lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete(
+                        transformationById -> {
+                          if ( transformationById.succeeded() && transformationById.result().found() )
+                          {
+                            // Insert the tsa in the transformation JSON
+                            JsonObject transformation = transformationById.result().jsonObject;
+                            transformation.getJsonObject( "basicTransformation" ).put( "stepAssociations",
+                                    insertStepIntoPipeline(
+                                            transformation.getJsonObject( "basicTransformation" ).getJsonArray(
+                                                    "stepAssociations" ), transformationStepAssociation ) );
+                            try
+                            {
+                              // PUT the transformation
+                              String xml = wrapJsonAndConvertToXml( transformation, TRANSFORMATION_ROOT_PROPERTY );
+                              harvesterClient.put( Config.harvesterPort, Config.harvesterHost,
+                                      HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).putHeader(
+                                      ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer(
+                                      Buffer.buffer( xml ), ar -> {
+                                        if ( ar.succeeded() )
+                                        {
+                                          if ( ar.result().statusCode() == 204 )
+                                          {
+                                            responseJson( routingContext, 201 ).end(
+                                                    transformationStepAssociation.encodePrettily() );
+                                          }
+                                          else
+                                          {
+                                            responseText( routingContext, ar.result().statusCode() ).end(
+                                                    "There was a problem PUTting to " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + ": " + ar.result().statusMessage() );
+                                          }
+                                        }
+                                        else
+                                        {
+                                          responseText( routingContext, 500 ).end(
+                                                  "There was an error PUTting to " + HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId + ": " + ar.cause().getMessage() );
+                                        }
+                                      } );
+
+                            }
+                            catch ( TransformerException | ParserConfigurationException xe )
+                            {
+                              logger.error( "Error parsing json " + transformation );
+                              responseText( routingContext, 500 ).end( "Error parsing json " + transformation );
+                            }
+                          }
+                          else
+                          {
+                            // If the transformation doesn't exist: respond with 422
+                            responseText( routingContext, 422 ).end(
+                                    "Problem POSTing " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + ", could not retrieve referenced transformation with ID " + transformationId + ": " + transformationById.cause() );
+                          }
+                        } );
+              }
+              else
+              {
+                responseText( routingContext, 422 ).end(
+                        "Problem POSTing to " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" );
+
+              }
+            } );
+  }
+
+  private Future<ProcessedHarvesterResponse> doPost( RoutingContext routingContext, String apiPath, String rootProperty )
+  {
+    Promise<ProcessedHarvesterResponse> promise = Promise.promise();
+    try
+    {
+      String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
+      harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
+              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
+        if ( ar.succeeded() )
+        {
+          String location = ar.result().getHeader( "Location" );
+          if ( ar.result().statusCode() == 201 && location != null )
+          {
+            String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
+            lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
+                    lookUpNewlyCreatedRecord -> promise.complete(
+                            new ProcessedHarvesterResponsePost( ar, apiPath, lookUpNewlyCreatedRecord.result() ) ) );
+          }
+          else
+          {
+            promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
+          }
+        }
+        else
+        {
+          promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
+        }
+      } );
+    }
+    catch ( TransformerException | ParserConfigurationException e )
+    {
+      promise.complete( new ProcessedHarvesterResponsePost( 500, e.getMessage() ) );
+    }
+    return promise.future();
   }
 
   private void doPostAndRespond( RoutingContext routingContext, String apiPath, String rootProperty, String id )
@@ -636,10 +652,10 @@ public class AdminRecordsHandlers {
     return "acl=" + getTenant( ctx );
   }
 
-  private boolean isJsonContentTypeOrNone( RoutingContext ctx )
+  private boolean isNonJsonContentType( RoutingContext ctx )
   {
     String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
-    return ( contentType == null || contentType.startsWith( "application/json" ) );
+    return ( contentType != null && !contentType.startsWith( "application/json" ) );
   }
 
   private String getTenant( RoutingContext ctx )
