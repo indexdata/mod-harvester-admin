@@ -43,137 +43,139 @@ public class AdminRecordsHandlers {
   // Handling STORAGES
   public void handleGetStorages( RoutingContext routingContext )
   {
-    getRecordsAndRespond( routingContext, HARVESTER_STORAGES_PATH );
+    respondWithConfigRecords( routingContext, HARVESTER_STORAGES_PATH );
   }
 
   public void handleGetStorageById( RoutingContext routingContext )
   {
-    getRecordByIdAndRespond( routingContext, HARVESTER_STORAGES_PATH );
+    respondWithConfigRecordById( routingContext, HARVESTER_STORAGES_PATH );
   }
 
   public void handlePutStorage( RoutingContext routingContext )
   {
-    putRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
+    putConfigRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
   public void handlePostStorage( RoutingContext routingContext )
   {
-    postRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
+    postConfigRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH, STORAGE_ROOT_PROPERTY );
   }
 
   public void handleDeleteStorage( RoutingContext routingContext )
   {
-    deleteRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH );
+    deleteAdminRecordAndRespond( routingContext, HARVESTER_STORAGES_PATH );
   }
 
   // Handling HARVESTABLES
   public void handleGetHarvestables( RoutingContext routingCtx )
   {
-    getRecordsAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH );
+    respondWithConfigRecords( routingCtx, HARVESTER_HARVESTABLES_PATH );
   }
 
   public void handleGetHarvestableById( RoutingContext routingContext )
   {
-    getRecordByIdAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH );
+    respondWithConfigRecordById( routingContext, HARVESTER_HARVESTABLES_PATH );
   }
 
   public void handlePutHarvestable( RoutingContext routingCtx )
   {
-    putRecordAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
+    putConfigRecordAndRespond( routingCtx, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
   }
 
   public void handlePostHarvestable( RoutingContext routingContext )
   {
-    postRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
+    postConfigRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH, HARVESTABLE_ROOT_PROPERTY );
   }
 
   public void handleDeleteHarvestable( RoutingContext routingContext )
   {
-    deleteRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH );
+    deleteAdminRecordAndRespond( routingContext, HARVESTER_HARVESTABLES_PATH );
   }
 
   // Handling TRANSFORMATIONS
   public void handleGetTransformations( RoutingContext routingCtx )
   {
-    getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_PATH );
+    respondWithConfigRecords( routingCtx, HARVESTER_TRANSFORMATIONS_PATH );
   }
 
   public void handleGetTransformationById( RoutingContext routingContext )
   {
-    getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
+    respondWithConfigRecordById( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
   }
 
   public void handlePutTransformation( RoutingContext routingContext )
   {
-    putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
+    putConfigRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
   public void handlePostTransformation( RoutingContext routingContext )
   {
-    postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
+    postConfigRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH, TRANSFORMATION_ROOT_PROPERTY );
   }
 
   public void handleDeleteTransformation( RoutingContext routingContext )
   {
-    deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
+    deleteAdminRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_PATH );
   }
 
   // Handling STEPS
   public void handleGetSteps( RoutingContext routingCtx )
   {
-    getRecordsAndRespond( routingCtx, HARVESTER_STEPS_PATH );
+    respondWithConfigRecords( routingCtx, HARVESTER_STEPS_PATH );
   }
 
   public void handleGetStepById( RoutingContext routingContext )
   {
-    getRecordByIdAndRespond( routingContext, HARVESTER_STEPS_PATH );
+    respondWithConfigRecordById( routingContext, HARVESTER_STEPS_PATH );
   }
 
   public void handlePutStep( RoutingContext routingContext )
   {
-    putRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
+    putConfigRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
   public void handlePostStep( RoutingContext routingContext )
   {
-    postRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
+    postConfigRecordAndRespond( routingContext, HARVESTER_STEPS_PATH, STEP_ROOT_PROPERTY );
   }
 
   public void handleDeleteStep( RoutingContext routingContext )
   {
-    deleteRecordAndRespond( routingContext, HARVESTER_STEPS_PATH );
+    deleteAdminRecordAndRespond( routingContext, HARVESTER_STEPS_PATH );
   }
 
   // Handling TRANSFORMATION-STEP ASSOCIATIONS
   public void handleGetTransformationSteps( RoutingContext routingCtx )
   {
-    getRecordsAndRespond( routingCtx, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
+    respondWithConfigRecords( routingCtx, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
   public void handleGetTransformationStepById( RoutingContext routingContext )
   {
-    getRecordByIdAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
+    respondWithConfigRecordById( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
   public void handlePutTransformationStep( RoutingContext routingContext )
   {
-    putRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+    putConfigRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+            TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
   public void handlePostTransformationStep( RoutingContext routingContext )
   {
-    postRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY );
+    postConfigRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+            TRANSFORMATION_STEP_ROOT_PROPERTY );
   }
 
   public void handleDeleteTransformationStep( RoutingContext routingContext )
   {
-    deleteRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
+    deleteAdminRecordAndRespond( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH );
   }
 
 
   // Harvester requests
 
-  private void getRecordsAndRespond( RoutingContext routingContext, String apiPath )
+  private void respondWithConfigRecords( RoutingContext routingContext, String apiPath )
   {
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
@@ -200,7 +202,7 @@ public class AdminRecordsHandlers {
     }
   }
 
-  private void getRecordByIdAndRespond( RoutingContext routingContext, String apiPath )
+  private void respondWithConfigRecordById( RoutingContext routingContext, String apiPath )
   {
     String id = routingContext.request().getParam( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
@@ -229,7 +231,7 @@ public class AdminRecordsHandlers {
     }
   }
 
-  private void putRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  private void putConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     String id = routingContext.request().getParam( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
@@ -239,37 +241,37 @@ public class AdminRecordsHandlers {
     }
     else
     {
-      lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
+      lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
         if ( idLookUp.succeeded() )
         {
-          int idLookUpStatus = idLookUp.result().getStatusCode();
-          if ( idLookUpStatus == 404 )
+          ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
+          if ( idLookUpResponse.statusCode == 404 )
           {
-            responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
+            responseText( routingContext, idLookUpResponse.statusCode ).end( idLookUp.result().getErrorMessage() );
           }
-          else if ( idLookUpStatus == 200 )
+          else if ( idLookUpResponse.statusCode == 200 )
           {
             try
             {
               String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
               harvesterClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
-                      ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
-                if ( ar.succeeded() )
+                      ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
+                if ( put.succeeded() )
                 {
-                  if ( ar.result().statusCode() == 204 )
+                  if ( put.result().statusCode() == 204 )
                   {
-                    responseText( routingContext, ar.result().statusCode() ).end( "" );
+                    responseText( routingContext, put.result().statusCode() ).end( "" );
                   }
                   else
                   {
-                    responseText( routingContext, ar.result().statusCode() ).end(
-                            "There was a problem PUTting to " + apiPath + "/" + id + ": " + ar.result().statusMessage() );
+                    responseText( routingContext, put.result().statusCode() ).end(
+                            "There was a problem PUTting to " + apiPath + "/" + id + ": " + put.result().statusMessage() );
                   }
                 }
                 else
                 {
                   responseText( routingContext, 500 ).end(
-                          "There was an error PUTting to " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
+                          "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
                 }
               } );
             }
@@ -281,8 +283,8 @@ public class AdminRecordsHandlers {
           }
           else
           {
-            responseText( routingContext, idLookUpStatus ).end(
-                    "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUp.result().getErrorMessage() );
+            responseText( routingContext, idLookUpResponse.statusCode ).end(
+                    "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.getErrorMessage() );
           }
         }
         else
@@ -295,11 +297,11 @@ public class AdminRecordsHandlers {
   }
 
 
-  private void postRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  private void postConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
     {
-      postTsasAndRespond( routingContext );
+      postTsaAndRespond( routingContext );
     }
     else
     {
@@ -315,26 +317,26 @@ public class AdminRecordsHandlers {
         String id = requestJson.getString( "id" );
         if ( id == null )
         {
-          doPostAndRespond( routingContext, apiPath, rootProperty, null );
+          doPostAndRetrieveAndRespond( routingContext, apiPath, rootProperty );
         }
         else
         {
-          lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
+          lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {  // going to return 422 if found
             if ( idLookUp.succeeded() )
             {
-              int idLookUpStatus = idLookUp.result().getStatusCode();
-              if ( idLookUpStatus == 200 )
+              ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
+              if ( idLookUpResponse.statusCode == 200 )
               {
                 responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
               }
-              else if ( idLookUpStatus == 404 )
+              else if ( idLookUpResponse.statusCode == 404 )
               {
-                doPostAndRespond( routingContext, apiPath, rootProperty, id );
+                doPostAndRetrieveAndRespond( routingContext, apiPath, rootProperty );
               }
               else
               {
-                responseText( routingContext, idLookUpStatus ).end(
-                        "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+                responseText( routingContext, idLookUpResponse.statusCode ).end(
+                        "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUpResponse.errorMessage );
               }
             }
             else
@@ -348,7 +350,7 @@ public class AdminRecordsHandlers {
     }
   }
 
-  private void postTsasAndRespond( RoutingContext routingContext )
+  private void postTsaAndRespond( RoutingContext routingContext )
   {
     JsonObject requestJson = routingContext.getBodyAsJson();
     logger.debug( "POST body: " + requestJson.encodePrettily() );
@@ -360,23 +362,21 @@ public class AdminRecordsHandlers {
     }
     else
     {
-      // Check if JSON body has ID
       String id = requestJson.getString( "id" );
       if ( id != null )
       {
-        // If so, check if record with that ID exists
-        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_STEPS_PATH, id ).onComplete( idLookUp -> {
-          if ( idLookUp.succeeded() )
-          {
-            int idLookUpStatus = idLookUp.result().getStatusCode();
-            if ( idLookUpStatus == 200 )
-            {
-              // If so, respond with 422
-              responseText( routingContext, 422 ).end(
-                      HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
-            }
-            else if ( idLookUpStatus == 404 )
-            {
+        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_STEPS_PATH, id ).onComplete(
+                idLookUp -> { // going to return 422 if found
+                  if ( idLookUp.succeeded() )
+                  {
+                    int idLookUpStatus = idLookUp.result().getStatusCode();
+                    if ( idLookUpStatus == 200 )
+                    {
+                      responseText( routingContext, 422 ).end(
+                              HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
+                    }
+                    else if ( idLookUpStatus == 404 )
+                    {
               doPostTsaPutTransformationAndRespond( routingContext );
             }
             else
@@ -428,16 +428,35 @@ public class AdminRecordsHandlers {
 
   private void doPostTsaPutTransformationAndRespond( RoutingContext routingContext )
   {
-    doPost( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY ).onComplete(
-            result -> {
+    JsonObject incomingTsa = routingContext.getBodyAsJson().getJsonObject( "transformationStepAssociation" );
+    String transformationId = incomingTsa.getString( "transformation" );
+    String stepId = incomingTsa.getJsonObject( "step" ).getString( "id" );
+    lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete( checkTransformation -> {
+      if ( !checkTransformation.result().found() )
+      {
+        responseText( routingContext, 422 ).end(
+                "Could not create transformation-step association. Transformation " + transformationId + " not found." );
+      }
+      else
+      {
+        lookUpHarvesterRecordById( HARVESTER_STEPS_PATH, stepId ).onComplete( checkStep -> {
+          if ( !checkStep.result().found() )
+          {
+            responseText( routingContext, 422 ).end(
+                    "Could not create transformation-step association. Step " + stepId + " not found." );
+          }
+          else
+          {
+            doPostAndRetrieve( routingContext, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+                    TRANSFORMATION_STEP_ROOT_PROPERTY ).onComplete( result -> {
               if ( result.succeeded() && result.result() != null )
               {
                 JsonObject transformationStepAssociation = result.result().jsonObject.getJsonObject(
                         "transformationStepAssociation" );
                 logger.debug( "Posted TSA, got: " + transformationStepAssociation.encodePrettily() );
                 // Get the transformation
-                String transformationId = transformationStepAssociation.getString( "transformation" );
                 lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete(
+                        // going to return 422 if not found
                         transformationById -> {
                           if ( transformationById.succeeded() && transformationById.result().found() )
                           {
@@ -494,12 +513,15 @@ public class AdminRecordsHandlers {
               {
                 responseText( routingContext, 422 ).end(
                         "Problem POSTing to " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" );
-
               }
             } );
+          }
+        } );
+      }
+    } );
   }
 
-  private Future<ProcessedHarvesterResponse> doPost( RoutingContext routingContext, String apiPath, String rootProperty )
+  private Future<ProcessedHarvesterResponse> doPostAndRetrieve( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     Promise<ProcessedHarvesterResponse> promise = Promise.promise();
     try
@@ -514,6 +536,7 @@ public class AdminRecordsHandlers {
           {
             String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
             lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
+                    // going to return 500 if not found, 201 if found
                     lookUpNewlyCreatedRecord -> promise.complete(
                             new ProcessedHarvesterResponsePost( ar, apiPath, lookUpNewlyCreatedRecord.result() ) ) );
           }
@@ -535,66 +558,37 @@ public class AdminRecordsHandlers {
     return promise.future();
   }
 
-  private void doPostAndRespond( RoutingContext routingContext, String apiPath, String rootProperty, String id )
+  private void doPostAndRetrieveAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
-    try
-    {
-      String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
-      harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
-              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
-        if ( ar.succeeded() )
-        {
-          String location = ar.result().getHeader( "Location" );
-          if ( ar.result().statusCode() == 201 && location != null )
-          {
-            String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
-            lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete( lookUpNewRecord -> {
-              if ( lookUpNewRecord.succeeded() )
-              {
-                responseJson( routingContext, 201 ).end( lookUpNewRecord.result().getJsonResponse().encodePrettily() );
-              }
-              else
-              {
-                responseText( routingContext, 500 ).end(
-                        "There was a problem verifying the creation of " + apiPath + "/" + id + ": " + lookUpNewRecord.cause().getMessage() );
-              }
-            } );
-          }
-          else
-          {
-            responseText( routingContext, ar.result().statusCode() ).end(
-                    "There was a problem POSTing to " + apiPath + ": " + ar.result().statusMessage() );
-          }
-        }
-        else
-        {
-          responseText( routingContext, 500 ).end(
-                  "There was an error POSTing to " + apiPath + ": " + ar.cause().getMessage() );
-        }
-      } );
-    }
-    catch ( TransformerException | ParserConfigurationException e )
-    {
-      logger.error( "Error parsing json " + routingContext.getBodyAsJson() );
-      responseText( routingContext, 500 ).end( "Error parsing json " + routingContext.getBodyAsJson() );
-    }
+    doPostAndRetrieve( routingContext, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
+      ProcessedHarvesterResponse response = postAndRetrieve.result();
+      if ( response.statusCode == 201 )
+      {
+        responseJson( routingContext, response.statusCode ).end( response.jsonObject.encodePrettily() );
+      }
+      else
+      {
+        responseText( routingContext, response.statusCode ).end( response.errorMessage );
+      }
+    } );
   }
 
-  public void deleteRecordAndRespond( RoutingContext routingContext, String apiPath )
+  public void deleteAdminRecordAndRespond( RoutingContext routingContext, String apiPath )
   {
     String id = routingContext.request().getParam( "id" );
     logger.debug( "Looking up " + apiPath + "/" + id + " before attempting delete" );
-    lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {
-      if ( idLookUp.succeeded() )
-      {
-        int idLookUpStatus = idLookUp.result().getStatusCode();
-        logger.debug( "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUpStatus );
-        if ( idLookUpStatus == 404 )
-        {
-          responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
-        }
-        else if ( idLookUpStatus == 200 )
-        {
+    lookUpHarvesterRecordById( apiPath, id ).onComplete(
+            idLookUp -> {  // going to return 404 if not found, else 204 (deleted)
+              if ( idLookUp.succeeded() )
+              {
+                int idLookUpStatus = idLookUp.result().getStatusCode();
+                logger.debug( "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUpStatus );
+                if ( idLookUpStatus == 404 )
+                {
+                  responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
+                }
+                else if ( idLookUpStatus == 200 )
+                {
           harvesterClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
             if ( ar.succeeded() )
             {
