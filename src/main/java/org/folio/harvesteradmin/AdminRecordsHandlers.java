@@ -296,7 +296,20 @@ public class AdminRecordsHandlers {
     }
   }
 
-
+  /**
+   * Validates, POSTs, and returns a new harvest configuration record.<br/> <br/> This method proxies the
+   * corresponding legacy Harvester end-point to make this API compliant with the conventions of FOLIO APIs (and
+   * indeed most REST APIs)<br/> <br/> The legacy API will not respond conventionally when receiving a POST request
+   * for an already existing entity, and it will also not return a newly created entity to the caller as e.g. FOLIO
+   * APIs do.<br/> <br/> To normalize the REST behavior of POSTs, this method will thus first look up the entity by
+   * ID, if an ID is supplied, and return a 422 (unprocessable) if an entity with that ID exists already, otherwise it
+   * will go ahead and POST the entity. Next, if the POST is successful, the method will retrieve the persisted entity
+   * from the legacy API in order to return it in the response with a status of 201 (created).
+   *
+   * @param routingContext context
+   * @param apiPath        the REST path to POST the entity to
+   * @param rootProperty   Name of property that wraps the entity in Harvester
+   */
   private void postConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
@@ -350,6 +363,66 @@ public class AdminRecordsHandlers {
     }
   }
 
+  /**
+   * Method POSTs a Harvester configuration record and sends a response containing the newly created record if
+   * successful, and otherwise an error message.
+   *
+   * @param routingContext The context
+   * @param apiPath        The Harvester API path to POST the entity to
+   * @param rootProperty   The name of wrapping element of the entity in the Harvester's schema
+   */
+  private void doPostAndRetrieveAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  {
+    doPostAndRetrieve( routingContext, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
+      ProcessedHarvesterResponse response = postAndRetrieve.result();
+      if ( response.statusCode == 201 )
+      {
+        responseJson( routingContext, response.statusCode ).end( response.jsonObject.encodePrettily() );
+      }
+      else
+      {
+        responseText( routingContext, response.statusCode ).end( response.errorMessage );
+      }
+    } );
+  }
+
+  private Future<ProcessedHarvesterResponse> doPostAndRetrieve( RoutingContext routingContext, String apiPath, String rootProperty )
+  {
+    Promise<ProcessedHarvesterResponse> promise = Promise.promise();
+    try
+    {
+      String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
+      harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
+              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
+        if ( ar.succeeded() )
+        {
+          String location = ar.result().getHeader( "Location" );
+          if ( ar.result().statusCode() == 201 && location != null )
+          {
+            String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
+            lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
+                    // going to return 500 if not found, 201 if found
+                    lookUpNewlyCreatedRecord -> promise.complete(
+                            new ProcessedHarvesterResponsePost( ar, apiPath, lookUpNewlyCreatedRecord.result() ) ) );
+          }
+          else
+          {
+            promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
+          }
+        }
+        else
+        {
+          promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
+        }
+      } );
+    }
+    catch ( TransformerException | ParserConfigurationException e )
+    {
+      promise.complete( new ProcessedHarvesterResponsePost( 500, e.getMessage() ) );
+    }
+    return promise.future();
+  }
+
   private void postTsaAndRespond( RoutingContext routingContext )
   {
     JsonObject requestJson = routingContext.getBodyAsJson();
@@ -365,30 +438,26 @@ public class AdminRecordsHandlers {
       String id = requestJson.getString( "id" );
       if ( id != null )
       {
-        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_STEPS_PATH, id ).onComplete(
-                idLookUp -> { // going to return 422 if found
-                  if ( idLookUp.succeeded() )
-                  {
-                    int idLookUpStatus = idLookUp.result().getStatusCode();
-                    if ( idLookUpStatus == 200 )
-                    {
-                      responseText( routingContext, 422 ).end(
-                              HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
-                    }
-                    else if ( idLookUpStatus == 404 )
-                    {
+        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_STEPS_PATH, id ).onComplete( idLookUp -> { // going to return 422 if found
+          if ( idLookUp.succeeded() )
+          {
+            int idLookUpStatus = idLookUp.result().getStatusCode();
+            if ( idLookUpStatus == 200 )
+            {
+              responseText( routingContext, 422 ).end( HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
+            }
+            else if ( idLookUpStatus == 404 )
+            {
               doPostTsaPutTransformationAndRespond( routingContext );
             }
             else
             {
-              responseText( routingContext, idLookUpStatus ).end(
-                      "There was an error (" + idLookUpStatus + ") looking up " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+              responseText( routingContext, idLookUpStatus ).end( "There was an error (" + idLookUpStatus + ") looking up " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
             }
           }
           else
           {
-            responseText( routingContext, 500 ).end(
-                    "Could not look up record " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
+            responseText( routingContext, 500 ).end( "Could not look up record " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
           }
         } );
       }
@@ -517,58 +586,6 @@ public class AdminRecordsHandlers {
             } );
           }
         } );
-      }
-    } );
-  }
-
-  private Future<ProcessedHarvesterResponse> doPostAndRetrieve( RoutingContext routingContext, String apiPath, String rootProperty )
-  {
-    Promise<ProcessedHarvesterResponse> promise = Promise.promise();
-    try
-    {
-      String xml = wrapJsonAndConvertToXml( routingContext.getBodyAsJson(), rootProperty );
-      harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
-              ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
-        if ( ar.succeeded() )
-        {
-          String location = ar.result().getHeader( "Location" );
-          if ( ar.result().statusCode() == 201 && location != null )
-          {
-            String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
-            lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
-                    // going to return 500 if not found, 201 if found
-                    lookUpNewlyCreatedRecord -> promise.complete(
-                            new ProcessedHarvesterResponsePost( ar, apiPath, lookUpNewlyCreatedRecord.result() ) ) );
-          }
-          else
-          {
-            promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
-          }
-        }
-        else
-        {
-          promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
-        }
-      } );
-    }
-    catch ( TransformerException | ParserConfigurationException e )
-    {
-      promise.complete( new ProcessedHarvesterResponsePost( 500, e.getMessage() ) );
-    }
-    return promise.future();
-  }
-
-  private void doPostAndRetrieveAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
-  {
-    doPostAndRetrieve( routingContext, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
-      ProcessedHarvesterResponse response = postAndRetrieve.result();
-      if ( response.statusCode == 201 )
-      {
-        responseJson( routingContext, response.statusCode ).end( response.jsonObject.encodePrettily() );
-      }
-      else
-      {
-        responseText( routingContext, response.statusCode ).end( response.errorMessage );
       }
     } );
   }

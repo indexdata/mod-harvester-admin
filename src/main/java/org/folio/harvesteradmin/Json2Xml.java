@@ -32,30 +32,6 @@ public class Json2Xml {
   private static final Logger logger = Logger.getLogger( "harvester-admin" );
 
   /**
-   * main is meant for troubleshooting the transformation or testing changes to it.
-   */
-  public static void main( String[] args ) throws TransformerException
-  {
-    try
-    {
-      Document doc = recordJson2harvesterXml( TestRecords.jsonSampleHarvestable() );
-      System.out.println( writeXmlDocumentToString( doc ) );
-
-      JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
-      if ( jsonObject != null )
-      {
-        Document doc2 = recordJson2harvesterXml( jsonObject.encodePrettily() );
-        System.out.println( writeXmlDocumentToString( doc2 ) );
-      }
-
-    }
-    catch ( DOMException | ParserConfigurationException e )
-    {
-      logger.error(e.getMessage());
-    }
-  }
-
-  /**
    * Creates XML document from a JSON structure
    *
    * @param json structure to transform
@@ -161,5 +137,30 @@ public class Json2Xml {
     transformer.transform( new DOMSource( xmlDocument ), new StreamResult( writer ) );
     return writer.getBuffer().toString();
   }
+
+  /**
+   * main is meant for troubleshooting the transformation or testing changes to it.
+   */
+  public static void main( String[] args ) throws TransformerException
+  {
+    try
+    {
+      Document doc = recordJson2harvesterXml( TestRecords.jsonSampleHarvestable() );
+      System.out.println( writeXmlDocumentToString( doc ) );
+
+      JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
+      if ( jsonObject != null )
+      {
+        Document doc2 = recordJson2harvesterXml( jsonObject.encodePrettily() );
+        System.out.println( writeXmlDocumentToString( doc2 ) );
+      }
+
+    }
+    catch ( DOMException | ParserConfigurationException e )
+    {
+      logger.error( e.getMessage() );
+    }
+  }
+
 
 }
