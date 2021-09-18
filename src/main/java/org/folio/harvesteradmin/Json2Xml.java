@@ -37,14 +37,13 @@ public class Json2Xml {
    * @param json structure to transform
    * @return XML document
    */
-  public static Document recordJson2harvesterXml( String json ) throws DOMException, ParserConfigurationException
+  public static Document recordJson2harvesterXml( JsonObject json ) throws DOMException, ParserConfigurationException
   {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Document doc = docBuilder.newDocument();
 
-    JsonObject jsonObject = new JsonObject( json );
-    for ( Entry<String, Object> jsonProperty : jsonObject )
+    for ( Entry<String, Object> jsonProperty : json )
     {
       if ( jsonProperty.getValue() instanceof JsonObject )
       {
@@ -145,13 +144,13 @@ public class Json2Xml {
   {
     try
     {
-      Document doc = recordJson2harvesterXml( TestRecords.jsonSampleHarvestable() );
+      Document doc = recordJson2harvesterXml( new JsonObject( TestRecords.jsonSampleHarvestable()) );
       System.out.println( writeXmlDocumentToString( doc ) );
 
       JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
       if ( jsonObject != null )
       {
-        Document doc2 = recordJson2harvesterXml( jsonObject.encodePrettily() );
+        Document doc2 = recordJson2harvesterXml( jsonObject );
         System.out.println( writeXmlDocumentToString( doc2 ) );
       }
 

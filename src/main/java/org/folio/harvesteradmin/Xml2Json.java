@@ -22,7 +22,9 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 /**
  * Transforms Harvester XML to JSON following FOLIO conventions as closely as possible.
@@ -42,6 +44,7 @@ public class Xml2Json {
    * @param args Arguments ignored
    */
   public static void main (String[] args) {
+
     System.out.println( recordSetXml2json( TestRecords.xmlSampleHarvestables() ).encodePrettily() );
     System.out.println( recordXml2Json( TestRecords.xmlSampleHarvestable() ).encodePrettily() );
   }
@@ -95,30 +98,50 @@ public class Xml2Json {
     {
       logger.error( "Couldn't parse string [" + xml + "] as XML document: " + e.getMessage() );
     }
-    return null;
+    return new JsonObject();
   }
 
   public static JsonObject recordXml2Json( Document doc )
   {
-    JsonObject jsonObject = null;
+    JsonObject outgoingJsonObject = null;
     if ( doc != null )
     {
       stripWhiteSpaceNodes( doc );
-      jsonObject = recurseIntoNode( doc );
+      JsonObject jsonObject = recurseIntoNode( doc );
+      outgoingJsonObject = new JsonObject();
+      Optional<Map.Entry<String, Object>> outerRootObject = getRootObject( jsonObject );
+      if ( outerRootObject.isPresent() )
+      {
+        String outerRootName = outerRootObject.get().getKey();
+        Optional<Map.Entry<String, Object>> innerRootObject = getRootObject(
+                (JsonObject) outerRootObject.get().getValue() );
+        if ( innerRootObject.isPresent() )
+        {
+          outgoingJsonObject = (JsonObject) innerRootObject.get().getValue();
+          outgoingJsonObject.put( "type", innerRootObject.get().getKey() );
+        }
+      }
     }
-    return jsonObject;
+    return outgoingJsonObject;
+  }
+
+  private static Optional<Map.Entry<String, Object>> getRootObject( JsonObject json )
+  {
+    return json.stream().filter( entry -> entry.getValue() instanceof JsonObject ).findFirst();
   }
 
   /**
-   * Creates JSON array of JSON objects from a Node known to contain repeatable
-   * elements
+   * Creates JSON array of JSON objects from a Node known to contain repeatable elements
+   *
    * @param records An XML node with repeatable elements
    * @return XML elements as JSON array
    */
-  private static JsonArray xmlRecords2jsonArray (Node records) {
+  private static JsonArray xmlRecords2jsonArray( Node records )
+  {
     JsonArray jsonArray = new JsonArray();
-    for (Node record : iterable(records)) {
-      jsonArray.add(recurseIntoNode(record));
+    for ( Node record : iterable( records ) )
+    {
+      jsonArray.add( recurseIntoNode( record ) );
     }
     return jsonArray;
   }

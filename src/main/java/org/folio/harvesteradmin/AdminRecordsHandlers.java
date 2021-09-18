@@ -625,27 +625,82 @@ public class AdminRecordsHandlers {
                       "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
             }
           } );
-        }
-        else
-        {
-          responseText( routingContext, idLookUpStatus ).end(
-                  "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().getErrorMessage() );
-        }
-      }
-      else
-      {
-        responseText( routingContext, 500 ).end(
-                "Could not look up record " + apiPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
-      }
-    } );
+                }
+                else
+                {
+                  responseText( routingContext, idLookUpStatus ).end(
+                          "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().getErrorMessage() );
+                }
+              }
+              else
+              {
+                responseText( routingContext, 500 ).end(
+                        "Could not look up record " + apiPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
+              }
+            } );
   }
 
+  /**
+   * Embeds incoming JSON in two levels of outer objects, see {@link #wrapJson(JsonObject, String)} and converts the
+   * result to XML.
+   *
+   * @param json         Incoming JSON
+   * @param rootProperty The top-level property to embed the JSON in
+   * @return wrapped JSON converted to an XML string
+   */
   private String wrapJsonAndConvertToXml( JsonObject json, String rootProperty ) throws ParserConfigurationException, TransformerException
   {
-    JsonObject wrappedObject = new JsonObject();
-    wrappedObject.put( rootProperty, json );
-    Document doc = Json2Xml.recordJson2harvesterXml( wrappedObject.encode() );
+    JsonObject wrapped = wrapJson( json, rootProperty );
+    Document doc = Json2Xml.recordJson2harvesterXml( wrapped );
     return Json2Xml.writeXmlDocumentToString( doc );
+  }
+
+  /**
+   * Takes incoming JSON and embeds it in two levels of root objects to comply with the Harvester schema.<br/> <br/>
+   * For example, the storage entity JSON <br/>
+   * <pre>
+   * {
+   *    "type": "solrStorage",
+   *    "id": "10001",
+   *    "name": "Local SOLR",
+   *    etc
+   * }
+   * </pre>
+   * becomes<br/>
+   * <pre>
+   * {
+   *   "storage": {
+   *     "solrStorage": {
+   *        "id": "10001",
+   *        "name": "Local SOLR",
+   *        etc
+   *     },
+   *     "id": "10001"
+   *   }
+   * }
+   * </pre>
+   *
+   * @param json         Incoming JSON
+   * @param rootProperty The top level property to wrap the incoming JSON in
+   * @return The wrapped JSON
+   */
+  private JsonObject wrapJson( JsonObject json, String rootProperty )
+  {
+    JsonObject wrappedEntity = new JsonObject();
+
+    String type = json.getString( "type" );
+    json.remove( "type" );
+    String id = json.getString( "id" );
+
+    JsonObject innerEntity = new JsonObject();
+    innerEntity.put( type, json.copy() );
+    if ( id != null )
+    {
+      innerEntity.put( "id", id );
+    }
+
+    wrappedEntity.put( rootProperty, innerEntity );
+    return wrappedEntity;
   }
 
   private Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )

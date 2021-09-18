@@ -34,16 +34,8 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
                     }
                     else
                     {
-                        jsonObject = getRootObject( transformed );
-                        if ( jsonObject == null )
-                        {
-                            errorMessage = "Did not find one and only one top-level object in the transformed JSON: " + transformed.encodePrettily();
-                            statusCode = 500;
-                        }
-                        else
-                        {
-                            statusCode = 200;
-                        }
+                        jsonObject = transformed;
+                        statusCode = 200;
                     }
                 }
                 catch ( IOException | ParserConfigurationException | SAXException e )
