@@ -1,0 +1,15 @@
+{
+  "type": "inventoryStorage",
+  "id": "1002",
+  "acl": "diku",
+  "bulkSize": "1000",
+  "currentStatus": "TODO",
+  "customClass": "",
+  "description": "GBV's public Folio demo.",
+  "enabled": "true",
+  "idAsString": "1002",
+  "json": "{\r\n \"folioAuthPath\": \"bl-users/login\",\r\n \"folioTenant\": \"diku\",\r\n \"folioUsername\": \"diku_admin\",\r\n \"folioPassword\": \"admin\",\r\n \"instanceStoragePath\": \"instance-storage/instances\",\r\n \"holdingsStoragePath\": \"holdings-storage/holdings\",\r\n \"itemStoragePath\": \"item-storage/items\"\r\n}",
+  "name": "GBV Demo (updated)",
+  "url": "https://folio-demo.gbv.de/okapi"
+}
+

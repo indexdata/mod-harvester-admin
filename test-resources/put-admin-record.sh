@@ -7,6 +7,11 @@ if [ -z $token ]
     echo "Can't find okapi token-- Make sure to run a login script."
     return || exit 
 fi
+if [ -z $DATA ]
+  then
+    echo "Usage: . ./put-admin-record.sh [id] [json file name]"
+    return || exit
+fi
 OPTS=`cat apis/harvester-admin-endpoints`;
 
 # echo "Choose an endpoint..."
@@ -15,4 +20,4 @@ do
   break
 done
 
-curl -w '\n' --http1.1 -X PUT  "$protocol://$host/harvester-admin/${EP}/${ID}" -d @${DATA} -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json"
+curl -i -w '\n' --http1.1 -X PUT  "$protocol://$host/harvester-admin/${EP}/${ID}" -d @${DATA} -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json"

@@ -16,7 +16,8 @@ done
 
 if [ -z QUERY ] 
   then
-    curl -w '\n' --http1.1 "$protocol://$host/harvester-admin/${EP}?${QUERY}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"
+    curl -i -w '\n' --http1.1 "$protocol://$host/harvester-admin/${EP}?${QUERY}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"
   else
-    curl -w '\n' --http1.1 "$protocol://$host/harvester-admin/${EP}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"
+    echo Using query ${QUERY}
+    curl -i -w '\n' --http1.1 "$protocol://$host/harvester-admin/${EP}?${QUERY}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"
 fi

@@ -1,0 +1,15 @@
+<storage uri="http://localhost:8080/harvester/records/storages/103">
+    <solrStorage>
+        <bulkSize>1000</bulkSize>
+        <currentStatus>TODO</currentStatus>
+        <description>Solr at localhost:8983</description>
+        <enabled>true</enabled>
+        <id>103</id>
+        <name>Solr @ localhost</name>
+        <retryCount>2</retryCount>
+        <retryWait>60</retryWait>
+        <timeout>60</timeout>
+        <url>http://localhost:8983/solr/lui/</url>
+    </solrStorage>
+    <id>103</id>
+</storage>

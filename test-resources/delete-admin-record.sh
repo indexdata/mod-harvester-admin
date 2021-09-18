@@ -14,4 +14,4 @@ do
   break
 done
 
-curl -i -w '\n' --http1.1  "$protocol://$host/harvester-admin/${EP}/${ID}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"
+curl -i -v -w '\n' --http1.1 -X DELETE  "$protocol://$host/harvester-admin/${EP}/${ID}" -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"

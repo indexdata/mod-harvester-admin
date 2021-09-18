@@ -1,12 +1,9 @@
 {
-  "solrStorage": {
-    "bulkSize": "1001",
-    "currentStatus": "NEW",
-    "description": "Solr at localhost:8983 - 104",
-    "enabled": "true",
-    "id": "103",
-    "idAsString": "104",
-    "name": "Solr 104 @ localhost"
-  },
-  "id": "104"
+  "type": "solrStorage",
+  "id": "104",
+  "bulkSize": "1001",
+  "currentStatus": "NEW",
+  "description": "Solr at localhost:8983 - 104",
+  "enabled": "true",
+  "name": "Solr 104 @ localhost"
 }

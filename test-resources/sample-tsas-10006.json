@@ -1,0 +1,10 @@
+{
+  "type": "transformationStepAssociation",
+  "id": "10006",
+  "position": "1",
+  "step": {
+    "entityType": "xmlTransformationStep",
+    "id": "10003"
+  },
+  "transformation": "10004"
+}

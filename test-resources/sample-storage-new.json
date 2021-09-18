@@ -1,0 +1,13 @@
+{
+    "type": "solrStorage",
+    "acl": "diku",
+    "bulkSize": "1000",
+    "currentStatus": "TODO",
+    "description": "New Solr at localhost:8983",
+    "enabled": "true",
+    "name": "Updated Solr @ localhost",
+    "retryCount": "2",
+    "retryWait": "60",
+    "timeout": "60",
+    "url": "http://localhost:8983/solr/lui/"
+}

@@ -1,0 +1,21 @@
+{
+  "holdingsRecordId": "68872d8a-bf16-420b-829f-206da38f6c10",
+  "formerIds": [],
+  "barcode": "697685458670",
+  "effectiveShelvingOrder": "",
+  "effectiveCallNumberComponents": {
+    "callNumber": "some-callnumber"
+  },
+  "yearCaption": [],
+  "notes": [],
+  "circulationNotes": [],
+  "status": {
+    "name": "Checked out",
+    "date": "2021-08-28T08:56:53.155+00:00"
+  },
+  "materialTypeId": "1a54b431-2e4f-452d-9cae-9cee66c9a892",
+  "permanentLoanTypeId": "2e48e713-17f3-4c13-a9f8-23845bb210a4",
+  "electronicAccess": [],
+  "statisticalCodeIds": []
+}
+
