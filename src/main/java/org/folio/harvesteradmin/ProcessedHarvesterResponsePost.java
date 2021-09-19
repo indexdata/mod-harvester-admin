@@ -30,7 +30,7 @@ public class ProcessedHarvesterResponsePost extends ProcessedHarvesterResponse
             else
             {
                 statusCode = 500;
-                errorMessage = "Error: Could not obtain location from Harvester response; needed to confirm that POSTed record was persisted. Status code was " + response.result().statusCode();
+                errorMessage = "Error: Could not obtain location from Harvester response; needed to confirm that POSTed record was persisted: (" + response.result().statusCode() + ") " + response.result().bodyAsString();
             }
         }
         else
