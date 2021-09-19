@@ -1,0 +1,18 @@
+{
+  "bulkSize": "1000",
+  "currentStatus": "NEW",
+  "description": "Inventory storage - dev server",
+  "enabled": "true",
+  "id": "301102",
+  "json": {
+    "folioAuthPath": "bl-users/login",
+    "folioTenant": "si_dev",
+    "folioUsername": "si_admin",
+    "folioPassword": "admin",
+    "inventoryUpsertPath": "shared-inventory-upsert-matchkey",
+    "marcStoragePath": "marc-records"
+  },
+  "name": "SI dev - PALCI",
+  "url": "https://si-dev-okapi.folio-dev.indexdata.com/",
+  "type": "inventoryStorage"
+}
