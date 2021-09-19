@@ -91,7 +91,14 @@ public class Json2Xml {
       {
         Element el = doc.createElement( jsonProperty.getKey() );
         node.appendChild( el );
-        recurseIntoJsonObject( (JsonObject) jsonProperty.getValue(), doc, el );
+        if ( jsonProperty.getKey().equals( "json" ) )
+        {
+          el.setTextContent( ( (JsonObject) jsonProperty.getValue() ).encodePrettily() );
+        }
+        else
+        {
+          recurseIntoJsonObject( (JsonObject) jsonProperty.getValue(), doc, el );
+        }
       }
     }
   }

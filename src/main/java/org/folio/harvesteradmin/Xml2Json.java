@@ -119,6 +119,7 @@ public class Xml2Json {
         {
           outgoingJsonObject = (JsonObject) innerRootObject.get().getValue();
           outgoingJsonObject.put( "type", innerRootObject.get().getKey() );
+          outgoingJsonObject.remove( "idAsString" );
         }
       }
     }
@@ -172,9 +173,18 @@ public class Xml2Json {
         } else {
           json.put(child.getNodeName(), recurseIntoNode(child));
         }
-      } else {
-        json.put(child.getNodeName(), child.getTextContent());
+      } else
+      {
+        if ( child.getNodeName().equals( "json" ) )
+        {
+          json.put( child.getNodeName(), new JsonObject( child.getTextContent() ) );
+        }
+        else
+        {
+          json.put( child.getNodeName(), child.getTextContent() );
+        }
       }
+
     }
     return json;
   }
