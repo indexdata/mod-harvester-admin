@@ -374,10 +374,11 @@ public class AdminRecordsHandlers {
   private void doPostAndRetrieveAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     doPostAndRetrieve( routingContext, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
-      ProcessedHarvesterResponse response = postAndRetrieve.result();
+      ProcessedHarvesterResponsePost response = (ProcessedHarvesterResponsePost) postAndRetrieve.result();
       if ( response.statusCode == 201 )
       {
-        responseJson( routingContext, response.statusCode ).end( response.jsonObject.encodePrettily() );
+        responseJson( routingContext, response.statusCode ).putHeader( "Location", response.location ).end(
+                response.jsonObject.encodePrettily() );
       }
       else
       {

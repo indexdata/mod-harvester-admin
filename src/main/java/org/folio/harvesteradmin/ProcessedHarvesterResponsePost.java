@@ -7,6 +7,7 @@ import io.vertx.ext.web.client.HttpResponse;
 public class ProcessedHarvesterResponsePost extends ProcessedHarvesterResponse
 {
 
+    public String location;
     public ProcessedHarvesterResponsePost( AsyncResult<HttpResponse<Buffer>> response, String apiPath, ProcessedHarvesterResponseGetById confirmationResponse )
     {
         // Check that POST went well and subsequent GET successfully requested the created entity.
@@ -18,6 +19,7 @@ public class ProcessedHarvesterResponsePost extends ProcessedHarvesterResponse
                 {
                     statusCode = 201;
                     jsonObject = confirmationResponse.jsonObject;
+                    location = jsonObject.getString( "id" );
                 }
                 else
                 {
