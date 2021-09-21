@@ -71,7 +71,7 @@ public class RequestDispatcher
 
   public void handleDelete( RoutingContext routingContext )
   {
-    client.deleteAdminRecordAndRespond( routingContext, mapToApiPath( routingContext ) );
+    client.deleteConfigRecordAndRespond( routingContext, mapToApiPath( routingContext ) );
   }
 
   /**

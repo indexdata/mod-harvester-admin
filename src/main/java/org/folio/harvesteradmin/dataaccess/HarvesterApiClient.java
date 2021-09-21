@@ -674,7 +674,7 @@ public class HarvesterApiClient
                 } );
     }
 
-    public void deleteAdminRecordAndRespond( RoutingContext routingContext, String apiPath )
+    public void deleteConfigRecordAndRespond( RoutingContext routingContext, String apiPath )
     {
         String id = routingContext.request().getParam( "id" );
         logger.debug( "Looking up " + apiPath + "/" + id + " before attempting delete" );
