@@ -17,7 +17,13 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.w3c.dom.Document;
+import org.folio.harvesteradmin.bridges.converters.JsonToHarvesterXml;
+import org.folio.harvesteradmin.bridges.responsewrappers.ProcessedHarvesterResponse;
+import org.folio.harvesteradmin.bridges.responsewrappers.ProcessedHarvesterResponseGet;
+import org.folio.harvesteradmin.bridges.responsewrappers.ProcessedHarvesterResponseGetById;
+import org.folio.harvesteradmin.bridges.responsewrappers.ProcessedHarvesterResponsePost;
+import org.folio.harvesteradmin.globalstatics.ApiStatics;
+import org.folio.harvesteradmin.globalstatics.Config;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -29,22 +35,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import static org.folio.harvesteradmin.ApiStatics.*;
+import static org.folio.harvesteradmin.globalstatics.ApiStatics.*;
 import static org.folio.okapi.common.HttpResponse.*;
 
 /**
- * Request handlers that proxy Harvester APIs and convert between
- * Harvester XML and FOLIO JSON.
+ * Request handlers that proxy Harvester APIs and convert between Harvester XML and FOLIO JSON.
+ *
  * @author ne
  */
-public class AdminRecordsHandlers {
+public class RequestHandlers
+{
   private final WebClient harvesterClient;
-  private final Logger logger = LogManager.getLogger( "harvester-admin" );
+  private final static Logger logger = LogManager.getLogger( "harvester-admin" );
+  private final static int BAD_REQUEST = 400;
+  private final static int INTERNAL_SERVER_ERROR = 500;
+  private final static int NO_CONTENT = 204;
+  private final static int CREATED = 201;
 
-  public AdminRecordsHandlers(Vertx vertx)
+  public RequestHandlers( Vertx vertx )
   {
     harvesterClient = WebClient.create( vertx );
-    // logger.setLevel( Config.logLevel );
   }
 
   // Handling STORAGES
@@ -182,13 +192,13 @@ public class AdminRecordsHandlers {
 
   // Harvester requests
 
-  private void respondWithConfigRecords( RoutingContext routingContext, String apiPath )
+  public void respondWithConfigRecords( RoutingContext routingContext, String apiPath )
   {
     logger.debug( "In respondWithConfigRecords, path " + apiPath );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
     }
     else
     {
@@ -197,56 +207,56 @@ public class AdminRecordsHandlers {
               StandardCharsets.UTF_8 ) );
       harvesterClient.get( Config.harvesterPort, Config.harvesterHost, pathAndQuery ).send( ar -> {
         ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, apiPath, query );
-        if ( response.getStatusCode() == 200 )
+        if ( response.wasOK() )
         {
-          responseJson( routingContext, response.getStatusCode() ).end( response.getJsonResponse().encodePrettily() );
+          responseJson( routingContext, response.statusCode() ).end( response.jsonObject().encodePrettily() );
         }
         else
         {
-          logger.error( "GET " + pathAndQuery + " encountered a server error: " + response.getErrorMessage() );
-          responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
+          logger.error( "GET " + pathAndQuery + " encountered a server error: " + response.errorMessage() );
+          responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
         }
       } );
     }
   }
 
-  private void respondWithConfigRecordById( RoutingContext routingContext, String apiPath )
+  public void respondWithConfigRecordById( RoutingContext routingContext, String apiPath )
   {
     String id = routingContext.request().getParam( "id" );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
     }
     else
     {
       harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
         ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar, apiPath, id );
-        if ( response.getStatusCode() == 200 )
+        if ( response.wasOK() )
         {
-          responseJson( routingContext, response.getStatusCode() ).end( response.getJsonResponse().encodePrettily() );
+          responseJson( routingContext, response.statusCode() ).end( response.jsonObject().encodePrettily() );
         }
         else
         {
-          if ( response.getStatusCode() == 500 )
+          if ( response.wasInternalServerError() )
           {
             logger.error(
-                    " GET by ID (" + id + ") to " + apiPath + " encountered a server error: " + response.getErrorMessage() );
+                    " GET by ID (" + id + ") to " + apiPath + " encountered a server error: " + response.errorMessage() );
           }
-          responseText( routingContext, response.getStatusCode() ).end( response.getErrorMessage() );
+          responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
         }
       } );
     }
   }
 
-  private void putConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  public void putConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     String id = routingContext.request().getParam( "id" );
     JsonObject jsonToPut = routingContext.getBodyAsJson();
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
     }
     else
     {
@@ -254,21 +264,21 @@ public class AdminRecordsHandlers {
         if ( idLookUp.succeeded() )
         {
           ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-          if ( idLookUpResponse.statusCode == 404 )
+          if ( idLookUp.result().wasNotFound() )
           {
-            responseText( routingContext, idLookUpResponse.statusCode ).end( idLookUp.result().getErrorMessage() );
+            responseText( routingContext, idLookUpResponse.statusCode() ).end( idLookUp.result().errorMessage() );
           }
-          else if ( idLookUpResponse.statusCode == 200 )
+          else if ( idLookUp.result().wasOK() )
           {
             try
             {
-              String xml = wrapJsonAndConvertToXml( jsonToPut, rootProperty );
+              String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut, rootProperty );
               logger.debug( "PUT of " + xml );
               harvesterClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
                       ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
                 if ( put.succeeded() )
                 {
-                  if ( put.result().statusCode() == 204 )
+                  if ( put.result().statusCode() == NO_CONTENT )
                   {
                     responseText( routingContext, put.result().statusCode() ).end( "" );
                   }
@@ -280,7 +290,7 @@ public class AdminRecordsHandlers {
                 }
                 else
                 {
-                  responseText( routingContext, 500 ).end(
+                  responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                           "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
                 }
               } );
@@ -288,41 +298,40 @@ public class AdminRecordsHandlers {
             catch ( TransformerException | ParserConfigurationException e )
             {
               logger.error( "Error parsing json " + jsonToPut );
-              responseText( routingContext, 500 ).end( "Error parsing json " + jsonToPut );
+              responseText( routingContext, INTERNAL_SERVER_ERROR ).end( "Error parsing json " + jsonToPut );
             }
           }
           else
           {
-            responseText( routingContext, idLookUpResponse.statusCode ).end(
-                    "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.getErrorMessage() );
+            responseText( routingContext, idLookUpResponse.statusCode() ).end(
+                    "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.errorMessage() );
           }
         }
         else
         {
-          responseText( routingContext, 500 ).end(
+          responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                   "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
         }
       } );
     }
   }
 
-  private Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
+  public Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
   {
     Promise<HttpResponse<Buffer>> promisedResponse = Promise.promise();
     String id = ( generatedId == null ? routingContext.request().getParam( "id" ) : generatedId );
     lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
       if ( idLookUp.succeeded() )
       {
-        ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-        if ( idLookUpResponse.statusCode == 404 )
+        if ( idLookUp.result().wasNotFound() )
         {
-          promisedResponse.fail( idLookUp.result().getErrorMessage() + " Status code: " + idLookUpResponse.statusCode );
+          promisedResponse.fail( idLookUp.result().errorMessage() + " Status code: " + idLookUp.result().statusCode() );
         }
-        else if ( idLookUpResponse.statusCode == 200 )
+        else if ( idLookUp.result().wasOK() )
         {
           try
           {
-            String xml = wrapJsonAndConvertToXml( jsonToPut, rootProperty );
+            String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut, rootProperty );
             harvesterClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
                     ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
               if ( put.succeeded() )
@@ -346,7 +355,7 @@ public class AdminRecordsHandlers {
         else
         {
           promisedResponse.fail(
-                  "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.getErrorMessage() );
+                  "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUp.result().errorMessage() );
         }
       }
       else
@@ -373,7 +382,7 @@ public class AdminRecordsHandlers {
    * @param apiPath        the REST path to POST the entity to
    * @param rootProperty   Name of property that wraps the entity in Harvester
    */
-  private void postConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+  public void postConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
     if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
     {
@@ -390,7 +399,7 @@ public class AdminRecordsHandlers {
       String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
       if ( isNonJsonContentType( routingContext ) )
       {
-        responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+        responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
       }
       else
       {
@@ -404,23 +413,24 @@ public class AdminRecordsHandlers {
           lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {  // going to return 422 if found
             if ( idLookUp.succeeded() )
             {
-              ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-              if ( idLookUpResponse.statusCode == 200 )
+              if ( idLookUp.result().wasOK() )
               {
                 responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
               }
-              else if ( idLookUpResponse.statusCode == 404 )
+              else if ( idLookUp.result().wasNotFound() )
               {
                 doPostAndRetrieveAndRespond( routingContext, requestJson, apiPath, rootProperty );
               }
               else
               {
-                responseText( routingContext, idLookUpResponse.statusCode ).end( "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUpResponse.errorMessage );
+                responseText( routingContext, idLookUp.result().statusCode() ).end(
+                        "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().errorMessage() );
               }
             }
             else
             {
-              responseText( routingContext, 500 ).end( "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
+              responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                      "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
             }
           } );
         }
@@ -436,38 +446,38 @@ public class AdminRecordsHandlers {
    * @param apiPath        The Harvester API path to POST the entity to
    * @param rootProperty   The name of wrapping element of the entity in the Harvester's schema
    */
-  private void doPostAndRetrieveAndRespond( RoutingContext routingContext, JsonObject jsonToPost, String apiPath, String rootProperty )
+  public void doPostAndRetrieveAndRespond( RoutingContext routingContext, JsonObject jsonToPost, String apiPath, String rootProperty )
   {
     doPostAndRetrieve( jsonToPost, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
       ProcessedHarvesterResponsePost response = (ProcessedHarvesterResponsePost) postAndRetrieve.result();
-      if ( response.statusCode == 201 )
+      if ( response.wasCreated() )
       {
-        responseJson( routingContext, response.statusCode ).putHeader( "Location", response.location ).end(
-                response.jsonObject.encodePrettily() );
+        responseJson( routingContext, response.statusCode() ).putHeader( "Location", response.location ).end(
+                response.jsonObject().encodePrettily() );
       }
       else
       {
-        responseText( routingContext, response.statusCode ).end( response.errorMessage );
+        responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
       }
     } );
   }
 
-  private Future<ProcessedHarvesterResponse> doPostAndRetrieve( JsonObject jsonToPost, String apiPath, String rootProperty )
+  public Future<ProcessedHarvesterResponse> doPostAndRetrieve( JsonObject jsonToPost, String apiPath, String rootProperty )
   {
     Promise<ProcessedHarvesterResponse> promise = Promise.promise();
     try
     {
-      String xml = wrapJsonAndConvertToXml( jsonToPost, rootProperty );
+      String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPost, rootProperty );
       harvesterClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader(
               ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
         if ( ar.succeeded() )
         {
           String location = ar.result().getHeader( "Location" );
-          if ( ar.result().statusCode() == 201 && location != null )
+          if ( ar.result().statusCode() == CREATED && location != null )
           {
             String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
             lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
-                    // going to return 500 if not found, 201 if found
+                    // going to return 500, internal server error if not found, 201, Created if found
                     lookUpNewlyCreatedRecord -> promise.complete(
                             new ProcessedHarvesterResponsePost( ar, apiPath, lookUpNewlyCreatedRecord.result() ) ) );
           }
@@ -484,19 +494,19 @@ public class AdminRecordsHandlers {
     }
     catch ( TransformerException | ParserConfigurationException e )
     {
-      promise.complete( new ProcessedHarvesterResponsePost( 500, e.getMessage() ) );
+      promise.complete( new ProcessedHarvesterResponsePost( INTERNAL_SERVER_ERROR, e.getMessage() ) );
     }
     return promise.future();
   }
 
-  private void postTransformationAndRespond( RoutingContext routingContext )
+  public void postTransformationAndRespond( RoutingContext routingContext )
   {
     JsonObject requestJson = routingContext.getBodyAsJson();
     logger.debug( "Transformation POST body: " + requestJson.encodePrettily() );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
     }
     else
     {
@@ -507,25 +517,24 @@ public class AdminRecordsHandlers {
                 idLookUp -> { // going to return 422 if found
                   if ( idLookUp.succeeded() )
                   {
-                    int idLookUpStatus = idLookUp.result().getStatusCode();
-                    if ( idLookUpStatus == 200 )
+                    if ( idLookUp.result().wasOK() )
                     {
                       responseText( routingContext, 422 ).end(
                               HARVESTER_TRANSFORMATIONS_PATH + "/" + id + " already exists" );
                     }
-                    else if ( idLookUpStatus == 404 )
+                    else if ( idLookUp.result().wasNotFound() )
                     {
                       doPostTransformationWithoutStepsThenPutWithSteps( routingContext );
                     }
                     else
                     {
-                      responseText( routingContext, idLookUpStatus ).end(
-                              "There was an error (" + idLookUpStatus + ") looking up " + HARVESTER_TRANSFORMATIONS_PATH + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+                      responseText( routingContext, idLookUp.result().statusCode() ).end(
+                              "There was an error (" + idLookUp.result().statusCode() + ") looking up " + HARVESTER_TRANSFORMATIONS_PATH + "/" + id + " before POST: " + idLookUp.result().errorMessage() );
                     }
                   }
                   else
                   {
-                    responseText( routingContext, 500 ).end(
+                    responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                             "Could not look up record " + HARVESTER_TRANSFORMATIONS_PATH + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
                   }
                 } );
@@ -545,7 +554,7 @@ public class AdminRecordsHandlers {
   }
 
 
-  private void doPostTransformationWithoutStepsThenPutWithSteps( RoutingContext routingContext )
+  public void doPostTransformationWithoutStepsThenPutWithSteps( RoutingContext routingContext )
   {
     JsonObject transformationJson = routingContext.getBodyAsJson();
     logger.debug( "About to POST-then-PUT " + transformationJson.encodePrettily() );
@@ -569,14 +578,14 @@ public class AdminRecordsHandlers {
         // found all referenced steps, good to create the transformation
         doPostAndRetrieve( transformationJson, HARVESTER_TRANSFORMATIONS_PATH,
                 TRANSFORMATION_ROOT_PROPERTY ).onComplete( transformationPost -> {
-          if ( transformationPost.succeeded() && transformationPost.result().statusCode == 201 )
+          if ( transformationPost.succeeded() && transformationPost.result().statusCode() == CREATED )
           {
-            JsonObject createdTransformation = transformationPost.result().jsonObject;
+            JsonObject createdTransformation = transformationPost.result().jsonObject();
             createdTransformation.put( "stepAssociations", new JsonArray() );
             for ( int i = 0; i < result.result().size(); i++ )
             {
               ProcessedHarvesterResponseGetById stepResponse = result.result().resultAt( i );
-              JsonObject stepJson = stepResponse.jsonObject;
+              JsonObject stepJson = stepResponse.jsonObject();
               JsonObject tsaJson = new JsonObject();
               tsaJson.put( "id", Integer.toString( getRandomInt() ) );
               tsaJson.put( "position", Integer.toString( i + 1 ) );
@@ -595,20 +604,19 @@ public class AdminRecordsHandlers {
                         createdTransformation.getString( "id" ) ).onComplete( lookup -> {
                   if ( lookup.succeeded() )
                   {
-                    responseJson( routingContext, 201 ).putHeader( "Location",
-                            createdTransformation.getString( "id" ) ).end(
-                            lookup.result().getJsonResponse().encodePrettily() );
+                    responseJson( routingContext, CREATED ).putHeader( "Location",
+                            createdTransformation.getString( "id" ) ).end( lookup.result().jsonObject().encodePrettily() );
                   }
                   else
                   {
-                    responseText( routingContext, 400 ).end(
-                            " Failed to POST (with subsequent PUT and GET) of Transformation. Retrieval failed with  " + lookup.result().errorMessage );
+                    responseText( routingContext, BAD_REQUEST ).end(
+                            " Failed to POST (with subsequent PUT and GET) of Transformation. Retrieval failed with  " + lookup.result().errorMessage() );
                   }
                 } );
               }
               else
               {
-                responseText( routingContext, 400 ).end(
+                responseText( routingContext, BAD_REQUEST ).end(
                         " Failed to POST (with subsequent PUT and GET) of Transformation. PUT failed with  " + putResponse.result().statusMessage() );
               }
             } );
@@ -619,7 +627,7 @@ public class AdminRecordsHandlers {
 
   }
 
-  private void postTsaAndRespond( RoutingContext routingContext )
+  public void postTsaAndRespond( RoutingContext routingContext )
   {
     JsonObject requestJson = routingContext.getBodyAsJson();
     logger.debug( "TSA POST body: " + requestJson.encodePrettily() );
@@ -627,7 +635,7 @@ public class AdminRecordsHandlers {
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
-      responseError( routingContext, 400, "Only accepts Content-Type application/json, was: " + contentType );
+      responseError( routingContext, BAD_REQUEST, "Only accepts Content-Type application/json, was: " + contentType );
     }
     else
     {
@@ -637,23 +645,25 @@ public class AdminRecordsHandlers {
         lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_STEPS_PATH, id ).onComplete( idLookUp -> { // going to return 422 if found
           if ( idLookUp.succeeded() )
           {
-            int idLookUpStatus = idLookUp.result().getStatusCode();
-            if ( idLookUpStatus == 200 )
+            if ( idLookUp.result().wasOK() )
             {
-              responseText( routingContext, 422 ).end( HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
+              responseText( routingContext, 422 ).end(
+                      HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " already exists" );
             }
-            else if ( idLookUpStatus == 404 )
+            else if ( idLookUp.result().wasNotFound() )
             {
               doPostTsaPutTransformationAndRespond( routingContext );
             }
             else
             {
-              responseText( routingContext, idLookUpStatus ).end( "There was an error (" + idLookUpStatus + ") looking up " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.result().getErrorMessage() );
+              responseText( routingContext, idLookUp.result().statusCode() ).end(
+                      "There was an error (" + idLookUp.result().statusCode() + ") looking up " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.result().errorMessage() );
             }
           }
           else
           {
-            responseText( routingContext, 500 ).end( "Could not look up record " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
+            responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                    "Could not look up record " + HARVESTER_TRANSFORMATIONS_STEPS_PATH + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
           }
         } );
       }
@@ -666,7 +676,7 @@ public class AdminRecordsHandlers {
     }
   }
 
-  private JsonArray insertStepIntoPipeline( JsonArray existingSteps, JsonObject updatingStep )
+  public JsonArray insertStepIntoPipeline( JsonArray existingSteps, JsonObject updatingStep )
   {
     logger.debug( "Inserting/moving step: " + updatingStep.encodePrettily() );
     JsonArray updatedListOfSteps = new JsonArray();
@@ -691,7 +701,7 @@ public class AdminRecordsHandlers {
     return updatedListOfSteps;
   }
 
-  private void doPostTsaPutTransformationAndRespond( RoutingContext routingContext )
+  public void doPostTsaPutTransformationAndRespond( RoutingContext routingContext )
   {
     JsonObject incomingTsa = routingContext.getBodyAsJson();
     String transformationId = incomingTsa.getString( "transformation" );
@@ -715,7 +725,7 @@ public class AdminRecordsHandlers {
             doPostAndRetrieve( incomingTsa, HARVESTER_TRANSFORMATIONS_STEPS_PATH, TRANSFORMATION_STEP_ROOT_PROPERTY ).onComplete( result -> {
               if ( result.succeeded() && result.result() != null )
               {
-                JsonObject transformationStepAssociation = result.result().jsonObject;
+                JsonObject transformationStepAssociation = result.result().jsonObject();
                 logger.debug( "Posted TSA, got: " + transformationStepAssociation.encodePrettily() );
                 // Get the transformation
                 lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH, transformationId ).onComplete(
@@ -724,7 +734,7 @@ public class AdminRecordsHandlers {
                           if ( transformationById.succeeded() && transformationById.result().found() )
                           {
                             // Insert the tsa in the transformation JSON
-                            JsonObject transformation = transformationById.result().jsonObject;
+                            JsonObject transformation = transformationById.result().jsonObject();
                             logger.debug( "Got basic transformation " + transformation.encodePrettily() );
                             transformation.put( "stepAssociations",
                                     insertStepIntoPipeline( transformation.getJsonArray( "stepAssociations" ),
@@ -732,16 +742,17 @@ public class AdminRecordsHandlers {
                             try
                             {
                               // PUT the transformation
-                              String xml = wrapJsonAndConvertToXml( transformation, TRANSFORMATION_ROOT_PROPERTY );
+                              String xml = JsonToHarvesterXml.convertToHarvesterRecord( transformation,
+                                      TRANSFORMATION_ROOT_PROPERTY );
                               harvesterClient.put( Config.harvesterPort, Config.harvesterHost,
                                       HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).putHeader(
                                       ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer(
                                       Buffer.buffer( xml ), ar -> {
                                         if ( ar.succeeded() )
                                         {
-                                          if ( ar.result().statusCode() == 204 )
+                                          if ( ar.result().statusCode() == NO_CONTENT )
                                           {
-                                            responseJson( routingContext, 201 ).end(
+                                            responseJson( routingContext, CREATED ).end(
                                                     transformationStepAssociation.encodePrettily() );
                                           }
                                           else
@@ -752,7 +763,7 @@ public class AdminRecordsHandlers {
                                         }
                                         else
                                         {
-                                          responseText( routingContext, 500 ).end(
+                                          responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                                                   "There was an error PUTting to " + HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId + ": " + ar.cause().getMessage() );
                                         }
                                       } );
@@ -761,7 +772,8 @@ public class AdminRecordsHandlers {
                             catch ( TransformerException | ParserConfigurationException xe )
                             {
                               logger.error( "Error parsing json " + transformation );
-                              responseText( routingContext, 500 ).end( "Error parsing json " + transformation );
+                              responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                      "Error parsing json " + transformation );
                             }
                           }
                           else
@@ -789,21 +801,22 @@ public class AdminRecordsHandlers {
     String id = routingContext.request().getParam( "id" );
     logger.debug( "Looking up " + apiPath + "/" + id + " before attempting delete" );
     lookUpHarvesterRecordById( apiPath, id ).onComplete(
-            idLookUp -> {  // going to return 404 if not found, else 204 (deleted)
+            idLookUp -> {  // going to return 404 if not found, else 204 (no content/deleted)
               if ( idLookUp.succeeded() )
               {
-                int idLookUpStatus = idLookUp.result().getStatusCode();
-                logger.debug( "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUpStatus );
-                if ( idLookUpStatus == 404 )
+                logger.debug(
+                        "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUp.result().statusCode() );
+                if ( idLookUp.result().wasNotFound() )
                 {
-                  responseText( routingContext, idLookUpStatus ).end( idLookUp.result().getErrorMessage() );
+                  responseText( routingContext, idLookUp.result().statusCode() ).end(
+                          idLookUp.result().errorMessage() );
                 }
-                else if ( idLookUpStatus == 200 )
+                else if ( idLookUp.result().wasOK() )
                 {
                   harvesterClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
                     if ( ar.succeeded() )
                     {
-                      if ( ar.result().statusCode() == 204 )
+                      if ( ar.result().statusCode() == NO_CONTENT )
                       {
                         responseText( routingContext, ar.result().statusCode() ).end( apiPath + "/" + id + " deleted" );
                       }
@@ -815,89 +828,26 @@ public class AdminRecordsHandlers {
                     }
                     else
                     {
-                      responseText( routingContext, 500 ).end(
+                      responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                               "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
                     }
                   } );
                 }
                 else
                 {
-                  responseText( routingContext, idLookUpStatus ).end(
-                          "There was an error (" + idLookUpStatus + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().getErrorMessage() );
+                  responseText( routingContext, idLookUp.result().statusCode() ).end(
+                          "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().errorMessage() );
                 }
               }
               else
               {
-                responseText( routingContext, 500 ).end(
+                responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
                         "Could not look up record " + apiPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
               }
             } );
   }
 
-  /**
-   * Embeds incoming JSON in two levels of outer objects, see {@link #wrapJson(JsonObject, String)} and converts the
-   * result to XML.
-   *
-   * @param json         Incoming JSON
-   * @param rootProperty The top-level property to embed the JSON in
-   * @return wrapped JSON converted to an XML string
-   */
-  private String wrapJsonAndConvertToXml( JsonObject json, String rootProperty ) throws ParserConfigurationException, TransformerException
-  {
-    JsonObject wrapped = wrapJson( json, rootProperty );
-    Document doc = Json2Xml.recordJson2harvesterXml( wrapped );
-    return Json2Xml.writeXmlDocumentToString( doc );
-  }
-
-  /**
-   * Takes incoming JSON and embeds it in two levels of root objects to comply with the Harvester schema.<br/> <br/>
-   * For example, the storage entity JSON <br/>
-   * <pre>
-   * {
-   *    "type": "solrStorage",
-   *    "id": "10001",
-   *    "name": "Local SOLR",
-   *    etc
-   * }
-   * </pre>
-   * becomes<br/>
-   * <pre>
-   * {
-   *   "storage": {
-   *     "solrStorage": {
-   *        "id": "10001",
-   *        "name": "Local SOLR",
-   *        etc
-   *     },
-   *     "id": "10001"
-   *   }
-   * }
-   * </pre>
-   *
-   * @param json         Incoming JSON
-   * @param rootProperty The top level property to wrap the incoming JSON in
-   * @return The wrapped JSON
-   */
-  private JsonObject wrapJson( JsonObject json, String rootProperty )
-  {
-    JsonObject wrappedEntity = new JsonObject();
-
-    String type = json.getString( "type" );
-    json.remove( "type" );
-    String id = json.getString( "id" );
-
-    JsonObject innerEntity = new JsonObject();
-    innerEntity.put( type, json.copy() );
-    if ( id != null )
-    {
-      innerEntity.put( "id", id );
-    }
-
-    wrappedEntity.put( rootProperty, innerEntity );
-    return wrappedEntity;
-  }
-
-  private Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )
+  public Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )
   {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
     harvesterClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
@@ -907,18 +857,18 @@ public class AdminRecordsHandlers {
     return promise.future();
   }
 
-  private String acl( RoutingContext ctx )
+  public String acl( RoutingContext ctx )
   {
     return "acl=" + getTenant( ctx );
   }
 
-  private boolean isNonJsonContentType( RoutingContext ctx )
+  public boolean isNonJsonContentType( RoutingContext ctx )
   {
     String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
     return ( contentType != null && !contentType.startsWith( "application/json" ) );
   }
 
-  private String getTenant( RoutingContext ctx )
+  public String getTenant( RoutingContext ctx )
   {
     return ctx.request().getHeader( "x-okapi-tenant" );
   }

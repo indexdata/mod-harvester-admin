@@ -1,14 +1,10 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.responsewrappers;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
+import org.folio.harvesteradmin.bridges.converters.HarvesterXml2Json;
 
 
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse
@@ -23,26 +19,16 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
 
             if ( harvesterStatusCode == 200 )
             {
-                try
+                JsonObject transformed = HarvesterXml2Json.convertRecordToJson( bodyAsString );
+                if ( transformed == null )
                 {
-                    Document doc = Xml2Json.XMLStringToXMLDocument( bodyAsString );
-                    JsonObject transformed = Xml2Json.recordXml2Json( doc );
-                    if ( transformed == null )
-                    {
-                        errorMessage = "Attempted transformation of the Harvester response [" + bodyAsString + "] failed to produce a JSON object";
-                        statusCode = 500;
-                    }
-                    else
-                    {
-                        jsonObject = transformed;
-                        statusCode = 200;
-                    }
-                }
-                catch ( IOException | ParserConfigurationException | SAXException e )
-                {
-                    jsonObject = new JsonObject();
-                    errorMessage = "Could not create XML document from Harvester response [" + bodyAsString + "]";
+                    errorMessage = "Attempted transformation of the Harvester response [" + bodyAsString + "] failed to produce a JSON object";
                     statusCode = 500;
+                }
+                else
+                {
+                    jsonObject = transformed;
+                    statusCode = 200;
                 }
             }
             else if ( notFound( harvesterStatusCode, bodyAsString ) )

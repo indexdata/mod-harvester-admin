@@ -12,10 +12,11 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.harvesteradmin.globalstatics.Config;
 
 import java.lang.management.ManagementFactory;
 
-import static org.folio.harvesteradmin.ApiStatics.*;
+import static org.folio.harvesteradmin.globalstatics.ApiStatics.*;
 
 /**
  * Main point of entry for the harvester-admin service
@@ -34,41 +35,41 @@ public class MainVerticle extends AbstractVerticle
     new Config();
     logger.info(
             "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort );
-    AdminRecordsHandlers adminRecordsHandlers = new AdminRecordsHandlers( vertx );
+    RequestHandlers requestHandlers = new RequestHandlers( vertx );
 
     Router router = Router.router( vertx );
     router.put( "/*" ).handler( BodyHandler.create() ); // Tell vertx we want the whole PUT body in the handler
     router.post( "/*" ).handler( BodyHandler.create() );
 
-    router.get( THIS_HARVESTABLES_PATH ).handler( adminRecordsHandlers::handleGetHarvestables );
-    router.get( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handleGetHarvestableById );
-    router.put( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handlePutHarvestable );
-    router.post( THIS_HARVESTABLES_PATH ).handler( adminRecordsHandlers::handlePostHarvestable );
-    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( adminRecordsHandlers::handleDeleteHarvestable );
+    router.get( THIS_HARVESTABLES_PATH ).handler( requestHandlers::handleGetHarvestables );
+    router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handleGetHarvestableById );
+    router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handlePutHarvestable );
+    router.post( THIS_HARVESTABLES_PATH ).handler( requestHandlers::handlePostHarvestable );
+    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handleDeleteHarvestable );
 
-    router.get( THIS_STORAGES_PATH ).handler( adminRecordsHandlers::handleGetStorages );
-    router.get( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handleGetStorageById );
-    router.put( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handlePutStorage );
-    router.post( THIS_STORAGES_PATH ).handler( adminRecordsHandlers::handlePostStorage );
-    router.delete( THIS_STORAGES_ID_PATH ).handler( adminRecordsHandlers::handleDeleteStorage );
+    router.get( THIS_STORAGES_PATH ).handler( requestHandlers::handleGetStorages );
+    router.get( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handleGetStorageById );
+    router.put( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handlePutStorage );
+    router.post( THIS_STORAGES_PATH ).handler( requestHandlers::handlePostStorage );
+    router.delete( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handleDeleteStorage );
 
-    router.get( THIS_TRANSFORMATIONS_PATH ).handler( adminRecordsHandlers::handleGetTransformations );
-    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationById );
-    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformation );
-    router.post( THIS_TRANSFORMATIONS_PATH ).handler( adminRecordsHandlers::handlePostTransformation );
-    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteTransformation );
+    router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestHandlers::handleGetTransformations );
+    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handleGetTransformationById );
+    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handlePutTransformation );
+    router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestHandlers::handlePostTransformation );
+    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handleDeleteTransformation );
 
-    router.get( THIS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetSteps );
-    router.get( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetStepById );
-    router.put( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutStep );
-    router.post( THIS_STEPS_PATH ).handler( adminRecordsHandlers::handlePostStep );
-    router.delete( THIS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteStep );
+    router.get( THIS_STEPS_PATH ).handler( requestHandlers::handleGetSteps );
+    router.get( THIS_STEPS_ID_PATH ).handler( requestHandlers::handleGetStepById );
+    router.put( THIS_STEPS_ID_PATH ).handler( requestHandlers::handlePutStep );
+    router.post( THIS_STEPS_PATH ).handler( requestHandlers::handlePostStep );
+    router.delete( THIS_STEPS_ID_PATH ).handler( requestHandlers::handleDeleteStep );
 
-    router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( adminRecordsHandlers::handleGetTransformationSteps );
-    router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleGetTransformationStepById );
-    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handlePutTransformationStep );
-    router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( adminRecordsHandlers::handlePostTransformationStep );
-    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( adminRecordsHandlers::handleDeleteTransformationStep );
+    router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestHandlers::handleGetTransformationSteps );
+    router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handleGetTransformationStepById );
+    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handlePutTransformationStep );
+    router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestHandlers::handlePostTransformationStep );
+    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handleDeleteTransformationStep );
 
     vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
       if ( result.succeeded() )

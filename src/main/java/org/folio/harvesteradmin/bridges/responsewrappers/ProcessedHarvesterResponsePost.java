@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.responsewrappers;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;

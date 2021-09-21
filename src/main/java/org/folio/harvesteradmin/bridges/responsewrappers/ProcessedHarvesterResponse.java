@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.responsewrappers;
 
 import io.vertx.core.json.JsonObject;
 
@@ -19,19 +19,48 @@ public abstract class ProcessedHarvesterResponse
         return bodyAsString;
     }
 
-    public int getStatusCode()
+    public int statusCode()
     {
         return statusCode;
     }
 
-    public JsonObject getJsonResponse()
+    public JsonObject jsonObject()
     {
         return jsonObject;
     }
 
-    public String getErrorMessage()
+    public String errorMessage()
     {
         return errorMessage;
     }
 
+    public boolean wasOK()
+    {
+        return statusCode == 200;
+    }
+
+    public boolean wasUnprocessableEntity()
+    {
+        return statusCode == 422;
+    }
+
+    public boolean wasCreated()
+    {
+        return statusCode == 201;
+    }
+
+    public boolean wasInternalServerError()
+    {
+        return statusCode == 500;
+    }
+
+    public boolean wasNotFound()
+    {
+        return statusCode == 404;
+    }
+
+    public boolean wasNoContent()
+    {
+        return statusCode == 204;
+    }
 }

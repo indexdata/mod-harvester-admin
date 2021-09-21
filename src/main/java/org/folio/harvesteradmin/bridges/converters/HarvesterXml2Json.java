@@ -3,12 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.converters;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.harvesteradmin.TestRecords;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -36,31 +37,44 @@ import java.util.Optional;
  *
  * @author ne
  */
-public class Xml2Json {
+public class HarvesterXml2Json
+{
 
   private static final Logger logger = LogManager.getLogger( "harvester-admin" );
-  /**
-   * main is meant for troubleshooting the transformation or testing changes to it.
-   * @param args Arguments ignored
-   */
-  public static void main (String[] args) {
 
-    System.out.println( recordSetXml2json( TestRecords.xmlSampleHarvestables() ).encodePrettily() );
-    System.out.println( recordXml2Json( TestRecords.xmlSampleHarvestable() ).encodePrettily() );
+
+  /**
+   * Creates JSON object from XML String containing non-repeatable elements
+   *
+   * @param xml The XML to convert
+   * @return JsonObject created from the provided XML
+   */
+  public static JsonObject convertRecordToJson( String xml )
+  {
+    try
+    {
+      Document doc = XMLStringToXMLDocument( xml );
+      return convertRecordToJson( doc );
+    }
+    catch ( IOException | ParserConfigurationException | SAXException e )
+    {
+      logger.error( "Couldn't parse string [" + xml + "] as XML document: " + e.getMessage() );
+    }
+    return new JsonObject();
   }
 
   /**
-   * Create JSON object from XML String of an element known to contain 0, 1
-   * or more repeatable elements.
-   *
-   * Note: This would not work for an element containing children that were
-   * a mix of repeatable and none repeatable elements or an element containing
-   * multiple different repeatable elements (none of this in the Harvester APIs currently)
+   * Create JSON object from XML String of an element known to contain 0, 1 or more repeatable elements.
+   * <p>
+   * Note: This would not work for an element containing children that were a mix of repeatable and none repeatable
+   * elements or an element containing multiple different repeatable elements (none of this in the Harvester APIs
+   * currently)
    *
    * @param xml Harvester XML output
    * @return JSON representation of Harvester XML
    */
-  public static JsonObject recordSetXml2json(String xml) {
+  public static JsonObject convertRecordSetToJson( String xml )
+  {
     JsonObject jsonObject = new JsonObject();
     try
     {
@@ -81,27 +95,7 @@ public class Xml2Json {
     return jsonObject;
   }
 
-  /**
-   * Creates JSON object from XML String containing non-repeatable elements
-   *
-   * @param xml The XML to convert
-   * @return JsonObject created from the provided XML
-   */
-  public static JsonObject recordXml2Json( String xml )
-  {
-    try
-    {
-      Document doc = XMLStringToXMLDocument( xml );
-      return recordXml2Json( doc );
-    }
-    catch ( IOException | ParserConfigurationException | SAXException e )
-    {
-      logger.error( "Couldn't parse string [" + xml + "] as XML document: " + e.getMessage() );
-    }
-    return new JsonObject();
-  }
-
-  public static JsonObject recordXml2Json( Document doc )
+  private static JsonObject convertRecordToJson( Document doc )
   {
     JsonObject outgoingJsonObject = null;
     if ( doc != null )
@@ -112,7 +106,6 @@ public class Xml2Json {
       Optional<Map.Entry<String, Object>> outerRootObject = getRootObject( jsonObject );
       if ( outerRootObject.isPresent() )
       {
-        String outerRootName = outerRootObject.get().getKey();
         Optional<Map.Entry<String, Object>> innerRootObject = getRootObject(
                 (JsonObject) outerRootObject.get().getValue() );
         if ( innerRootObject.isPresent() )
@@ -275,11 +268,23 @@ public class Xml2Json {
    * @param xmlString String to build XML DOM from
    * @return XML as DOM or null if an exception occurred
    */
-  public static Document XMLStringToXMLDocument( String xmlString ) throws IOException, ParserConfigurationException, SAXException
+  private static Document XMLStringToXMLDocument( String xmlString ) throws IOException, ParserConfigurationException, SAXException
   {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder = factory.newDocumentBuilder();
-    return builder.parse( new InputSource( new StringReader( xmlString)));
+    return builder.parse( new InputSource( new StringReader( xmlString ) ) );
+  }
+
+  /**
+   * main is meant for troubleshooting the transformation or testing changes to it.
+   *
+   * @param args Arguments ignored
+   */
+  public static void main( String[] args )
+  {
+
+    System.out.println( convertRecordSetToJson( TestRecords.xmlSampleHarvestables() ).encodePrettily() );
+    System.out.println( convertRecordToJson( TestRecords.xmlSampleHarvestable() ).encodePrettily() );
   }
 
 }

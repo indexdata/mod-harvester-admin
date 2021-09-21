@@ -3,12 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.converters;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.harvesteradmin.TestRecords;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -25,12 +26,27 @@ import java.io.StringWriter;
 import java.util.Map.Entry;
 
 /**
- *
  * @author ne
  */
-public class Json2Xml {
+public class JsonToHarvesterXml
+{
 
   private static final Logger logger = LogManager.getLogger( "harvester-admin" );
+
+  /**
+   * Embeds incoming JSON in two levels of outer objects, see {@link #wrapJson(JsonObject, String)} and converts the
+   * result to XML.
+   *
+   * @param json         Incoming JSON
+   * @param rootProperty The top-level property to embed the JSON in
+   * @return wrapped JSON converted to an XML string
+   */
+  public static String convertToHarvesterRecord( JsonObject json, String rootProperty ) throws ParserConfigurationException, TransformerException
+  {
+    JsonObject wrapped = wrapJson( json, rootProperty );
+    Document doc = recordJsonToHarvesterXml( wrapped );
+    return writeXmlDocumentToString( doc );
+  }
 
   /**
    * Creates XML document from a JSON structure
@@ -38,7 +54,7 @@ public class Json2Xml {
    * @param json structure to transform
    * @return XML document
    */
-  public static Document recordJson2harvesterXml( JsonObject json ) throws DOMException, ParserConfigurationException
+  private static Document recordJsonToHarvesterXml( JsonObject json ) throws DOMException, ParserConfigurationException
   {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -66,7 +82,7 @@ public class Json2Xml {
    * @param doc    The XML document to add elements to
    * @param node   The XML element corresponding to the JSON object
    */
-  public static void recurseIntoJsonObject (JsonObject object, Document doc, Element node)
+  private static void recurseIntoJsonObject( JsonObject object, Document doc, Element node )
   {
     for ( Entry<String, Object> jsonProperty : object )
     {
@@ -115,7 +131,7 @@ public class Json2Xml {
    * @param doc The owner document
    * @param parent The parent element
    */
-  public static void iterateJsonArray (String arrayName, JsonArray array, Document doc, Element parent)
+  private static void iterateJsonArray( String arrayName, JsonArray array, Document doc, Element parent )
   {
     for ( Object element : array )
     {
@@ -135,7 +151,7 @@ public class Json2Xml {
    * @param xmlDocument The XML document to be written to a String
    * @return XML String
    */
-  public static String writeXmlDocumentToString( Document xmlDocument ) throws TransformerException
+  private static String writeXmlDocumentToString( Document xmlDocument ) throws TransformerException
   {
     TransformerFactory tf = TransformerFactory.newInstance();
     Transformer transformer;
@@ -145,6 +161,55 @@ public class Json2Xml {
     return writer.getBuffer().toString();
   }
 
+
+  /**
+   * Takes incoming JSON and embeds it in two levels of root objects to comply with the Harvester schema.<br/> <br/>
+   * For example, the storage entity JSON <br/>
+   * <pre>
+   * {
+   *    "type": "solrStorage",
+   *    "id": "10001",
+   *    "name": "Local SOLR",
+   *    etc
+   * }
+   * </pre>
+   * becomes<br/>
+   * <pre>
+   * {
+   *   "storage": {
+   *     "solrStorage": {
+   *        "id": "10001",
+   *        "name": "Local SOLR",
+   *        etc
+   *     },
+   *     "id": "10001"
+   *   }
+   * }
+   * </pre>
+   *
+   * @param json         Incoming JSON
+   * @param rootProperty The top level property to wrap the incoming JSON in
+   * @return The wrapped JSON
+   */
+  private static JsonObject wrapJson( JsonObject json, String rootProperty )
+  {
+    JsonObject wrappedEntity = new JsonObject();
+
+    String type = json.getString( "type" );
+    json.remove( "type" );
+    String id = json.getString( "id" );
+
+    JsonObject innerEntity = new JsonObject();
+    innerEntity.put( type, json.copy() );
+    if ( id != null )
+    {
+      innerEntity.put( "id", id );
+    }
+
+    wrappedEntity.put( rootProperty, innerEntity );
+    return wrappedEntity;
+  }
+
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
    */
@@ -152,13 +217,13 @@ public class Json2Xml {
   {
     try
     {
-      Document doc = recordJson2harvesterXml( new JsonObject( TestRecords.jsonSampleHarvestable()) );
+      Document doc = recordJsonToHarvesterXml( new JsonObject( TestRecords.jsonSampleHarvestable() ) );
       System.out.println( writeXmlDocumentToString( doc ) );
 
-      JsonObject jsonObject = Xml2Json.recordXml2Json( TestRecords.xmlSampleHarvestable() );
+      JsonObject jsonObject = HarvesterXml2Json.convertRecordToJson( TestRecords.xmlSampleHarvestable() );
       if ( jsonObject != null )
       {
-        Document doc2 = recordJson2harvesterXml( jsonObject );
+        Document doc2 = recordJsonToHarvesterXml( jsonObject );
         System.out.println( writeXmlDocumentToString( doc2 ) );
       }
 

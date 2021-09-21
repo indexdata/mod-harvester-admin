@@ -5,15 +5,20 @@
  */
 package org.folio.harvesteradmin;
 
+import org.folio.harvesteradmin.bridges.converters.HarvesterXml2Json;
+import org.folio.harvesteradmin.bridges.converters.JsonToHarvesterXml;
+
 /**
- * Sample records for testing {@link Json2Xml} and {@link Xml2Json}
+ * Sample records for testing {@link JsonToHarvesterXml} and {@link HarvesterXml2Json}
+ *
  * @author ne
  */
-public class TestRecords {
+public class TestRecords
+{
 
-  public static String jsonSampleHarvestable() {
-    return "{\n" +
-          "  \"harvestable\" : {\n" +
+  public static String jsonSampleHarvestable()
+  {
+    return "{\n" + "  \"harvestable\" : {\n" +
           "    \"xmlBulk\" : {\n" +
           "      \"allowErrors\" : \"false\",\n" +
           "      \"cacheEnabled\" : \"false\",\n" +

@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.globalstatics;
 
 public class ApiStatics
 {

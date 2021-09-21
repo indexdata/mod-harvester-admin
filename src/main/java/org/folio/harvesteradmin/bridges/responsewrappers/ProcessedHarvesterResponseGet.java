@@ -1,9 +1,10 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.bridges.responsewrappers;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
+import org.folio.harvesteradmin.bridges.converters.HarvesterXml2Json;
 
 public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse
 {
@@ -16,7 +17,7 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse
             statusCode = harvesterStatusCode;
             if ( harvesterStatusCode == 200 )
             {
-                jsonObject = Xml2Json.recordSetXml2json( bodyAsString );
+                jsonObject = HarvesterXml2Json.convertRecordSetToJson( bodyAsString );
             }
             else
             {

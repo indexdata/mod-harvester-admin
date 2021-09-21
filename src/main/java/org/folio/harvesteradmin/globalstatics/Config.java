@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin;
+package org.folio.harvesteradmin.globalstatics;
 
 import org.apache.logging.log4j.Level;
 
