@@ -1,0 +1,19 @@
+{
+  "description": "brief transformation step records",
+  "type": "object",
+  "properties": {
+    "harvestables": {
+      "description": "List of transformation step definitions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "stepBrief.json"
+      }
+    },
+    "totalRecords": {
+      "description": "Total number of records in response",
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

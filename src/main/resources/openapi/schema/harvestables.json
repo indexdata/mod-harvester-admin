@@ -1,0 +1,19 @@
+{
+  "description": "brief harvest job definition records",
+  "type": "object",
+  "properties": {
+    "harvestables": {
+      "description": "List of harvest job definitions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "harvestableBrief.json"
+      }
+    },
+    "totalRecords": {
+      "description": "Total number of records in response",
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

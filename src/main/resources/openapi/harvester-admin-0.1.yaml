@@ -1,0 +1,95 @@
+openapi: 3.0.0
+info:
+  title: Harvester Admin API
+  version: v0.1
+paths:
+  /harvester-admin/harvestables:
+    get:
+      description: Get brief harvest job definitions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/harvestables.json
+        "500":
+          $ref: "#/components/responses/trait_500"
+  /harvester-admin/storages:
+    get:
+      description: Get brief storage definition records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/storages.json
+        "500":
+          $ref: "#/components/responses/trait_500"
+  /harvester-admin/transformations:
+    get:
+      description: Get brief transformation definition records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/transformations.json
+        "500":
+          $ref: "#/components/responses/trait_500"
+  /harvester-admin/steps:
+    get:
+      description: Get brief transformation step definition records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/steps.json
+        "500":
+          $ref: "#/components/responses/trait_500"
+  /harvester-admin/tsas:
+    get:
+      description: Get transformation step association records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/steps.json
+        "500":
+          $ref: "#/components/responses/trait_500"
+components:
+  responses:
+    trait_400:
+      description: Bad request
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Invalid JSON in request
+    trait_404:
+      description: Not Found
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: 1234 not found
+    trait_422:
+      description: Unprocessable entity
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Record already exists
+    trait_500:
+      description: Internal error
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Internal server error, contact administrator

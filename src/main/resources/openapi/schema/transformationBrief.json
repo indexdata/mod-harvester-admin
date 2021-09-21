@@ -1,0 +1,31 @@
+{
+  "description": "brief transformation pipeline record",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "unique identifier for the transformation pipeline"
+    },
+    "name": {
+      "type": "string",
+      "description": "a name assigned to the transformation pipeline"
+    },
+    "description": {
+      "type": "string",
+      "description": "additional text describing this transformation pipeline "
+    },
+    "inputFormat": {
+      "type": "string",
+      "description": "free-text describing the format of input to this transformation step"
+    },
+    "outputFormat": {
+      "type": "string",
+      "description": "free-text describing the format of the output from this transformation step"
+    },
+    "type": {
+      "type": "string",
+      "description": "free-text describing what kind of transformation this step performs"
+    },
+    "additionalProperties": false
+  }
+}

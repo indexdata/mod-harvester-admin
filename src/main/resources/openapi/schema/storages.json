@@ -1,0 +1,19 @@
+{
+  "description": "brief storage configuration records",
+  "type": "object",
+  "properties": {
+    "harvestables": {
+      "description": "List of storage definitions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "storageBrief.json"
+      }
+    },
+    "totalRecords": {
+      "description": "Total number of records in response",
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}
