@@ -15,7 +15,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -38,12 +39,12 @@ import static org.folio.okapi.common.HttpResponse.*;
  */
 public class AdminRecordsHandlers {
   private final WebClient harvesterClient;
-  private final Logger logger = Logger.getLogger( "harvester-admin" );
+  private final Logger logger = LogManager.getLogger( "harvester-admin" );
 
   public AdminRecordsHandlers(Vertx vertx)
   {
     harvesterClient = WebClient.create( vertx );
-    logger.setLevel( Config.logLevel );
+    // logger.setLevel( Config.logLevel );
   }
 
   // Handling STORAGES
@@ -183,6 +184,7 @@ public class AdminRecordsHandlers {
 
   private void respondWithConfigRecords( RoutingContext routingContext, String apiPath )
   {
+    logger.debug( "In respondWithConfigRecords, path " + apiPath );
     String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
     if ( isNonJsonContentType( routingContext ) )
     {
@@ -236,59 +238,6 @@ public class AdminRecordsHandlers {
       } );
     }
   }
-
-  private Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
-  {
-    Promise<HttpResponse<Buffer>> promisedResponse = Promise.promise();
-    String id = ( generatedId == null ? routingContext.request().getParam( "id" ) : generatedId );
-    lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
-      if ( idLookUp.succeeded() )
-      {
-        ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-        if ( idLookUpResponse.statusCode == 404 )
-        {
-          promisedResponse.fail( idLookUp.result().getErrorMessage() + " Status code: " + idLookUpResponse.statusCode );
-        }
-        else if ( idLookUpResponse.statusCode == 200 )
-        {
-          try
-          {
-            String xml = wrapJsonAndConvertToXml( jsonToPut, rootProperty );
-            harvesterClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
-                    ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
-              if ( put.succeeded() )
-              {
-                promisedResponse.complete( put.result() );
-              }
-              else
-              {
-                promisedResponse.fail(
-                        "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
-              }
-            } );
-          }
-          catch ( TransformerException | ParserConfigurationException e )
-          {
-            logger.error( "Error parsing json " + jsonToPut );
-            promisedResponse.fail(
-                    "There was an error PUTting to " + apiPath + "/" + id + ": " + "Error parsing json " + jsonToPut );
-          }
-        }
-        else
-        {
-          promisedResponse.fail(
-                  "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.getErrorMessage() );
-        }
-      }
-      else
-      {
-        promisedResponse.fail(
-                "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
-      }
-    } );
-    return promisedResponse.future();
-  }
-
 
   private void putConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
   {
@@ -356,6 +305,59 @@ public class AdminRecordsHandlers {
       } );
     }
   }
+
+  private Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
+  {
+    Promise<HttpResponse<Buffer>> promisedResponse = Promise.promise();
+    String id = ( generatedId == null ? routingContext.request().getParam( "id" ) : generatedId );
+    lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
+      if ( idLookUp.succeeded() )
+      {
+        ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
+        if ( idLookUpResponse.statusCode == 404 )
+        {
+          promisedResponse.fail( idLookUp.result().getErrorMessage() + " Status code: " + idLookUpResponse.statusCode );
+        }
+        else if ( idLookUpResponse.statusCode == 200 )
+        {
+          try
+          {
+            String xml = wrapJsonAndConvertToXml( jsonToPut, rootProperty );
+            harvesterClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
+                    ApiStatics.HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
+              if ( put.succeeded() )
+              {
+                promisedResponse.complete( put.result() );
+              }
+              else
+              {
+                promisedResponse.fail(
+                        "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
+              }
+            } );
+          }
+          catch ( TransformerException | ParserConfigurationException e )
+          {
+            logger.error( "Error parsing json " + jsonToPut );
+            promisedResponse.fail(
+                    "There was an error PUTting to " + apiPath + "/" + id + ": " + "Error parsing json " + jsonToPut );
+          }
+        }
+        else
+        {
+          promisedResponse.fail(
+                  "There was an error (" + idLookUpResponse.statusCode + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.getErrorMessage() );
+        }
+      }
+      else
+      {
+        promisedResponse.fail(
+                "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
+      }
+    } );
+    return promisedResponse.future();
+  }
+
 
   /**
    * Validates, POSTs, and returns a new harvest configuration record.<br/> <br/> This method proxies the
@@ -798,25 +800,25 @@ public class AdminRecordsHandlers {
                 }
                 else if ( idLookUpStatus == 200 )
                 {
-          harvesterClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
-            if ( ar.succeeded() )
-            {
-              if ( ar.result().statusCode() == 204 )
-              {
-                responseText( routingContext, ar.result().statusCode() ).end( apiPath + "/" + id + " deleted" );
-              }
-              else
-              {
-                responseText( routingContext, ar.result().statusCode() ).end(
-                        "Could not delete " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
-              }
-            }
-            else
-            {
-              responseText( routingContext, 500 ).end(
-                      "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
-            }
-          } );
+                  harvesterClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
+                    if ( ar.succeeded() )
+                    {
+                      if ( ar.result().statusCode() == 204 )
+                      {
+                        responseText( routingContext, ar.result().statusCode() ).end( apiPath + "/" + id + " deleted" );
+                      }
+                      else
+                      {
+                        responseText( routingContext, ar.result().statusCode() ).end(
+                                "Could not delete " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
+                      }
+                    }
+                    else
+                    {
+                      responseText( routingContext, 500 ).end(
+                              "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
+                    }
+                  } );
                 }
                 else
                 {
@@ -920,4 +922,5 @@ public class AdminRecordsHandlers {
   {
     return ctx.request().getHeader( "x-okapi-tenant" );
   }
+
 }

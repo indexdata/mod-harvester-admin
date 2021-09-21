@@ -10,7 +10,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.management.ManagementFactory;
 
@@ -25,15 +26,14 @@ import static org.folio.harvesteradmin.ApiStatics.*;
 public class MainVerticle extends AbstractVerticle
 {
 
-  private final Logger logger = Logger.getLogger( "harvester-admin" );
+  private final Logger logger = LogManager.getLogger( "harvester-admin" );
 
   @Override
   public void start( Promise<Void> promise )
   {
     new Config();
-    logger.setLevel( Config.logLevel );
     logger.info(
-            "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort + ". Logging at level " + Config.logLevel.toString() );
+            "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort );
     AdminRecordsHandlers adminRecordsHandlers = new AdminRecordsHandlers( vertx );
 
     Router router = Router.router( vertx );

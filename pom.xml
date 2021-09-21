@@ -1,58 +1,160 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.folio</groupId>
   <artifactId>mod-harvester-admin</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>mod-harvester-admin</name>
+
+  <name>Harvester Configurations API</name>
+  <url>https://github.com/indexdata/mod-harvester-admin.git</url>
+  <description>
+    Module for storing and retrieving configurations of harvest jobs, including harvest sources, job scheduling, storage
+    definitions and transformation pipelines.
+  </description>
+  <inceptionYear>2021</inceptionYear>
+  <organization>
+    <name>The Open Library Foundation</name>
+    <url>https://dev.folio.org/</url>
+  </organization>
+  <scm>
+    <url>https://github.com/indexdata/mod-harvester-admin</url>
+    <connection>scm:git:git://github.com/indexdata/mod-harvester-admin.git</connection>
+    <developerConnection>scm:git:git@github.com:indexdata/mod-harvester-admin.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
 
   <licenses>
     <license>
       <name>Apache License 2.0</name>
-      <url>http://spdx.org/licenses/Apache-2.0</url>
+      <url>https://spdx.org/licenses/Apache-2.0</url>
+      <distribution>repo</distribution>
     </license>
   </licenses>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>4.1.2</vertx-version>
+    <openapi-generator.version>5.1.0</openapi-generator.version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
+    <tenant.yaml.file>tenant.yaml.file>${project.basedir}/src/main/resources/openapi/tenant-2.0.yaml</tenant.yaml.file>
+    <jackson-databind-nullable.version>0.1.0</jackson-databind-nullable.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-stack-depchain</artifactId>
+        <version>4.1.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.13.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.folio.okapi</groupId>
+        <artifactId>okapi-common</artifactId>
+        <version>4.8.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.folio.okapi</groupId>
+        <artifactId>okapi-testing</artifactId>
+        <version>4.8.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.z3950.zing</groupId>
+        <artifactId>cql-java</artifactId>
+        <version>1.13</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.rest-assured</groupId>
+        <artifactId>rest-assured</artifactId>
+        <version>3.0.7</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.15.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>org.folio</groupId>
-      <artifactId>domain-models-runtime</artifactId>
-      <version>21.0.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.folio.okapi</groupId>
-      <artifactId>okapi-common</artifactId>
-      <version>2.23.0</version>
-    </dependency>
-    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
-      <version>${vertx-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-web-client</artifactId>
-      <version>${vertx-version}</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
-      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-openapi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-rx-java2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-api-contract</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-pg-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-bom</artifactId>
-      <version>2.13.3</version>
-      <type>pom</type>
-      <scope>import</scope>
+      <artifactId>log4j-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.folio.okapi</groupId>
+      <artifactId>okapi-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>openapi-generator</artifactId>
+      <version>${openapi-generator.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-simple</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>openapi-generator-maven-plugin</artifactId>
+      <version>${openapi-generator.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+      <version>${jackson-databind-nullable.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -62,36 +164,82 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
-      <version>${vertx-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.jayway.restassured</groupId>
-      <artifactId>rest-assured-common</artifactId>
-      <version>2.9.0</version>
-      <scope>test</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>com.jayway.restassured</groupId>
+      <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
-      <version>2.9.0</version>
       <scope>test</scope>
-      <type>jar</type>
+    </dependency>
+    <!-- logging see http://www.slf4j.org/legacy.html -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jul</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!--dependency>
+      <groupId>org.folio.okapi</groupId>
+      <artifactId>okapi-testing</artifactId>
+      <scope>test</scope>
+    </dependency -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>3.11.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mock-server</groupId>
+      <artifactId>mockserver-client-java</artifactId>
+      <version>5.11.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mockserver</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
-        <configuration>
-          <release>11</release>
-          <compilerArgument>-Xlint:unchecked</compilerArgument>
-          <encoding>UTF-8</encoding>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>io.vertx.core.Launcher</Main-Class>
+                    <Main-Verticle>org.folio.harvesteradmin.MainVerticle</Main-Verticle>
+                    <Multi-Release>true</Multi-Release>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+              <artifactSet/>
+              <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
+
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <version>3.0.1</version>
@@ -115,6 +263,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>com.coderplus.maven.plugins</groupId>
         <artifactId>copy-rename-maven-plugin</artifactId>
@@ -132,68 +281,44 @@
                   <sourceFile>${project.build.directory}/ModuleDescriptor-template.json</sourceFile>
                   <destinationFile>${project.build.directory}/ModuleDescriptor.json</destinationFile>
                 </fileSet>
-                <fileSet>
-                  <sourceFile>${project.build.directory}/DeploymentDescriptor-template.json</sourceFile>
-                  <destinationFile>${project.build.directory}/DeploymentDescriptor.json</destinationFile>
-                </fileSet>
-                <fileSet>
-                  <sourceFile>${project.build.directory}/TenantModuleDescriptor-template.json</sourceFile>
-                  <destinationFile>${project.build.directory}/TenantModuleDescriptor.json</destinationFile>
-                </fileSet>
               </fileSets>
             </configuration>
           </execution>
         </executions>
       </plugin>
+
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.4</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <transformers>
-                <transformer
-                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <manifestEntries>
-                    <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
-                    <Main-Verticle>org.folio.harvesteradmin.MainVerticle</Main-Verticle>
-                  </manifestEntries>
-                </transformer>
-              </transformers>
-              <artifactSet/>
-              <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.1</version>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
         <configuration>
-          <!-- TODO: update to version 3.0.0 and remove useSystemClassLoader
-               https://issues.folio.org/browse/FOLIO-1609
-               https://issues.apache.org/jira/browse/SUREFIRE-1588
-          -->
-          <useSystemClassLoader>false</useSystemClassLoader>
-          <excludes>
-            <exclude>**/package/**XYZ.class</exclude>
-          </excludes>
-          <includes>
-            <include>**/test/HarvesterAdminTestSuite.class</include>
-            <include>**/UnitTest.class</include>
-          </includes>
+          <release>11</release>
+          <compilerArgument>-Xlint:unchecked</compilerArgument>
+          <encoding>UTF-8</encoding>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>2.22.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
         <configuration>
           <preparationGoals>clean verify</preparationGoals>
           <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -202,15 +327,50 @@
         </configuration>
       </plugin>
 
+      <!-- plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.1.1</version>
+        <configuration>
+          <configLocation>checkstyle/folio_checks.xml</configLocation>
+          <encoding>UTF-8</encoding>
+          <violationSeverity>warning</violationSeverity>
+          <consoleOutput>false</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <failOnViolation>true</failOnViolation>
+          <linkXRef>false</linkXRef>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+          </sourceDirectories>
+        </configuration>
+        <executions>
+          <execution>
+            <id>check</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin -->
     </plugins>
   </build>
 
   <repositories>
     <repository>
       <id>folio-nexus</id>
-      <name>FOLIO Maven Repository</name>
+      <name>FOLIO Maven repository</name>
       <url>https://repository.folio.org/repository/maven-folio</url>
+    </repository>
+    <repository>
+      <id>indexdata</id>
+      <name>Index Data</name>
+      <url>https://maven.indexdata.com/</url>
     </repository>
   </repositories>
 
+  <issueManagement>
+    <system>JIRA</system>
+    <url>https://issues.folio.org/projects/MODHAADM</url>
+  </issueManagement>
 </project>

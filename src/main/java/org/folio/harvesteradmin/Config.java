@@ -1,8 +1,6 @@
 package org.folio.harvesteradmin;
 
-import org.apache.log4j.Level;
-
-import java.util.Optional;
+import org.apache.logging.log4j.Level;
 
 
 public class Config
@@ -22,7 +20,6 @@ public class Config
     {
         setServiceConfig();
         setHarvesterConfig();
-        setLogLevel();
     }
 
     private void setServiceConfig()
@@ -34,36 +31,6 @@ public class Config
     {
         harvesterHost = System.getenv( HARVESTER_HOST_ENV_VAR );
         harvesterPort = Integer.parseInt( System.getenv( HARVESTER_PORT_ENV_VAR ) );
-    }
-
-    private void setLogLevel()
-    {
-        Optional<String> levelKey = System.getProperties().keySet().stream().map( Object::toString ).filter(
-                key -> key.equalsIgnoreCase( LOG_LEVEL_SYS_PROP ) ).findFirst();
-        if ( levelKey.isPresent() )
-        {
-            switch ( System.getProperty( levelKey.get() ) )
-            {
-                case "DEBUG":
-                    logLevel = Level.DEBUG;
-                    break;
-                case "ERROR":
-                    logLevel = Level.ERROR;
-                    break;
-                case "WARN":
-                    logLevel = Level.WARN;
-                    break;
-                case "TRACE":
-                    logLevel = Level.TRACE;
-                    break;
-                default:
-                    logLevel = Level.INFO;
-            }
-        }
-        else
-        {
-            logLevel = Level.INFO;
-        }
     }
 
 }

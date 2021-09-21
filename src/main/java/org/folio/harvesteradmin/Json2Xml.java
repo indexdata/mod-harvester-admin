@@ -7,7 +7,8 @@ package org.folio.harvesteradmin;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -29,7 +30,7 @@ import java.util.Map.Entry;
  */
 public class Json2Xml {
 
-  private static final Logger logger = Logger.getLogger( "harvester-admin" );
+  private static final Logger logger = LogManager.getLogger( "harvester-admin" );
 
   /**
    * Creates XML document from a JSON structure

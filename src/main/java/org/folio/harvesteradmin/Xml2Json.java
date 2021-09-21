@@ -7,7 +7,8 @@ package org.folio.harvesteradmin;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -37,8 +38,7 @@ import java.util.Optional;
  */
 public class Xml2Json {
 
-  private static final Logger logger = Logger.getLogger( "harvester-admin");
-
+  private static final Logger logger = LogManager.getLogger( "harvester-admin" );
   /**
    * main is meant for troubleshooting the transformation or testing changes to it.
    * @param args Arguments ignored
