@@ -12,11 +12,11 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.globalstatics.Config;
+import org.folio.harvesteradmin.statics.Config;
 
 import java.lang.management.ManagementFactory;
 
-import static org.folio.harvesteradmin.globalstatics.ApiStatics.*;
+import static org.folio.harvesteradmin.statics.ApiPaths.*;
 
 /**
  * Main point of entry for the harvester-admin service
@@ -35,41 +35,41 @@ public class MainVerticle extends AbstractVerticle
     new Config();
     logger.info(
             "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort );
-    RequestHandlers requestHandlers = new RequestHandlers( vertx );
+    RequestDispatcher requestDispatcher = new RequestDispatcher( vertx );
 
     Router router = Router.router( vertx );
     router.put( "/*" ).handler( BodyHandler.create() ); // Tell vertx we want the whole PUT body in the handler
     router.post( "/*" ).handler( BodyHandler.create() );
 
-    router.get( THIS_HARVESTABLES_PATH ).handler( requestHandlers::handleGetHarvestables );
-    router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handleGetHarvestableById );
-    router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handlePutHarvestable );
-    router.post( THIS_HARVESTABLES_PATH ).handler( requestHandlers::handlePostHarvestable );
-    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestHandlers::handleDeleteHarvestable );
+    router.get( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleGet );
+    router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleGetById );
+    router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handlePut );
+    router.post( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handlePost );
+    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleDelete );
 
-    router.get( THIS_STORAGES_PATH ).handler( requestHandlers::handleGetStorages );
-    router.get( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handleGetStorageById );
-    router.put( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handlePutStorage );
-    router.post( THIS_STORAGES_PATH ).handler( requestHandlers::handlePostStorage );
-    router.delete( THIS_STORAGES_ID_PATH ).handler( requestHandlers::handleDeleteStorage );
+    router.get( THIS_STORAGES_PATH ).handler( requestDispatcher::handleGet );
+    router.get( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleGetById );
+    router.put( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handlePut );
+    router.post( THIS_STORAGES_PATH ).handler( requestDispatcher::handlePost );
+    router.delete( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleDelete );
 
-    router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestHandlers::handleGetTransformations );
-    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handleGetTransformationById );
-    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handlePutTransformation );
-    router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestHandlers::handlePostTransformation );
-    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestHandlers::handleDeleteTransformation );
+    router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleGet );
+    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleGetById );
+    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handlePut );
+    router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handlePost );
+    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleDelete );
 
-    router.get( THIS_STEPS_PATH ).handler( requestHandlers::handleGetSteps );
-    router.get( THIS_STEPS_ID_PATH ).handler( requestHandlers::handleGetStepById );
-    router.put( THIS_STEPS_ID_PATH ).handler( requestHandlers::handlePutStep );
-    router.post( THIS_STEPS_PATH ).handler( requestHandlers::handlePostStep );
-    router.delete( THIS_STEPS_ID_PATH ).handler( requestHandlers::handleDeleteStep );
+    router.get( THIS_STEPS_PATH ).handler( requestDispatcher::handleGet );
+    router.get( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
+    router.put( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
+    router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
+    router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDelete );
 
-    router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestHandlers::handleGetTransformationSteps );
-    router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handleGetTransformationStepById );
-    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handlePutTransformationStep );
-    router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestHandlers::handlePostTransformationStep );
-    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestHandlers::handleDeleteTransformationStep );
+    router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleGet );
+    router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
+    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
+    router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handlePost );
+    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleDelete );
 
     vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
       if ( result.succeeded() )

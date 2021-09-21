@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.globalstatics;
+package org.folio.harvesteradmin.statics;
 
 import org.apache.logging.log4j.Level;
 
@@ -9,7 +9,6 @@ public class Config
     private static final String HARVESTER_PORT_ENV_VAR = "harvester_port";
     private static final String SERVICE_PORT_SYS_PROP = "port";
     private static final String SERVICE_PORT_DEFAULT = "8080";
-    private static final String LOG_LEVEL_SYS_PROP = "logLevel";
 
     public static Level logLevel;
     public static int servicePort;

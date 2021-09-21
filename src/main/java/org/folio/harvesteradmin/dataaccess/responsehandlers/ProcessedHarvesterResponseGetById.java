@@ -1,10 +1,10 @@
-package org.folio.harvesteradmin.bridges.responsewrappers;
+package org.folio.harvesteradmin.dataaccess.responsehandlers;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
-import org.folio.harvesteradmin.bridges.converters.HarvesterXml2Json;
+import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
 
 
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse

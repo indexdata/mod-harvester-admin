@@ -1,6 +1,6 @@
-package org.folio.harvesteradmin.globalstatics;
+package org.folio.harvesteradmin.statics;
 
-public class ApiStatics
+public class ApiPaths
 {
     // API path to this FOLIO module
     public final static String THIS_API_BASE_PATH = "/harvester-admin";
@@ -35,12 +35,4 @@ public class ApiStatics
     public final static String HARVESTER_STEPS_PATH = HARVESTER_BASE_PATH + STEPS_PATH;
     public final static String HARVESTER_TRANSFORMATIONS_STEPS_PATH = HARVESTER_BASE_PATH + TRANSFORMATIONS_STEPS_PATH;
 
-    // Name of root element / root property of each entity (needed for wrapping/unwrapping objects)
-    public final static String HARVESTABLE_ROOT_PROPERTY = "harvestable";
-    public final static String STORAGE_ROOT_PROPERTY = "storage";
-    public final static String TRANSFORMATION_ROOT_PROPERTY = "transformation";
-    public final static String STEP_ROOT_PROPERTY = "transformationStep";
-    public final static String TRANSFORMATION_STEP_ROOT_PROPERTY = "tsa";
-
-    public static final String HEADER_CONTENT_TYPE = "Content-Type";
 }

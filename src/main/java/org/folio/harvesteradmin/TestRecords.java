@@ -5,8 +5,8 @@
  */
 package org.folio.harvesteradmin;
 
-import org.folio.harvesteradmin.bridges.converters.HarvesterXml2Json;
-import org.folio.harvesteradmin.bridges.converters.JsonToHarvesterXml;
+import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
+import org.folio.harvesteradmin.dataaccess.dataconverters.JsonToHarvesterXml;
 
 /**
  * Sample records for testing {@link JsonToHarvesterXml} and {@link HarvesterXml2Json}

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.folio.harvesteradmin.bridges.converters;
+package org.folio.harvesteradmin.dataaccess.dataconverters;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
