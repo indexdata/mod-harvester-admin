@@ -152,9 +152,11 @@ public class HarvesterXml2Json
    */
   private static JsonObject recurseIntoNode (Node node) {
     JsonObject json = new JsonObject();
+    boolean isChildEntity = false;
     if (node.hasAttributes() && node.getAttributes().getNamedItem("xsi:type") != null) {
       String entityType = node.getAttributes().getNamedItem("xsi:type").getTextContent();
-      json.put("entityType", entityType);
+      json.put( "entityType", entityType );
+      isChildEntity = true;
     }
     for (Node child : iterable(node)) {
       if (hasChildElements(child)) {
@@ -182,6 +184,11 @@ public class HarvesterXml2Json
             logger.error( "Could not parse content of 'json' field as JSON: " + de.getMessage() );
             json.put( child.getNodeName(), child.getTextContent() );
           }
+        }
+        else if ( isChildEntity && child.getNodeName().equals( "script" ) )
+        {
+          json.put( child.getNodeName(),
+                  ( child.getTextContent().isEmpty() ? "" : "<scripts omitted from nested displays>" ) );
         }
         else
         {
