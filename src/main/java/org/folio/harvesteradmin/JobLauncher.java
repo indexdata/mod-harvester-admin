@@ -23,14 +23,14 @@ public class JobLauncher extends HarvesterApiClient
     private static final String PROP_INITIATED = "initiated";
     private static final String TRUE = "true";
 
-    private static SimpleDateFormat format;
+    private static SimpleDateFormat dateFormat;
 
     public JobLauncher( Vertx vertx )
     {
         super( vertx );
 
-        format = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" );
-        format.setTimeZone( TimeZone.getTimeZone( "UTC" ) );
+        dateFormat = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" );
+        dateFormat.setTimeZone( TimeZone.getTimeZone( "UTC" ) );
     }
 
     public void startJob( RoutingContext routingContext )
@@ -50,7 +50,7 @@ public class JobLauncher extends HarvesterApiClient
                 {
                     JsonObject harvestConfig = lookUp.result().jsonObject().copy();
                     harvestConfig.put( PROP_HARVEST_IMMEDIATELY, TRUE );
-                    harvestConfig.put( PROP_LAST_UPDATED, format.format( new Date() ) );
+                    harvestConfig.put( PROP_LAST_UPDATED, dateFormat.format( new Date() ) );
                     putConfigRecord( routingContext, harvestConfig, harvestableId, HARVESTER_HARVESTABLES_PATH,
                             HARVESTABLE_ROOT_PROPERTY ).onComplete( putResponse -> {
                         if ( putResponse.succeeded() )
