@@ -5,6 +5,7 @@
  */
 package org.folio.harvesteradmin.dataaccess.dataconverters;
 
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.LogManager;
@@ -141,11 +142,10 @@ public class HarvesterXml2Json
   }
 
   /**
-   * Creates a JSON object from an XML element;
-   * recursively if necessary
-   * The code relies on knowledge about the names of XML elements
-   * that are repeatable in the Harvester WS API - it has always been
-   * only one, 'stepAssociations'.
+   * Creates a JSON object from an XML element; recursively if necessary The code relies on knowledge about the names
+   * of XML elements that are repeatable in the Harvester WS API - there has always been only one such field,
+   * 'stepAssociations'. Also, the code expects XML elements named 'json' to contain strings that can be passed on as
+   * JSON objects (if JSON parsing fails the content will be passed on as is).
    *
    * @param node XML element to create JsonObject for
    * @return XML element as JSON object
@@ -170,7 +170,18 @@ public class HarvesterXml2Json
       {
         if ( child.getNodeName().equals( "json" ) )
         {
-          json.put( child.getNodeName(), new JsonObject( child.getTextContent() ) );
+          try
+          {
+            if ( !child.getTextContent().isEmpty() )
+            {
+              json.put( child.getNodeName(), new JsonObject( child.getTextContent() ) );
+            }
+          }
+          catch ( DecodeException de )
+          {
+            logger.error( "Could not parse content of 'json' field as JSON: " + de.getMessage() );
+            json.put( child.getNodeName(), child.getTextContent() );
+          }
         }
         else
         {

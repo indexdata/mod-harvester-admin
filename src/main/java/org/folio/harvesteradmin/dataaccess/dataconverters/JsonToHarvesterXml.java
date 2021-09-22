@@ -76,7 +76,8 @@ public class JsonToHarvesterXml
    * Recursively creates XML tree from JSON tree
    * <p>
    * Note: This method knows about Harvester record features, in particular that elements with an 'entityType' child
-   * must be given an entity type attribute within an XMLSchema-instance name space.
+   * must be given an entity type attribute within an XMLSchema-instance name space, and that fields named 'json'
+   * should be stored as JSON strings in the XML.
    *
    * @param object The JSON object to traverse
    * @param doc    The XML document to add elements to
