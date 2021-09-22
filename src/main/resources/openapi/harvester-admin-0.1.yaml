@@ -15,6 +15,27 @@ paths:
                 $ref: schema/harvestables.json
         "500":
           $ref: "#/components/responses/trait_500"
+  /harvester-admin/jobs/run:
+    put:
+      description: Starts a harvest job immediately if possible
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: schema/runJob.json
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schema/jobStarted.json
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
   /harvester-admin/storages:
     get:
       description: Get brief storage definition records

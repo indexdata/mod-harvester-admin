@@ -35,13 +35,15 @@ import static org.folio.okapi.common.HttpResponse.*;
 
 public class HarvesterApiClient
 {
-    public static final String HEADER_CONTENT_TYPE = "Content-Type";
-    private final static Logger logger = LogManager.getLogger( HarvesterApiClient.class );
-    private final static int BAD_REQUEST = 400;
-    private final static int INTERNAL_SERVER_ERROR = 500;
-    private final static int NO_CONTENT = 204;
-    private final static int CREATED = 201;
-    private final WebClient restClient;
+    protected final static String HEADER_CONTENT_TYPE = "Content-Type";
+    protected final static Logger logger = LogManager.getLogger( HarvesterApiClient.class );
+    protected final static int BAD_REQUEST = 400;
+    protected final static int INTERNAL_SERVER_ERROR = 500;
+    protected final static int NO_CONTENT = 204;
+    protected final static int CREATED = 201;
+    protected final static int NOT_FOUND = 404;
+    protected final static int OK = 200;
+    protected final WebClient restClient;
 
     public HarvesterApiClient( Vertx vertx )
     {
@@ -133,7 +135,6 @@ public class HarvesterApiClient
                         try
                         {
                             String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut, rootProperty );
-                            logger.debug( "PUT of " + xml );
                             restClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
                                     HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
                                 if ( put.succeeded() )
@@ -177,7 +178,7 @@ public class HarvesterApiClient
         }
     }
 
-    private Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
+    protected Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
     {
         Promise<HttpResponse<Buffer>> promisedResponse = Promise.promise();
         String id = ( generatedId == null ? routingContext.request().getParam( "id" ) : generatedId );
@@ -727,7 +728,7 @@ public class HarvesterApiClient
                 } );
     }
 
-    private Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )
+    protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )
     {
         Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
         restClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {

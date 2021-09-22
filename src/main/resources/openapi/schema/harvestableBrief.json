@@ -17,7 +17,9 @@
         "OK",
         "WARN",
         "ERROR",
-        "RUNNING"
+        "RUNNING",
+        "FINISHED",
+        "KILLED"
       ],
       "description": "Indicates the state of the job"
     },

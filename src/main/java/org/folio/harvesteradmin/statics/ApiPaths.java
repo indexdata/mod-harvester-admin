@@ -35,4 +35,9 @@ public class ApiPaths
     public final static String HARVESTER_STEPS_PATH = HARVESTER_BASE_PATH + STEPS_PATH;
     public final static String HARVESTER_TRANSFORMATIONS_STEPS_PATH = HARVESTER_BASE_PATH + TRANSFORMATIONS_STEPS_PATH;
 
+    // Run jobs
+    public final static String RUN_JOB = "/jobs/run";
+    public final static String THIS_RUN_JOB_PATH = THIS_API_BASE_PATH + RUN_JOB;
+
+
 }

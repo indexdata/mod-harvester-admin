@@ -87,14 +87,24 @@
           "pathPattern": "/harvester-admin/steps/{id}",
           "permissionsRequired": ["harvester-admin.steps.item.get"]
         }, {
-          "methods": ["POST"],
+          "methods": [
+            "POST"
+          ],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": ["harvester-admin.steps.item.post"]
-        }, {
-          "methods": ["PUT"],
+          "permissionsRequired": [
+            "harvester-admin.steps.item.post"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": ["harvester-admin.steps.item.put"]
-        }, {
+          "permissionsRequired": [
+            "harvester-admin.steps.item.put"
+          ]
+        },
+        {
           "methods": [
             "DELETE"
           ],
@@ -164,6 +174,24 @@
           "pathPattern": "/harvester-admin/tsas",
           "permissionsRequired": [
             "harvester-admin.transformations-steps.collection.delete"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/harvester-admin/jobs/run",
+          "permissionsRequired": [
+            "harvester-admin.run-jobs"
+          ]
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/harvester-admin/jobs/stop",
+          "permissionsRequired": [
+            "harvester-admin.stop-jobs"
           ]
         }
       ]
@@ -321,6 +349,16 @@
       "description": "delete individual transformation-step from storage"
     },
     {
+      "permissionName": "harvester-admin.run-jobs",
+      "displayName": "harvester admin - run harvesting jobs",
+      "description": "start individual harvesting jobs"
+    },
+    {
+      "permissionName": "harvester-admin.stop-jobs",
+      "displayName": "harvester admin - stop harvesting jobs",
+      "description": "stop individual harvesting jobs"
+    },
+    {
       "permissionName": "harvester-admin.all",
       "displayName": "Harvester admin module - all permissions",
       "description": "Entire set of permissions needed to manage the Harvester",
@@ -349,7 +387,9 @@
         "harvester-admin.transformations-steps.item.get",
         "harvester-admin.transformations-steps.item.post",
         "harvester-admin.transformations-steps.item.put",
-        "harvester-admin.transformations-steps.item.delete"
+        "harvester-admin.transformations-steps.item.delete",
+        "harvester-admin.run-jobs",
+        "harvester-admin.stop-jobs"
       ]
     }
   ],
