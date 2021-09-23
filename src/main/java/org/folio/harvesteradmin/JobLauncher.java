@@ -10,7 +10,6 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import static org.folio.harvesteradmin.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.statics.EntityRootNames.HARVESTABLE_ROOT_PROPERTY;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
@@ -51,8 +50,8 @@ public class JobLauncher extends HarvesterApiClient
                     JsonObject harvestConfig = lookUp.result().jsonObject().copy();
                     harvestConfig.put( PROP_HARVEST_IMMEDIATELY, TRUE );
                     harvestConfig.put( PROP_LAST_UPDATED, dateFormat.format( new Date() ) );
-                    putConfigRecord( routingContext, harvestConfig, harvestableId, HARVESTER_HARVESTABLES_PATH,
-                            HARVESTABLE_ROOT_PROPERTY ).onComplete( putResponse -> {
+                    putConfigRecord( routingContext, harvestConfig, harvestableId,
+                            HARVESTER_HARVESTABLES_PATH ).onComplete( putResponse -> {
                         if ( putResponse.succeeded() )
                         {
                             JsonObject responseOk = new JsonObject();

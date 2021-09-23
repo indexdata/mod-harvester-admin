@@ -359,6 +359,18 @@
       "description": "stop individual harvesting jobs"
     },
     {
+      "permissionName": "harvester-admin.delete-all",
+      "displayName": "harvester admin - delete all configurations of given types",
+      "description": "delete collections of harvestables, storages, transformations, and steps",
+      "subPermissions": [
+        "harvester-admin.harvestables.collection.delete",
+        "harvester-admin.storages.collection.delete",
+        "harvester-admin.transformations.collection.delete",
+        "harvester-admin.steps.collection.delete",
+        "harvester-admin.transformations-steps.collection.delete"
+      ]
+    },
+    {
       "permissionName": "harvester-admin.all",
       "displayName": "Harvester admin module - all permissions",
       "description": "Entire set of permissions needed to manage the Harvester",

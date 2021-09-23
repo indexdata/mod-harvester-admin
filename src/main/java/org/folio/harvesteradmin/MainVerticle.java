@@ -46,31 +46,36 @@ public class MainVerticle extends AbstractVerticle
     router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleGetById );
     router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handlePut );
     router.post( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleDelete );
+    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.delete( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleDelete );
 
     router.get( THIS_STORAGES_PATH ).handler( requestDispatcher::handleGet );
     router.get( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleGetById );
     router.put( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handlePut );
     router.post( THIS_STORAGES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleDelete );
+    router.delete( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.delete( THIS_STORAGES_PATH ).handler( requestDispatcher::handleDelete );
 
     router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleGet );
     router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleGetById );
     router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handlePut );
     router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleDelete );
+    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.delete( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleDelete );
 
     router.get( THIS_STEPS_PATH ).handler( requestDispatcher::handleGet );
     router.get( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
     router.put( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
     router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDelete );
+    router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.delete( THIS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
 
     router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleGet );
     router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
     router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
     router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleDelete );
+    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.delete( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
 
     router.put( THIS_RUN_JOB_PATH ).handler( jobLauncher::startJob );
 

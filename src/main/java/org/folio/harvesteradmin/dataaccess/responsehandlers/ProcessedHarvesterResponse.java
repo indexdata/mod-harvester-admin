@@ -13,6 +13,7 @@ public abstract class ProcessedHarvesterResponse
     protected String errorMessage;
     protected String bodyAsString;
     protected JsonObject jsonObject = new JsonObject();
+    protected String harvesterPath;
 
     public String getHarvesterResponseBody()
     {

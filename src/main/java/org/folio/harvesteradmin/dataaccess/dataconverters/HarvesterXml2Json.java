@@ -84,7 +84,8 @@ public class HarvesterXml2Json
       {
         stripWhiteSpaceNodes( doc );
         Node records = doc.getDocumentElement();
-        jsonObject.put( doc.getDocumentElement().getNodeName(), xmlRecords2jsonArray( records ) );
+        jsonObject.put( doc.getDocumentElement().getNodeName().replace( "tranformation", "transformation" ),
+                xmlRecords2jsonArray( records ) );
         int recordCount = Integer.parseInt( records.getAttributes().getNamedItem( "count" ).getTextContent() );
         jsonObject.put( "totalRecords", recordCount );
       }

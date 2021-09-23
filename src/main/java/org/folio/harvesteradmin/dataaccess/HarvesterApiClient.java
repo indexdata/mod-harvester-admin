@@ -1,5 +1,6 @@
 package org.folio.harvesteradmin.dataaccess;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -44,15 +45,41 @@ public class HarvesterApiClient
     protected final static int NOT_FOUND = 404;
     protected final static int OK = 200;
     protected final WebClient restClient;
+    private static final Map<String, String> rootOfEntityByHarvesterPath = new HashMap<>();
+    private static final Map<String, String> rootOfResultSetByHarvesterPath = new HashMap<>();
+
+    static
+    {
+        rootOfEntityByHarvesterPath.put( HARVESTER_HARVESTABLES_PATH, EntityRootNames.HARVESTABLE_ROOT_PROPERTY );
+        rootOfEntityByHarvesterPath.put( HARVESTER_STORAGES_PATH, EntityRootNames.STORAGE_ROOT_PROPERTY );
+        rootOfEntityByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_PATH, EntityRootNames.TRANSFORMATION_ROOT_PROPERTY );
+        rootOfEntityByHarvesterPath.put( HARVESTER_STEPS_PATH, EntityRootNames.STEP_ROOT_PROPERTY );
+        rootOfEntityByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+                EntityRootNames.TRANSFORMATION_STEP_ROOT_PROPERTY );
+        rootOfResultSetByHarvesterPath.put( HARVESTER_HARVESTABLES_PATH,
+                EntityRootNames.HARVESTABLE_SET_ROOT_PROPERTY );
+        rootOfResultSetByHarvesterPath.put( HARVESTER_STORAGES_PATH, EntityRootNames.STORAGE_SET_ROOT_PROPERTY );
+        rootOfResultSetByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_PATH,
+                EntityRootNames.TRANSFORMATION_SET_ROOT_PROPERTY );
+        rootOfResultSetByHarvesterPath.put( HARVESTER_STEPS_PATH, EntityRootNames.STEP_SET_ROOT_PROPERTY );
+        rootOfResultSetByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+                EntityRootNames.TRANSFORMATION_STEP_SET_ROOT_PROPERTY );
+    }
+
 
     public HarvesterApiClient( Vertx vertx )
     {
         restClient = WebClient.create( vertx );
     }
 
-    public void respondWithConfigRecords( RoutingContext routingContext, String apiPath )
+    public static String mapToNameOfRootOfResultSet( String harvesterPath )
     {
-        logger.debug( "In respondWithConfigRecords, path " + apiPath );
+        return rootOfResultSetByHarvesterPath.get( harvesterPath );
+    }
+
+    public void respondWithConfigRecords( RoutingContext routingContext, String harvesterPath )
+    {
+        logger.debug( "In respondWithConfigRecords, path " + harvesterPath );
         String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
         if ( isNonJsonContentType( routingContext ) )
         {
@@ -62,24 +89,33 @@ public class HarvesterApiClient
         else
         {
             String query = routingContext.request().getParam( "query" );
-            String pathAndQuery = apiPath + ( query == null || query.isEmpty() ? "" : "?query=" + URLEncoder.encode(
-                    query, StandardCharsets.UTF_8 ) );
-            restClient.get( Config.harvesterPort, Config.harvesterHost, pathAndQuery ).send( ar -> {
-                ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, apiPath, query );
-                if ( response.wasOK() )
+            getConfigRecords( harvesterPath, query ).onComplete( get -> {
+                if ( get.result().wasOK() )
                 {
-                    responseJson( routingContext, response.statusCode() ).end( response.jsonObject().encodePrettily() );
+                    responseJson( routingContext, get.result().statusCode() ).end(
+                            get.result().jsonObject().encodePrettily() );
                 }
                 else
                 {
-                    logger.error( "GET " + pathAndQuery + " encountered a server error: " + response.errorMessage() );
-                    responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
+                    logger.error(
+                            "GET " + harvesterPath + ( query == null || query.isEmpty() ? "" : "(" + query + ")" ) + " encountered a server error: " + get.result().errorMessage() );
+                    responseText( routingContext, get.result().statusCode() ).end( get.result().errorMessage() );
                 }
             } );
         }
     }
 
-    public void respondWithConfigRecordById( RoutingContext routingContext, String apiPath )
+    public Future<ProcessedHarvesterResponseGet> getConfigRecords( String harvesterPath, String query )
+    {
+        Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
+        String pathAndQuery = harvesterPath + ( query == null || query.isEmpty() ? "" : "?query=" + URLEncoder.encode(
+                query, StandardCharsets.UTF_8 ) );
+        restClient.get( Config.harvesterPort, Config.harvesterHost, pathAndQuery ).send(
+                ar -> promise.complete( new ProcessedHarvesterResponseGet( ar, harvesterPath, query ) ) );
+        return promise.future();
+    }
+
+    public void respondWithConfigRecordById( RoutingContext routingContext, String harvesterPath )
     {
         String id = routingContext.request().getParam( "id" );
         String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
@@ -90,8 +126,9 @@ public class HarvesterApiClient
         }
         else
         {
-            restClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
-                ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar, apiPath, id );
+            restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
+                ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar, harvesterPath,
+                        id );
                 if ( response.wasOK() )
                 {
                     responseJson( routingContext, response.statusCode() ).end( response.jsonObject().encodePrettily() );
@@ -101,7 +138,7 @@ public class HarvesterApiClient
                     if ( response.wasInternalServerError() )
                     {
                         logger.error(
-                                " GET by ID (" + id + ") to " + apiPath + " encountered a server error: " + response.errorMessage() );
+                                " GET by ID (" + id + ") to " + harvesterPath + " encountered a server error: " + response.errorMessage() );
                     }
                     responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
                 }
@@ -109,7 +146,7 @@ public class HarvesterApiClient
         }
     }
 
-    public void putConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+    public void putConfigRecordAndRespond( RoutingContext routingContext, String harvesterPath )
     {
         String id = routingContext.request().getParam( "id" );
         JsonObject jsonToPut = routingContext.getBodyAsJson();
@@ -121,38 +158,41 @@ public class HarvesterApiClient
         }
         else
         {
-            lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
-                if ( idLookUp.succeeded() )
-                {
-                    ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-                    if ( idLookUp.result().wasNotFound() )
-                    {
-                        responseText( routingContext, idLookUpResponse.statusCode() ).end(
-                                idLookUp.result().errorMessage() );
-                    }
-                    else if ( idLookUp.result().wasOK() )
-                    {
-                        try
+            lookUpHarvesterRecordById( harvesterPath, id ).onComplete(
+                    idLookUp -> {    // going to return 404 if not found
+                        if ( idLookUp.succeeded() )
                         {
-                            String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut, rootProperty );
-                            restClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
-                                    HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
-                                if ( put.succeeded() )
+                            ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
+                            if ( idLookUp.result().wasNotFound() )
+                            {
+                                responseText( routingContext, idLookUpResponse.statusCode() ).end(
+                                        idLookUp.result().errorMessage() );
+                            }
+                            else if ( idLookUp.result().wasOK() )
+                            {
+                                try
                                 {
-                                    if ( put.result().statusCode() == NO_CONTENT )
-                                    {
-                                        responseText( routingContext, put.result().statusCode() ).end( "" );
-                                    }
-                                    else
-                                    {
-                                        responseText( routingContext, put.result().statusCode() ).end(
-                                                "There was a problem PUTting to " + apiPath + "/" + id + ": " + put.result().statusMessage() );
+                                    String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut,
+                                            mapToNameOfRootOfEntity( harvesterPath ) );
+                                    restClient.put( Config.harvesterPort, Config.harvesterHost,
+                                            harvesterPath + "/" + id ).putHeader( HEADER_CONTENT_TYPE,
+                                            "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
+                                        if ( put.succeeded() )
+                                        {
+                                            if ( put.result().statusCode() == NO_CONTENT )
+                                            {
+                                                responseText( routingContext, put.result().statusCode() ).end( "" );
+                                            }
+                                            else
+                                            {
+                                                responseText( routingContext, put.result().statusCode() ).end(
+                                                        "There was a problem PUTting to " + harvesterPath + "/" + id + ": " + put.result().statusMessage() );
                                     }
                                 }
                                 else
                                 {
                                     responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                            "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
+                                            "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage() );
                                 }
                             } );
                         }
@@ -166,23 +206,23 @@ public class HarvesterApiClient
                     else
                     {
                         responseText( routingContext, idLookUpResponse.statusCode() ).end(
-                                "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUpResponse.errorMessage() );
+                                "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + harvesterPath + "/" + id + " before PUT: " + idLookUpResponse.errorMessage() );
                     }
                 }
                 else
                 {
                     responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                            "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
+                            "Could not look up record " + harvesterPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
                 }
             } );
         }
     }
 
-    protected Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String apiPath, String rootProperty )
+    protected Future<HttpResponse<Buffer>> putConfigRecord( RoutingContext routingContext, JsonObject jsonToPut, String generatedId, String harvesterPath )
     {
         Promise<HttpResponse<Buffer>> promisedResponse = Promise.promise();
         String id = ( generatedId == null ? routingContext.request().getParam( "id" ) : generatedId );
-        lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
+        lookUpHarvesterRecordById( harvesterPath, id ).onComplete( idLookUp -> {    // going to return 404 if not found
             if ( idLookUp.succeeded() )
             {
                 if ( idLookUp.result().wasNotFound() )
@@ -194,9 +234,11 @@ public class HarvesterApiClient
                 {
                     try
                     {
-                        String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut, rootProperty );
-                        restClient.put( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).putHeader(
-                                HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
+                        String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut,
+                                mapToNameOfRootOfEntity( harvesterPath ) );
+                        restClient.put( Config.harvesterPort, Config.harvesterHost,
+                                harvesterPath + "/" + id ).putHeader( HEADER_CONTENT_TYPE,
+                                "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
                             if ( put.succeeded() )
                             {
                                 promisedResponse.complete( put.result() );
@@ -204,7 +246,7 @@ public class HarvesterApiClient
                             else
                             {
                                 promisedResponse.fail(
-                                        "There was an error PUTting to " + apiPath + "/" + id + ": " + put.cause().getMessage() );
+                                        "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage() );
                             }
                         } );
                     }
@@ -212,24 +254,23 @@ public class HarvesterApiClient
                     {
                         logger.error( "Error parsing json " + jsonToPut );
                         promisedResponse.fail(
-                                "There was an error PUTting to " + apiPath + "/" + id + ": " + "Error parsing json " + jsonToPut );
+                                "There was an error PUTting to " + harvesterPath + "/" + id + ": " + "Error parsing json " + jsonToPut );
                     }
                 }
                 else
                 {
                     promisedResponse.fail(
-                            "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before PUT: " + idLookUp.result().errorMessage() );
+                            "There was an error (" + idLookUp.result().statusCode() + ") looking up " + harvesterPath + "/" + id + " before PUT: " + idLookUp.result().errorMessage() );
                 }
             }
             else
             {
                 promisedResponse.fail(
-                        "Could not look up record " + apiPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
+                        "Could not look up record " + harvesterPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
             }
         } );
         return promisedResponse.future();
     }
-
 
     /**
      * Validates, POSTs, and returns a new harvest configuration record.<br/> <br/> This method proxies the
@@ -242,16 +283,15 @@ public class HarvesterApiClient
      * from the legacy API in order to return it in the response with a status of 201 (created).
      *
      * @param routingContext context
-     * @param apiPath        the REST path to POST the entity to
-     * @param rootProperty   Name of property that wraps the entity in Harvester
+     * @param harvesterPath        the REST path to POST the entity to
      */
-    public void postConfigRecordAndRespond( RoutingContext routingContext, String apiPath, String rootProperty )
+    public void postConfigRecordAndRespond( RoutingContext routingContext, String harvesterPath )
     {
-        if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
+        if ( harvesterPath.equals( HARVESTER_TRANSFORMATIONS_STEPS_PATH ) )
         {
             postTsaAndRespond( routingContext );
         }
-        else if ( apiPath.equals( HARVESTER_TRANSFORMATIONS_PATH ) )
+        else if ( harvesterPath.equals( HARVESTER_TRANSFORMATIONS_PATH ) )
         {
             postTransformationAndRespond( routingContext );
         }
@@ -270,31 +310,33 @@ public class HarvesterApiClient
                 String id = requestJson.getString( "id" );
                 if ( id == null )
                 {
-                    doPostAndRetrieveAndRespond( routingContext, requestJson, apiPath, rootProperty );
+                    doPostAndRetrieveAndRespond( routingContext, requestJson, harvesterPath );
                 }
                 else
                 {
-                    lookUpHarvesterRecordById( apiPath, id ).onComplete( idLookUp -> {  // going to return 422 if found
-                        if ( idLookUp.succeeded() )
-                        {
-                            if ( idLookUp.result().wasOK() )
-                            {
-                                responseText( routingContext, 422 ).end( apiPath + "/" + id + " already exists" );
-                            }
-                            else if ( idLookUp.result().wasNotFound() )
-                            {
-                                doPostAndRetrieveAndRespond( routingContext, requestJson, apiPath, rootProperty );
-                            }
-                            else
-                            {
-                                responseText( routingContext, idLookUp.result().statusCode() ).end(
-                                        "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before POST: " + idLookUp.result().errorMessage() );
-                            }
-                        }
-                        else
-                        {
-                            responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                    "Could not look up record " + apiPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
+                    lookUpHarvesterRecordById( harvesterPath, id ).onComplete(
+                            idLookUp -> {  // going to return 422 if found
+                                if ( idLookUp.succeeded() )
+                                {
+                                    if ( idLookUp.result().wasOK() )
+                                    {
+                                        responseText( routingContext, 422 ).end(
+                                                harvesterPath + "/" + id + " already exists" );
+                                    }
+                                    else if ( idLookUp.result().wasNotFound() )
+                                    {
+                                        doPostAndRetrieveAndRespond( routingContext, requestJson, harvesterPath );
+                                    }
+                                    else
+                                    {
+                                        responseText( routingContext, idLookUp.result().statusCode() ).end(
+                                                "There was an error (" + idLookUp.result().statusCode() + ") looking up " + harvesterPath + "/" + id + " before POST: " + idLookUp.result().errorMessage() );
+                                    }
+                                }
+                                else
+                                {
+                                    responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                            "Could not look up record " + harvesterPath + "/" + id + " before POST: " + idLookUp.cause().getMessage() );
                         }
                     } );
                 }
@@ -307,12 +349,11 @@ public class HarvesterApiClient
      * successful, and otherwise an error message.
      *
      * @param routingContext The context
-     * @param apiPath        The Harvester API path to POST the entity to
-     * @param rootProperty   The name of wrapping element of the entity in the Harvester's schema
+     * @param harvesterPath  The Harvester API path to POST the entity to
      */
-    private void doPostAndRetrieveAndRespond( RoutingContext routingContext, JsonObject jsonToPost, String apiPath, String rootProperty )
+    private void doPostAndRetrieveAndRespond( RoutingContext routingContext, JsonObject jsonToPost, String harvesterPath )
     {
-        doPostAndRetrieve( jsonToPost, apiPath, rootProperty ).onComplete( postAndRetrieve -> {
+        doPostAndRetrieve( jsonToPost, harvesterPath ).onComplete( postAndRetrieve -> {
             ProcessedHarvesterResponsePost response = (ProcessedHarvesterResponsePost) postAndRetrieve.result();
             if ( response.wasCreated() )
             {
@@ -324,44 +365,6 @@ public class HarvesterApiClient
                 responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
             }
         } );
-    }
-
-    private Future<ProcessedHarvesterResponse> doPostAndRetrieve( JsonObject jsonToPost, String apiPath, String rootProperty )
-    {
-        Promise<ProcessedHarvesterResponse> promise = Promise.promise();
-        try
-        {
-            String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPost, rootProperty );
-            restClient.post( Config.harvesterPort, Config.harvesterHost, apiPath ).putHeader( HEADER_CONTENT_TYPE,
-                    "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
-                if ( ar.succeeded() )
-                {
-                    String location = ar.result().getHeader( "Location" );
-                    if ( ar.result().statusCode() == CREATED && location != null )
-                    {
-                        String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
-                        lookUpHarvesterRecordById( apiPath, idFromLocation ).onComplete(
-                                // going to return 500, internal server error if not found, 201, Created if found
-                                lookUpNewlyCreatedRecord -> promise.complete(
-                                        new ProcessedHarvesterResponsePost( ar, apiPath,
-                                                lookUpNewlyCreatedRecord.result() ) ) );
-                    }
-                    else
-                    {
-                        promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
-                    }
-                }
-                else
-                {
-                    promise.complete( new ProcessedHarvesterResponsePost( ar, apiPath, null ) );
-                }
-            } );
-        }
-        catch ( TransformerException | ParserConfigurationException e )
-        {
-            promise.complete( new ProcessedHarvesterResponsePost( INTERNAL_SERVER_ERROR, e.getMessage() ) );
-        }
-        return promise.future();
     }
 
     private void postTransformationAndRespond( RoutingContext routingContext )
@@ -419,80 +422,44 @@ public class HarvesterApiClient
         return rand.nextInt( 900000000 ) + 100000000;
     }
 
-
-    private void doPostTransformationWithoutStepsThenPutWithSteps( RoutingContext routingContext )
+    private Future<ProcessedHarvesterResponse> doPostAndRetrieve( JsonObject jsonToPost, String harvesterPath )
     {
-        JsonObject transformationJson = routingContext.getBodyAsJson();
-        logger.debug( "About to POST-then-PUT " + transformationJson.encodePrettily() );
-        Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();
-        typeToEmbeddedTypeMap.put( "CustomTransformStep", "customTransformationStep" );
-        typeToEmbeddedTypeMap.put( "XmlTransformStep", "xmlTransformationStep" );
-        JsonArray stepsIdsJson = transformationJson.containsKey( "stepAssociations" ) ? transformationJson.getJsonArray(
-                "stepAssociations" ).copy() : new JsonArray();
-        transformationJson.remove( "stepAssociations" );
-        List<Future> stepFutures = new ArrayList<>();
-        for ( Object arrayObject : stepsIdsJson )
+        Promise<ProcessedHarvesterResponse> promise = Promise.promise();
+        try
         {
-            JsonObject step = (JsonObject) arrayObject;
-            String stepId = step.containsKey( "step" ) ? step.getJsonObject( "step" ).getString(
-                    "id" ) : step.getString( "stepId" );
-            stepFutures.add( lookUpHarvesterRecordById( HARVESTER_STEPS_PATH, stepId ) );
-        }
-        CompositeFuture.all( stepFutures ).onComplete( result -> {
-            if ( result.succeeded() )
-            {
-                // found all referenced steps, good to create the transformation
-                doPostAndRetrieve( transformationJson, HARVESTER_TRANSFORMATIONS_PATH,
-                        EntityRootNames.TRANSFORMATION_ROOT_PROPERTY ).onComplete( transformationPost -> {
-                    if ( transformationPost.succeeded() && transformationPost.result().statusCode() == CREATED )
-                    {
-                        JsonObject createdTransformation = transformationPost.result().jsonObject();
-                        createdTransformation.put( "stepAssociations", new JsonArray() );
-                        for ( int i = 0; i < result.result().size(); i++ )
-                        {
-                            ProcessedHarvesterResponseGetById stepResponse = result.result().resultAt( i );
-                            JsonObject stepJson = stepResponse.jsonObject();
-                            JsonObject tsaJson = new JsonObject();
-                            tsaJson.put( "id", Integer.toString( getRandomInt() ) );
-                            tsaJson.put( "position", Integer.toString( i + 1 ) );
-                            tsaJson.put( "step", new JsonObject() );
-                            tsaJson.getJsonObject( "step" ).put( "entityType",
-                                    typeToEmbeddedTypeMap.get( stepJson.getString( "type" ) ) );
-                            tsaJson.getJsonObject( "step" ).put( "id", stepJson.getString( "id" ) );
-                            tsaJson.put( "transformation", createdTransformation.getString( "id" ) );
-                            createdTransformation.getJsonArray( "stepAssociations" ).add( tsaJson );
-                        }
-                        putConfigRecord( routingContext, createdTransformation, createdTransformation.getString( "id" ),
-                                HARVESTER_TRANSFORMATIONS_PATH,
-                                EntityRootNames.TRANSFORMATION_ROOT_PROPERTY ).onComplete( putResponse -> {
-                            if ( putResponse.succeeded() )
-                            {
-                                lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH,
-                                        createdTransformation.getString( "id" ) ).onComplete( lookup -> {
-                                    if ( lookup.succeeded() )
-                                    {
-                                        responseJson( routingContext, CREATED ).putHeader( "Location",
-                                                createdTransformation.getString( "id" ) ).end(
-                                                lookup.result().jsonObject().encodePrettily() );
-                                    }
-                                    else
-                                    {
-                                        responseText( routingContext, BAD_REQUEST ).end(
-                                                " Failed to POST (with subsequent PUT and GET) of Transformation. Retrieval failed with  " + lookup.result().errorMessage() );
-                                    }
-                                } );
-                            }
-                            else
-                            {
-                                responseText( routingContext, BAD_REQUEST ).end(
-                                        " Failed to POST (with subsequent PUT and GET) of Transformation. PUT failed with  " + putResponse.result().statusMessage() );
-                            }
-                        } );
-                    }
-                } );
-            }
-        } );
 
+            String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPost,
+                    mapToNameOfRootOfEntity( harvesterPath ) );
+            restClient.post( Config.harvesterPort, Config.harvesterHost, harvesterPath ).putHeader( HEADER_CONTENT_TYPE,
+                    "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
+                if ( ar.succeeded() )
+                {
+                    String location = ar.result().getHeader( "Location" );
+                    if ( ar.result().statusCode() == CREATED && location != null )
+                    {
+                        String idFromLocation = location.split( "/" )[location.split( "/" ).length - 1];
+                        lookUpHarvesterRecordById( harvesterPath, idFromLocation ).onComplete(
+                                // going to return 500, internal server error if not found, 201, Created if found
+                                lookUpNewlyCreatedRecord -> promise.complete(
+                                        new ProcessedHarvesterResponsePost( ar, harvesterPath,
+                                                lookUpNewlyCreatedRecord.result() ) ) );
+                    }
+                    else
+                    {
+                        promise.complete( new ProcessedHarvesterResponsePost( ar, harvesterPath, null ) );
+                    }
+                }
+                else
+                {
+                    promise.complete( new ProcessedHarvesterResponsePost( ar, harvesterPath, null ) );
+                }
+            } );
+        }
+        catch ( TransformerException | ParserConfigurationException e )
+        {
+            promise.complete( new ProcessedHarvesterResponsePost( INTERNAL_SERVER_ERROR, e.getMessage() ) );
+        }
+        return promise.future();
     }
 
     private void postTsaAndRespond( RoutingContext routingContext )
@@ -571,6 +538,81 @@ public class HarvesterApiClient
         return updatedListOfSteps;
     }
 
+    private void doPostTransformationWithoutStepsThenPutWithSteps( RoutingContext routingContext )
+    {
+        JsonObject transformationJson = routingContext.getBodyAsJson();
+        logger.debug( "About to POST-then-PUT " + transformationJson.encodePrettily() );
+        Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();
+        typeToEmbeddedTypeMap.put( "CustomTransformStep", "customTransformationStep" );
+        typeToEmbeddedTypeMap.put( "XmlTransformStep", "xmlTransformationStep" );
+        JsonArray stepsIdsJson = transformationJson.containsKey( "stepAssociations" ) ? transformationJson.getJsonArray(
+                "stepAssociations" ).copy() : new JsonArray();
+        transformationJson.remove( "stepAssociations" );
+        List<Future> stepFutures = new ArrayList<>();
+        for ( Object arrayObject : stepsIdsJson )
+        {
+            JsonObject step = (JsonObject) arrayObject;
+            String stepId = step.containsKey( "step" ) ? step.getJsonObject( "step" ).getString(
+                    "id" ) : step.getString( "stepId" );
+            stepFutures.add( lookUpHarvesterRecordById( HARVESTER_STEPS_PATH, stepId ) );
+        }
+        CompositeFuture.all( stepFutures ).onComplete( result -> {
+            if ( result.succeeded() )
+            {
+                // found all referenced steps, good to create the transformation
+                doPostAndRetrieve( transformationJson, HARVESTER_TRANSFORMATIONS_PATH ).onComplete(
+                        transformationPost -> {
+                            if ( transformationPost.succeeded() && transformationPost.result().statusCode() == CREATED )
+                            {
+                                JsonObject createdTransformation = transformationPost.result().jsonObject();
+                                createdTransformation.put( "stepAssociations", new JsonArray() );
+                                for ( int i = 0; i < result.result().size(); i++ )
+                                {
+                                    ProcessedHarvesterResponseGetById stepResponse = result.result().resultAt( i );
+                                    JsonObject stepJson = stepResponse.jsonObject();
+                                    JsonObject tsaJson = new JsonObject();
+                                    tsaJson.put( "id", Integer.toString( getRandomInt() ) );
+                                    tsaJson.put( "position", Integer.toString( i + 1 ) );
+                                    tsaJson.put( "step", new JsonObject() );
+                                    tsaJson.getJsonObject( "step" ).put( "entityType",
+                                            typeToEmbeddedTypeMap.get( stepJson.getString( "type" ) ) );
+                                    tsaJson.getJsonObject( "step" ).put( "id", stepJson.getString( "id" ) );
+                                    tsaJson.put( "transformation", createdTransformation.getString( "id" ) );
+                                    createdTransformation.getJsonArray( "stepAssociations" ).add( tsaJson );
+                                }
+                                putConfigRecord( routingContext, createdTransformation,
+                                        createdTransformation.getString( "id" ),
+                                        HARVESTER_TRANSFORMATIONS_PATH ).onComplete( putResponse -> {
+                                    if ( putResponse.succeeded() )
+                                    {
+                                        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH,
+                                                createdTransformation.getString( "id" ) ).onComplete( lookup -> {
+                                            if ( lookup.succeeded() )
+                                            {
+                                                responseJson( routingContext, CREATED ).putHeader( "Location",
+                                                        createdTransformation.getString( "id" ) ).end(
+                                                        lookup.result().jsonObject().encodePrettily() );
+                                            }
+                                    else
+                                    {
+                                        responseText( routingContext, BAD_REQUEST ).end(
+                                                " Failed to POST (with subsequent PUT and GET) of Transformation. Retrieval failed with  " + lookup.result().errorMessage() );
+                                    }
+                                } );
+                            }
+                            else
+                            {
+                                responseText( routingContext, BAD_REQUEST ).end(
+                                        " Failed to POST (with subsequent PUT and GET) of Transformation. PUT failed with  " + putResponse.result().statusMessage() );
+                            }
+                        } );
+                    }
+                } );
+            }
+        } );
+
+    }
+
     private void doPostTsaPutTransformationAndRespond( RoutingContext routingContext )
     {
         JsonObject incomingTsa = routingContext.getBodyAsJson();
@@ -593,29 +635,31 @@ public class HarvesterApiClient
                             }
                             else
                             {
-                                doPostAndRetrieve( incomingTsa, HARVESTER_TRANSFORMATIONS_STEPS_PATH,
-                                        EntityRootNames.TRANSFORMATION_STEP_ROOT_PROPERTY ).onComplete( result -> {
-                                    if ( result.succeeded() && result.result() != null )
-                                    {
-                                        JsonObject transformationStepAssociation = result.result().jsonObject();
-                                        logger.debug(
-                                                "Posted TSA, got: " + transformationStepAssociation.encodePrettily() );
-                                        // Get the transformation
-                                        lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH,
-                                                transformationId ).onComplete(
-                                                // going to return 422 if not found
-                                                transformationById -> {
-                                                    if ( transformationById.succeeded() && transformationById.result().found() )
-                                                    {
-                                                        // Insert the tsa in the transformation JSON
-                                                        JsonObject transformation = transformationById.result().jsonObject();
-                                                        logger.debug(
-                                                                "Got basic transformation " + transformation.encodePrettily() );
-                                                        transformation.put( "stepAssociations", insertStepIntoPipeline(
-                                                                transformation.getJsonArray( "stepAssociations" ),
-                                                                transformationStepAssociation ) );
-                                                        try
-                                                        {
+                                doPostAndRetrieve( incomingTsa, HARVESTER_TRANSFORMATIONS_STEPS_PATH ).onComplete(
+                                        result -> {
+                                            if ( result.succeeded() && result.result() != null )
+                                            {
+                                                JsonObject transformationStepAssociation = result.result().jsonObject();
+                                                logger.debug(
+                                                        "Posted TSA, got: " + transformationStepAssociation.encodePrettily() );
+                                                // Get the transformation
+                                                lookUpHarvesterRecordById( HARVESTER_TRANSFORMATIONS_PATH,
+                                                        transformationId ).onComplete(
+                                                        // going to return 422 if not found
+                                                        transformationById -> {
+                                                            if ( transformationById.succeeded() && transformationById.result().found() )
+                                                            {
+                                                                // Insert the tsa in the transformation JSON
+                                                                JsonObject transformation = transformationById.result().jsonObject();
+                                                                logger.debug(
+                                                                        "Got basic transformation " + transformation.encodePrettily() );
+                                                                transformation.put( "stepAssociations",
+                                                                        insertStepIntoPipeline(
+                                                                                transformation.getJsonArray(
+                                                                                        "stepAssociations" ),
+                                                                                transformationStepAssociation ) );
+                                                                try
+                                                                {
                                                             // PUT the transformation
                                                             String xml = JsonToHarvesterXml.convertToHarvesterRecord(
                                                                     transformation,
@@ -675,16 +719,16 @@ public class HarvesterApiClient
                 } );
     }
 
-    public void deleteConfigRecordAndRespond( RoutingContext routingContext, String apiPath )
+    public void deleteConfigRecordAndRespond( RoutingContext routingContext, String harvesterPath )
     {
         String id = routingContext.request().getParam( "id" );
-        logger.debug( "Looking up " + apiPath + "/" + id + " before attempting delete" );
-        lookUpHarvesterRecordById( apiPath, id ).onComplete(
+        logger.debug( "Looking up " + harvesterPath + "/" + id + " before attempting delete" );
+        lookUpHarvesterRecordById( harvesterPath, id ).onComplete(
                 idLookUp -> {  // going to return 404 if not found, else 204 (no content/deleted)
                     if ( idLookUp.succeeded() )
                     {
                         logger.debug(
-                                "Look-up of " + apiPath + "/" + id + " complete. Status code: " + idLookUp.result().statusCode() );
+                                "Look-up of " + harvesterPath + "/" + id + " complete. Status code: " + idLookUp.result().statusCode() );
                         if ( idLookUp.result().wasNotFound() )
                         {
                             responseText( routingContext, idLookUp.result().statusCode() ).end(
@@ -692,50 +736,276 @@ public class HarvesterApiClient
                         }
                         else if ( idLookUp.result().wasOK() )
                         {
-                            restClient.delete( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send(
-                                    ar -> {
-                                        if ( ar.succeeded() )
-                                        {
-                                            if ( ar.result().statusCode() == NO_CONTENT )
-                                            {
-                                                responseText( routingContext, ar.result().statusCode() ).end(
-                                                        apiPath + "/" + id + " deleted" );
-                                            }
-                                            else
-                                            {
-                                                responseText( routingContext, ar.result().statusCode() ).end(
-                                                        "Could not delete " + apiPath + "/" + id + ": " + ar.result().bodyAsString() );
-                                            }
-                                        }
-                                        else
-                                        {
-                                            responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                                    "There was an error deleting " + apiPath + "/" + id + ": " + ar.cause().getMessage() );
-                                        }
-                                    } );
+                            restClient.delete( Config.harvesterPort, Config.harvesterHost,
+                                    harvesterPath + "/" + id ).send( ar -> {
+                                if ( ar.succeeded() )
+                                {
+                                    if ( ar.result().statusCode() == NO_CONTENT )
+                                    {
+                                        responseText( routingContext, ar.result().statusCode() ).end(
+                                                harvesterPath + "/" + id + " deleted" );
+                                    }
+                                    else
+                                    {
+                                        responseText( routingContext, ar.result().statusCode() ).end(
+                                                "Could not delete " + harvesterPath + "/" + id + ": " + ar.result().bodyAsString() );
+                                    }
+                                }
+                                else
+                                {
+                                    responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                            "There was an error deleting " + harvesterPath + "/" + id + ": " + ar.cause().getMessage() );
+                                }
+                            } );
                         }
                         else
                         {
                             responseText( routingContext, idLookUp.result().statusCode() ).end(
-                                    "There was an error (" + idLookUp.result().statusCode() + ") looking up " + apiPath + "/" + id + " before DELETE: " + idLookUp.result().errorMessage() );
+                                    "There was an error (" + idLookUp.result().statusCode() + ") looking up " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.result().errorMessage() );
                         }
                     }
                     else
                     {
                         responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                "Could not look up record " + apiPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
+                                "Could not look up record " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
                     }
                 } );
     }
 
-    protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String apiPath, String id )
+    private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord( RoutingContext routingContext, String harvesterPath, String id )
     {
-        Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, apiPath + "/" + id ).send( ar -> {
-            ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar, apiPath,
-                    id );
-            promise.complete( adaptedResponse );
+        Promise<AsyncResult<HttpResponse<Buffer>>> promise = Promise.promise();
+        restClient.delete( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
+            if ( ar.succeeded() )
+            {
+                promise.complete( ar );
+            }
+            else
+            {
+                promise.fail( ar.cause() );
+            }
         } );
+        return promise.future();
+    }
+
+    /**
+     * If possible, delete all records at the path given in the request
+     *
+     * @param harvesterPath The path from the request
+     */
+    public void deleteConfigRecordsAndRespond( RoutingContext routingContext, String harvesterPath )
+    {
+        logger.debug( "Checks before delete of records at " + harvesterPath );
+        switch ( harvesterPath )
+        {
+            case HARVESTER_HARVESTABLES_PATH:
+                noJobsRunning( routingContext ).onComplete( result -> {
+                    if ( result.succeeded() )
+                    {
+                        if ( result.result() )
+                        {
+                            logger.debug( "No jobs running, can delete all harvestables " );
+                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null );
+                        }
+                        else
+                        {
+                            responseText( routingContext, BAD_REQUEST ).end(
+                                    "Cannot delete all harvest configurations, there are job(s) running" );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                "There was a problem checking for running jobs, deletion of harvestables aborted: " + result.cause().getMessage() );
+                    }
+                } );
+                break;
+            case HARVESTER_TRANSFORMATIONS_PATH:
+                noHarvestablesFound().onComplete( noHarvestables -> {
+                    if ( noHarvestables.succeeded() )
+                    {
+                        if ( noHarvestables.result() )
+                        {
+                            logger.debug( "No harvest configurations found, Can delete all transformations" );
+                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null );
+                        }
+                        else
+                        {
+                            responseText( routingContext, BAD_REQUEST ).end(
+                                    "Cannot delete all transformation pipelines, there are harvestable(s) potentially using some" );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                "There was a problem checking for dependent harvestables, deletion of transformations aborted: " + noHarvestables.cause().getMessage() );
+                    }
+                } );
+                break;
+            case HARVESTER_STEPS_PATH:
+                noStepAssociationsFound().onComplete( noAssociations -> {
+                    if ( noAssociations.succeeded() )
+                    {
+                        if ( noAssociations.result() )
+                        {
+                            logger.debug( "No steps associated with transformation pipelines. Can delete all steps" );
+                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null );
+                        }
+                        else
+                        {
+                            responseText( routingContext, BAD_REQUEST ).end(
+                                    "Cannot delete all steps, some are associated with transformation pipelines" );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                "There was a problem checking for step associations, deletion of steps aborted: " + noAssociations.cause().getMessage() );
+                    }
+                } );
+                break;
+            case HARVESTER_STORAGES_PATH:
+                noHarvestablesFound().onComplete( noHarvestables -> {
+                    if ( noHarvestables.succeeded() )
+                    {
+                        if ( noHarvestables.result() )
+                        {
+                            logger.debug( "No harvest configurations found, Can delete all storages" );
+                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null );
+                        }
+                        else
+                        {
+                            responseText( routingContext, BAD_REQUEST ).end(
+                                    "Cannot delete all storages, there are harvestable(s) potentially using some" );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                "There was a problem checking for dependent harvestables, deletion of storages aborted: " + noHarvestables.cause().getMessage() );
+                    }
+                } );
+                break;
+            case HARVESTER_TRANSFORMATIONS_STEPS_PATH:
+                noJobsRunning( routingContext ).onComplete( result -> {
+                    if ( result.succeeded() )
+                    {
+                        if ( result.result() )
+                        {
+                            logger.debug( "No jobs are running, can delete all transformation step associations" );
+                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null );
+                        }
+                        else
+                        {
+                            responseText( routingContext, BAD_REQUEST ).end(
+                                    "Cannot delete all transformation step associations, there are job(s) running" );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
+                                "There was a problem checking for running jobs, deletion of transformation step associations aborted: " + result.cause().getMessage() );
+                    }
+                } );
+                break;
+        }
+    }
+
+    private void deleteAllRecordsAndRespond( RoutingContext routingContext, String harvesterPath, String query )
+    {
+
+        getConfigRecords( harvesterPath, query ).onComplete( get -> {
+            if ( get.result().wasOK() )
+            {
+                if ( get.result().totalRecords() > 0 )
+                {
+                    logger.info( "Deleting " + get.result().totalRecords() + " from " + harvesterPath );
+                    List<Future> deleteEntityFutures = new ArrayList<>();
+                    for ( Object o : get.result().getRecords() )
+                    {
+                        JsonObject entity = (JsonObject) o;
+                        deleteEntityFutures.add(
+                                deleteConfigRecord( routingContext, harvesterPath, entity.getString( "id" ) ) );
+                    }
+                    CompositeFuture.all( deleteEntityFutures ).onComplete( result -> {
+                        if ( result.succeeded() )
+                        {
+                            responseText( routingContext, 204 ).end( "All records at " + harvesterPath + " deleted." );
+                        }
+                        else
+                        {
+                            responseText( routingContext, 500 ).end(
+                                    "There was a problem deleting records at " + harvesterPath + ": " + result.cause() );
+                        }
+                    } );
+                }
+            }
+        } );
+    }
+
+    private Future<Boolean> noHarvestablesFound()
+    {
+        logger.debug( "Checking for harvesting configurations" );
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_HARVESTABLES_PATH ).send( ar -> {
+            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, HARVESTER_HARVESTABLES_PATH,
+                    null );
+            if ( response.wasOK() )
+            {
+                int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
+                promise.complete( records == 0 );
+            }
+            else
+            {
+                logger.error( "There was a problem looking up harvestables: " + response.errorMessage() );
+                promise.complete( false );
+            }
+        } );
+        return promise.future();
+    }
+
+    private Future<Boolean> noStepAssociationsFound()
+    {
+        logger.debug( "Checking for step associations" );
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_TRANSFORMATIONS_STEPS_PATH ).send( ar -> {
+            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar,
+                    HARVESTER_TRANSFORMATIONS_STEPS_PATH, null );
+            if ( response.wasOK() )
+            {
+                int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
+                promise.complete( records == 0 );
+            }
+            else
+            {
+                logger.error(
+                        "There was a problem looking up transformation-step associations (tsas): " + response.errorMessage() );
+                promise.complete( false );
+            }
+        } );
+        return promise.future();
+    }
+
+    private Future<Boolean> noJobsRunning( RoutingContext routingContext )
+    {
+        logger.debug( "Checking for running jobs" );
+        String query = "query=currentStatus=RUNNING";
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_HARVESTABLES_PATH + "?" + query ).send(
+                ar -> {
+                    ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar,
+                            HARVESTER_HARVESTABLES_PATH, query );
+                    if ( response.wasOK() )
+                    {
+                        int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
+                        promise.complete( records == 0 );
+                    }
+                    else
+                    {
+                        logger.error( "There was a problem looking up running jobs: " + response.errorMessage() );
+                        promise.complete( false );
+                    }
+                } );
         return promise.future();
     }
 
@@ -753,6 +1023,29 @@ public class HarvesterApiClient
     private String getTenant( RoutingContext ctx )
     {
         return ctx.request().getHeader( "x-okapi-tenant" );
+    }
+
+    protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String harvesterPath, String id )
+    {
+        Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+        restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
+            ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar,
+                    harvesterPath, id );
+            promise.complete( adaptedResponse );
+        } );
+        return promise.future();
+    }
+
+    /**
+     * Get the Harvester's name for the root element of entities from the requested Harvester path. Required for
+     * wrapping/unwrapping during data conversions.
+     *
+     * @param harvesterPath defines the name of root property of an entity
+     * @return name of the root element for entities from the Harvester path corresponding to the given request path
+     */
+    private String mapToNameOfRootOfEntity( String harvesterPath )
+    {
+        return rootOfEntityByHarvesterPath.get( harvesterPath );
     }
 
 }
