@@ -45,6 +45,13 @@ public class JobLauncher extends HarvesterApiClient
                     responseText( routingContext, NOT_FOUND ).end(
                             "Did not find a harvest configuration with ID " + harvestableId + ". No job started." );
                 }
+                else if ( lookUp.result().wasOK() && lookUp.result().jsonObject().getString( "currentStatus" ).equals(
+                        "RUNNING" ) )
+                {
+                    responseText( routingContext, BAD_REQUEST ).end(
+                            "A job with this configuration is already running " + lookUp.result().jsonObject().getString(
+                                    "name" ) );
+                }
                 else if ( lookUp.result().wasOK() )
                 {
                     JsonObject harvestConfig = lookUp.result().jsonObject().copy();
