@@ -30,11 +30,14 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 /**
- * Transforms Harvester XML to JSON following FOLIO conventions as closely as possible.
- * <p>
- * Note: This class knows about Harvester records specifics, in particular that there is an element named
- * 'stepAssociations', which must be treated as a repeatable element -- even if there's just one (or no) occurrence of
- * it.
+ * Transforms Harvester XML to JSON, following FOLIO conventions as closely as possible.<br/> <br/> Note: This class is
+ * not a generic transformation of XML to JSON and would not know how to transform arbitrary XML to JSON. It knows about
+ * Harvester records specifics, in particular that there is an element named 'stepAssociations', which must be treated
+ * as a repeatable element -- even if there's just zero or one occurrence of it in a given XML output from the
+ * Harvester. All other fields are assumed to be non-repeatable (as has always been the case). It also knows that there
+ * are certain result sets which names are misspelled from the legacy API, and it corrects them on the fly<br/><br/> So
+ * if the XML output from the Harvester ever changed, it's very possible that the logic in this class would need
+ * adaption.
  *
  * @author ne
  */
@@ -65,11 +68,9 @@ public class HarvesterXml2Json
   }
 
   /**
-   * Create JSON object from XML String of an element known to contain 0, 1 or more repeatable elements.
-   * <p>
-   * Note: This would not work for an element containing children that were a mix of repeatable and none repeatable
-   * elements or an element containing multiple different repeatable elements (none of this in the Harvester APIs
-   * currently)
+   * Create JSON object from XML String of an element known to contain 0, 1 or more repeatable elements. <br/> Note:
+   * This method intercepts a typo in the legacy API, two result sets are name 'tranformation' coming from the legacy
+   * API, these sets are instead named 'transformation' in the response from this API.
    *
    * @param xml Harvester XML output
    * @return JSON representation of Harvester XML
