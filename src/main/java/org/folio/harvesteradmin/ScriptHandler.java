@@ -109,5 +109,4 @@ public class ScriptHandler extends HarvesterApiClient
         }
         return "OK";
     }
-
 }
