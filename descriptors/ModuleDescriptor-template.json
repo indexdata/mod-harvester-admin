@@ -73,20 +73,38 @@
         }, {
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/transformations/{id}",
-          "permissionsRequired": ["harvester-admin.transformations.item.delete"]
-        }, {
-          "methods": ["DELETE"],
+          "permissionsRequired": [
+            "harvester-admin.transformations.item.delete"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
           "pathPattern": "/harvester-admin/transformations",
-          "permissionsRequired": ["harvester-admin.transformations.collection.delete"]
-        }, {
-          "methods": ["GET"],
+          "permissionsRequired": [
+            "harvester-admin.transformations.collection.delete"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": ["harvester-admin.steps.collection.get"]
-        }, {
-          "methods": ["GET"],
+          "permissionsRequired": [
+            "harvester-admin.steps.collection.get"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": ["harvester-admin.steps.item.get"]
-        }, {
+          "permissionsRequired": [
+            "harvester-admin.steps.item.get"
+          ]
+        },
+        {
           "methods": [
             "POST"
           ],
@@ -120,6 +138,24 @@
           "pathPattern": "/harvester-admin/steps",
           "permissionsRequired": [
             "harvester-admin.steps.collection.delete"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/harvester-admin/steps/{id}/script",
+          "permissionsRequired": [
+            "harvester-admin.steps.item.get"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/harvester-admin/steps/{id}/script",
+          "permissionsRequired": [
+            "harvester-admin.steps.item.put"
           ]
         },
         {

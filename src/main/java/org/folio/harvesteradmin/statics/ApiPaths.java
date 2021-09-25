@@ -39,5 +39,8 @@ public class ApiPaths
     public final static String RUN_JOB = "/jobs/run";
     public final static String THIS_RUN_JOB_PATH = THIS_API_BASE_PATH + RUN_JOB;
 
+    // XSLT scripts
+    public final static String THIS_SCRIPT_PATH = "/script";
+    public final static String THIS_STEPS_ID_SCRIPT_PATH = THIS_STEPS_ID_PATH + THIS_SCRIPT_PATH;
 
 }

@@ -37,6 +37,7 @@ public class MainVerticle extends AbstractVerticle
             "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort );
     RequestDispatcher requestDispatcher = new RequestDispatcher( vertx );
     JobLauncher jobLauncher = new JobLauncher( vertx );
+    ScriptHandler scriptHandler = new ScriptHandler( vertx );
 
     Router router = Router.router( vertx );
     router.put( "/*" ).handler( BodyHandler.create() ); // Tell vertx we want the whole PUT body in the handler
@@ -69,6 +70,8 @@ public class MainVerticle extends AbstractVerticle
     router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
     router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
     router.delete( THIS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
+    router.get( THIS_STEPS_ID_SCRIPT_PATH ).handler( scriptHandler::handleGetScript );
+    router.put( THIS_STEPS_ID_SCRIPT_PATH ).handler( scriptHandler::handlePutScript );
 
     router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleGet );
     router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
