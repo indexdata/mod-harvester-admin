@@ -126,24 +126,33 @@ public class HarvesterApiClient
         }
         else
         {
-            restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
-                ProcessedHarvesterResponseGetById response = new ProcessedHarvesterResponseGetById( ar, harvesterPath,
-                        id );
-                if ( response.wasOK() )
+            getConfigRecordById( harvesterPath, id ).onComplete( getById -> {
+                if ( getById.result().wasOK() )
                 {
-                    responseJson( routingContext, response.statusCode() ).end( response.jsonObject().encodePrettily() );
+                    responseJson( routingContext, getById.result().statusCode() ).end(
+                            getById.result().jsonObject().encodePrettily() );
                 }
                 else
                 {
-                    if ( response.wasInternalServerError() )
+                    if ( getById.result().wasInternalServerError() )
                     {
                         logger.error(
-                                " GET by ID (" + id + ") to " + harvesterPath + " encountered a server error: " + response.errorMessage() );
+                                " GET by ID (" + id + ") to " + harvesterPath + " encountered a server error: " + getById.result().errorMessage() );
                     }
-                    responseText( routingContext, response.statusCode() ).end( response.errorMessage() );
+                    responseText( routingContext, getById.result().statusCode() ).end(
+                            getById.result().errorMessage() );
+
                 }
             } );
         }
+    }
+
+    protected Future<ProcessedHarvesterResponseGetById> getConfigRecordById( String harvesterPath, String id )
+    {
+        Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+        restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send(
+                ar -> promise.complete( new ProcessedHarvesterResponseGetById( ar, harvesterPath, id ) ) );
+        return promise.future();
     }
 
     public void putConfigRecordAndRespond( RoutingContext routingContext, String harvesterPath )
