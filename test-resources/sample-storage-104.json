@@ -1,9 +1,0 @@
-{
-  "type": "solrStorage",
-  "id": "104",
-  "bulkSize": "1001",
-  "currentStatus": "NEW",
-  "description": "Solr at localhost:8983 - 104",
-  "enabled": "true",
-  "name": "Solr 104 @ localhost"
-}
