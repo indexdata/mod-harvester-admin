@@ -25,13 +25,14 @@ public class ScriptHandler extends HarvesterApiClient
 
     public void handleGetScript( RoutingContext routingContext )
     {
-        respondWithScript( routingContext );
+        String tenant = MainVerticle.getTenant( routingContext );
+        respondWithScript( routingContext, tenant );
     }
 
-    public void respondWithScript( RoutingContext routingContext )
+    public void respondWithScript( RoutingContext routingContext, String tenant )
     {
         String id = routingContext.request().getParam( "id" );
-        getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id ).onComplete( getStep -> {
+        getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
             if ( getStep.result().found() )
             {
                 String script = getStep.result().jsonObject().getString( "script" );
@@ -57,9 +58,10 @@ public class ScriptHandler extends HarvesterApiClient
 
     public void handlePutScript( RoutingContext routingContext )
     {
+        String tenant = MainVerticle.getTenant( routingContext );
         String id = routingContext.request().getParam( "id" );
         String script = routingContext.getBodyAsString();
-        getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id ).onComplete( getStep -> {
+        getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
             if ( getStep.result().found() )
             {
                 String validationResponse = validateScriptAsXml( script );
@@ -68,21 +70,22 @@ public class ScriptHandler extends HarvesterApiClient
                     JsonObject step = getStep.result().jsonObject();
                     step.put( "script", script );
 
-                    putConfigRecord( routingContext, step, id, ApiPaths.HARVESTER_STEPS_PATH ).onComplete( putStep -> {
-                        if ( putStep.succeeded() )
-                        {
-                            responseText( routingContext, 200 ).end( "Script updated for step " + id );
-                        }
-                        else
-                        {
-                            responseText( routingContext, 500 ).end( putStep.cause().getMessage() );
-                        }
-                    } );
+                    putConfigRecord( routingContext, step, id, ApiPaths.HARVESTER_STEPS_PATH, tenant ).onComplete(
+                            putStep -> {
+                                if ( putStep.succeeded() )
+                                {
+                                    responseText( routingContext, 200 ).end( "Script updated for step " + id );
+                                }
+                                else
+                                {
+                                    responseText( routingContext, 500 ).end( putStep.cause().getMessage() );
+                                }
+                            } );
                 }
                 else
                 {
                     responseText( routingContext, 422 ).end(
-                            "Validation of script as XML failed, error message was: " + validationResponse );
+                            "Validation of the script as XML failed, error message was: " + validationResponse );
                 }
             }
             else if ( getStep.result().wasNotFound() )

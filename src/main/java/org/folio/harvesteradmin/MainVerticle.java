@@ -9,6 +9,7 @@ package org.folio.harvesteradmin;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,6 +29,11 @@ public class MainVerticle extends AbstractVerticle
 {
 
   private final Logger logger = LogManager.getLogger( "harvester-admin" );
+
+  public static String getTenant( RoutingContext ctx )
+  {
+    return ctx.request().getHeader( "x-okapi-tenant" );
+  }
 
   @Override
   public void start( Promise<Void> promise )

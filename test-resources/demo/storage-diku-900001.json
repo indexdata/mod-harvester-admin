@@ -1,0 +1,18 @@
+{
+  "bulkSize": "1000",
+  "currentStatus": "NEW",
+  "description": "diku : Inventory storage at localhost",
+  "enabled": "true",
+  "id": "900001",
+  "json": {
+    "folioAuthPath": "bl-users/login",
+    "folioTenant": "diku",
+    "folioUsername": "diku_admin",
+    "folioPassword": "admin",
+    "inventoryUpsertPath": "shared-inventory-upsert-matchkey",
+    "marcStoragePath": "marc-records"
+  },
+  "name": "DIKU: FOLIO @ localhost from Vagrant box",
+  "url": "http://10.0.2.2:9130/",
+  "type": "inventoryStorage"
+}

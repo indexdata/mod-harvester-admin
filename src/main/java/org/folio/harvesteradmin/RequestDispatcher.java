@@ -42,32 +42,38 @@ public class RequestDispatcher
 
   public void handleGet( RoutingContext routingContext )
   {
-    client.respondWithConfigRecords( routingContext, mapToHarvesterPath( routingContext ) );
+    client.respondWithConfigRecords( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   public void handleGetById( RoutingContext routingContext )
   {
-    client.respondWithConfigRecordById( routingContext, mapToHarvesterPath( routingContext ) );
+    client.respondWithConfigRecordById( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   public void handlePut( RoutingContext routingContext )
   {
-    client.putConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ) );
+    client.putConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   public void handlePost( RoutingContext routingContext )
   {
-    client.postConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ) );
+    client.postConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   public void handleDeleteById( RoutingContext routingContext )
   {
-    client.deleteConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ) );
+    client.deleteConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   public void handleDelete( RoutingContext routingContext )
   {
-    client.deleteConfigRecordsAndRespond( routingContext, mapToHarvesterPath( routingContext ) );
+    client.deleteConfigRecordsAndRespond( routingContext, mapToHarvesterPath( routingContext ),
+            MainVerticle.getTenant( routingContext ) );
   }
 
   /**

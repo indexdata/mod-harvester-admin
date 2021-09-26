@@ -35,9 +35,10 @@ public class JobLauncher extends HarvesterApiClient
     public void startJob( RoutingContext routingContext )
     {
 
+        String tenant = MainVerticle.getTenant( routingContext );
         JsonObject runRequest = routingContext.getBodyAsJson();
         String harvestableId = runRequest.getString( PROP_HARVESTABLE_ID );
-        lookUpHarvesterRecordById( HARVESTER_HARVESTABLES_PATH, harvestableId ).onComplete( lookUp -> {
+        lookUpHarvesterRecordById( HARVESTER_HARVESTABLES_PATH, harvestableId, tenant ).onComplete( lookUp -> {
             if ( lookUp.succeeded() )
             {
                 if ( lookUp.result().wasNotFound() )
@@ -57,8 +58,8 @@ public class JobLauncher extends HarvesterApiClient
                     JsonObject harvestConfig = lookUp.result().jsonObject().copy();
                     harvestConfig.put( PROP_HARVEST_IMMEDIATELY, TRUE );
                     harvestConfig.put( PROP_LAST_UPDATED, dateFormat.format( new Date() ) );
-                    putConfigRecord( routingContext, harvestConfig, harvestableId,
-                            HARVESTER_HARVESTABLES_PATH ).onComplete( putResponse -> {
+                    putConfigRecord( routingContext, harvestConfig, harvestableId, HARVESTER_HARVESTABLES_PATH,
+                            tenant ).onComplete( putResponse -> {
                         if ( putResponse.succeeded() )
                         {
                             JsonObject responseOk = new JsonObject();
