@@ -4,13 +4,16 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
 
 
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse
 {
+    protected final static Logger logger = LogManager.getLogger( ProcessedHarvesterResponseGetById.class );
 
-    public ProcessedHarvesterResponseGetById( AsyncResult<HttpResponse<Buffer>> response, String apiPath, String id )
+    public ProcessedHarvesterResponseGetById( AsyncResult<HttpResponse<Buffer>> response, String apiPath, String id, String tenant )
     {
         if ( response.succeeded() )
         {
@@ -19,11 +22,18 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
 
             if ( harvesterStatusCode == 200 )
             {
+                logger.debug( "Retrieved a record from Harvester " + bodyAsString );
+
                 JsonObject transformed = HarvesterXml2Json.convertRecordToJson( bodyAsString );
                 if ( transformed == null )
                 {
                     errorMessage = "Attempted transformation of the Harvester response [" + bodyAsString + "] failed to produce a JSON object";
                     statusCode = 500;
+                }
+                else if ( !transformed.getString( "acl" ).equals( tenant ) )
+                {
+                    statusCode = 404;
+                    errorMessage = apiPath + "/" + id + " not found";
                 }
                 else
                 {

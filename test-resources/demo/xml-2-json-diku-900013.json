@@ -1,0 +1,14 @@
+{
+  "customClass": "com.indexdata.masterkey.localindices.harvest.messaging.InstanceXmlToInstanceJsonTransformerRouter",
+  "description": "Diku: FOLIO Instance XML to JSON",
+  "enabled": "true",
+  "inputFormat": "XML",
+  "name": "Diku: Instance XML to JSON",
+  "outputFormat": "JSON",
+  "script": "",
+  "id": "900013",
+  "acl": "diku",
+  "testData": "",
+  "testOutput": "",
+  "type": "CustomTransformStep"
+}

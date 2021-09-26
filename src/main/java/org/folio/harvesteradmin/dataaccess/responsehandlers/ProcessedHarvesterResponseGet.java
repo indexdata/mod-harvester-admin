@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
 public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse
 {
     private int totalRecords;
-
     private static final Pattern exceptionDescriptionPattern = Pattern.compile(
             "(Exception Description:.*?[\\n\\r]+.*?[\\n\\r]+)", Pattern.DOTALL );
 

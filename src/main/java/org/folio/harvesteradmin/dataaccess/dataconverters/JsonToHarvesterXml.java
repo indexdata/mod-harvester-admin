@@ -41,8 +41,9 @@ public class JsonToHarvesterXml
    * @param rootProperty The top-level property to embed the JSON in
    * @return wrapped JSON converted to an XML string
    */
-  public static String convertToHarvesterRecord( JsonObject json, String rootProperty ) throws ParserConfigurationException, TransformerException
+  public static String convertToHarvesterRecord( JsonObject json, String rootProperty, String tenant ) throws ParserConfigurationException, TransformerException
   {
+    json.put( "acl", tenant );
     JsonObject wrapped = wrapJson( json, rootProperty );
     Document doc = recordJsonToHarvesterXml( wrapped );
     return writeXmlDocumentToString( doc );

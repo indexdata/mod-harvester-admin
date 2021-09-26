@@ -1,0 +1,23 @@
+{
+  "acl": "diku",
+  "description": "",
+  "enabled": "true",
+  "name": "Diku - OAI-PMH to FOLIO Inventory",
+  "parallel": "false",
+  "stepAssociations": [
+    {
+      "stepId": "900010"
+    },
+    {
+      "stepId": "900011"
+    },
+    {
+      "stepId": "900012"
+    },
+    {
+      "stepId": "900013"
+    }
+  ],
+  "id": "900015",
+  "type": "basicTransformation"
+}

@@ -1,0 +1,13 @@
+{
+  "customClass": "com.indexdata.masterkey.localindices.harvest.messaging.InstanceXmlToInstanceJsonTransformerRouter",
+  "description": "North: FOLIO Instance XML to JSON",
+  "enabled": "true",
+  "inputFormat": "XML",
+  "name": "North: Instance XML to JSON",
+  "outputFormat": "JSON",
+  "script": "",
+  "id": "800013",
+  "testData": "",
+  "testOutput": "",
+  "type": "CustomTransformStep"
+}
