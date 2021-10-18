@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ID=$1
 CURL_OPTIONS=$2
 
@@ -7,7 +8,7 @@ if [ -z $token ]
     echo "Can't find okapi token-- Make sure to run a login script."
     return || exit 
 fi
-OPTS=`cat apis/harvester-admin-endpoints`;
+OPTS=`cat $SCRIPT_DIR/apis/harvester-admin-endpoints`;
 
 # echo "Choose an endpoint..."
 select EP in $OPTS
