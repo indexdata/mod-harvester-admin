@@ -7,6 +7,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
+import org.folio.harvesteradmin.statics.Config;
 
 
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse
@@ -30,7 +31,7 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
                     errorMessage = "Attempted transformation of the Harvester response [" + bodyAsString + "] failed to produce a JSON object";
                     statusCode = 500;
                 }
-                else if ( !transformed.getString( "acl" ).equals( tenant ) )
+                else if ( Config.filterByTenant && !transformed.getString( "acl" ).equals( tenant ) )
                 {
                     statusCode = 404;
                     errorMessage = apiPath + "/" + id + " not found";

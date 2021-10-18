@@ -9,6 +9,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import org.apache.logging.log4j.LogManager;
@@ -105,12 +106,68 @@ public class HarvesterApiClient
         }
     }
 
+    public HttpRequest<Buffer> harvesterGetRequest( String pathAndQuery )
+    {
+        HttpRequest<Buffer> request = restClient.get( Config.harvesterHost, pathAndQuery );
+        if ( Config.hasHarvesterPort() )
+        {
+            request.port( Config.harvesterPort );
+        }
+        if ( Config.harvesterRequiresSsl() )
+        {
+            request.ssl( true );
+        }
+        if ( Config.hasBasicAuthForHarvester() )
+        {
+            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
+        }
+        return request;
+    }
+
+    public HttpRequest<Buffer> harvesterPutRequest( String path )
+    {
+        HttpRequest<Buffer> request = restClient.put( Config.harvesterHost, path );
+        if ( Config.hasHarvesterPort() )
+        {
+            request.port( Config.harvesterPort );
+        }
+        if ( Config.harvesterRequiresSsl() )
+        {
+            request.ssl( true );
+        }
+        if ( Config.hasBasicAuthForHarvester() )
+        {
+            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
+        }
+        request.putHeader( HEADER_CONTENT_TYPE, "application/xml" );
+        return request;
+    }
+
+    public HttpRequest<Buffer> harvesterPostRequest( String path )
+    {
+        HttpRequest<Buffer> request = restClient.post( Config.harvesterHost, path );
+        if ( Config.hasHarvesterPort() )
+        {
+            request.port( Config.harvesterPort );
+        }
+        if ( Config.harvesterRequiresSsl() )
+        {
+            request.ssl( true );
+        }
+        if ( Config.hasBasicAuthForHarvester() )
+        {
+            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
+        }
+        request.putHeader( HEADER_CONTENT_TYPE, "application/xml" );
+        return request;
+    }
+
     public Future<ProcessedHarvesterResponseGet> getConfigRecords( String harvesterPath, String query, String tenant )
     {
         Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
-        String pathAndQuery = harvesterPath + ( query == null || query.isEmpty() ? "?acl=" + tenant : "?query=" + URLEncoder.encode(
-                query, StandardCharsets.UTF_8 ) ) + "&acl=" + tenant;
-        restClient.get( Config.harvesterPort, Config.harvesterHost, pathAndQuery ).send(
+        String pathAndQuery = harvesterPath + ( query == null || query.isEmpty() ? aclFilter(
+                tenant ) : "?query=" + URLEncoder.encode( query, StandardCharsets.UTF_8 ) ) + andAclFilter( tenant );
+        harvesterGetRequest( pathAndQuery ).send(
                 ar -> promise.complete( new ProcessedHarvesterResponseGet( ar, harvesterPath, query ) ) );
         return promise.future();
     }
@@ -150,7 +207,7 @@ public class HarvesterApiClient
     protected Future<ProcessedHarvesterResponseGetById> getConfigRecordById( String harvesterPath, String id, String tenant )
     {
         Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send(
+        harvesterGetRequest( harvesterPath + "/" + id ).send(
                 ar -> promise.complete( new ProcessedHarvesterResponseGetById( ar, harvesterPath, id, tenant ) ) );
         return promise.future();
     }
@@ -183,19 +240,19 @@ public class HarvesterApiClient
                                 {
                                     String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut,
                                             mapToNameOfRootOfEntity( harvesterPath ), tenant );
-                                    restClient.put( Config.harvesterPort, Config.harvesterHost,
-                                            harvesterPath + "/" + id ).putHeader( HEADER_CONTENT_TYPE,
-                                            "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
-                                        if ( put.succeeded() )
-                                        {
-                                            if ( put.result().statusCode() == NO_CONTENT )
-                                            {
-                                                responseText( routingContext, put.result().statusCode() ).end( "" );
-                                            }
-                                            else
-                                            {
-                                                responseText( routingContext, put.result().statusCode() ).end(
-                                                        "There was a problem PUTting to " + harvesterPath + "/" + id + ": " + put.result().statusMessage() );
+                                    harvesterPutRequest( harvesterPath + "/" + id ).sendBuffer( Buffer.buffer( xml ),
+                                            put -> {
+                                                if ( put.succeeded() )
+                                                {
+                                                    if ( put.result().statusCode() == NO_CONTENT )
+                                                    {
+                                                        responseText( routingContext, put.result().statusCode() ).end(
+                                                                "" );
+                                                    }
+                                                    else
+                                                    {
+                                                        responseText( routingContext, put.result().statusCode() ).end(
+                                                                "There was a problem PUTting to " + harvesterPath + "/" + id + ": " + put.result().statusMessage() );
                                     }
                                 }
                                 else
@@ -246,19 +303,18 @@ public class HarvesterApiClient
                             {
                                 String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut,
                                         mapToNameOfRootOfEntity( harvesterPath ), tenant );
-                                restClient.put( Config.harvesterPort, Config.harvesterHost,
-                                        harvesterPath + "/" + id ).putHeader( HEADER_CONTENT_TYPE,
-                                        "application/xml" ).sendBuffer( Buffer.buffer( xml ), put -> {
-                                    if ( put.succeeded() )
-                                    {
-                                        promisedResponse.complete( put.result() );
-                                    }
-                            else
-                            {
-                                promisedResponse.fail(
-                                        "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage() );
-                            }
-                        } );
+                                harvesterPutRequest( harvesterPath + "/" + id ).sendBuffer( Buffer.buffer( xml ),
+                                        put -> {
+                                            if ( put.succeeded() )
+                                            {
+                                                promisedResponse.complete( put.result() );
+                                            }
+                                            else
+                                            {
+                                                promisedResponse.fail(
+                                                        "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage() );
+                                            }
+                                        } );
                     }
                     catch ( TransformerException | ParserConfigurationException e )
                     {
@@ -441,8 +497,7 @@ public class HarvesterApiClient
 
             String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPost,
                     mapToNameOfRootOfEntity( harvesterPath ), tenant );
-            restClient.post( Config.harvesterPort, Config.harvesterHost, harvesterPath ).putHeader( HEADER_CONTENT_TYPE,
-                    "application/xml" ).sendBuffer( Buffer.buffer( xml ), ar -> {
+            harvesterPostRequest( harvesterPath ).sendBuffer( Buffer.buffer( xml ), ar -> {
                 if ( ar.succeeded() )
                 {
                     String location = ar.result().getHeader( "Location" );
@@ -675,9 +730,8 @@ public class HarvesterApiClient
                                                                     transformation,
                                                                     EntityRootNames.TRANSFORMATION_ROOT_PROPERTY,
                                                                     tenant );
-                                                            restClient.put( Config.harvesterPort, Config.harvesterHost,
-                                                                    HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).putHeader(
-                                                                    HEADER_CONTENT_TYPE, "application/xml" ).sendBuffer(
+                                                            harvesterPutRequest(
+                                                                    HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId ).sendBuffer(
                                                                     Buffer.buffer( xml ), ar -> {
                                                                         if ( ar.succeeded() )
                                                                         {
@@ -1019,11 +1073,6 @@ public class HarvesterApiClient
         return promise.future();
     }
 
-    private String acl( String tenant )
-    {
-        return "acl=" + tenant;
-    }
-
     private boolean isNonJsonContentType( RoutingContext ctx )
     {
         String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
@@ -1051,6 +1100,16 @@ public class HarvesterApiClient
     private String mapToNameOfRootOfEntity( String harvesterPath )
     {
         return rootOfEntityByHarvesterPath.get( harvesterPath );
+    }
+
+    private String aclFilter( String tenant )
+    {
+        return Config.filterByTenant ? "?acl=" + tenant : "";
+    }
+
+    private String andAclFilter( String tenant )
+    {
+        return Config.filterByTenant ? "&acl=" + tenant : "";
     }
 
 }
