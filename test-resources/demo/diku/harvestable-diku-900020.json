@@ -8,7 +8,7 @@
   "failedRecordsLogging": "CLEAN_DIRECTORY",
   "harvestImmediately": "false",
   "id": "900020",
-  "recordLimit": "400",
+  "recordLimit": "600",
   "lastUpdated": "2020-01-01T08:10:00Z",
   "laxParsing": "false",
   "logLevel": "INFO",
