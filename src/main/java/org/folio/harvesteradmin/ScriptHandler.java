@@ -18,6 +18,11 @@ import static org.folio.okapi.common.HttpResponse.responseText;
 
 public class ScriptHandler extends HarvesterApiClient
 {
+    public static final String VALID_STEP_TYPE = "XmlTransformStep";
+    public static final String STEP_NAME_KEY = "name";
+    public static final String STEP_TYPE_KEY = "type";
+    public static final String STEP_SCRIPT_KEY = "script";
+
     public ScriptHandler( Vertx vertx )
     {
         super( vertx );
@@ -35,7 +40,7 @@ public class ScriptHandler extends HarvesterApiClient
         getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
             if ( getStep.result().found() )
             {
-                String script = getStep.result().jsonObject().getString( "script" );
+                String script = getStep.result().jsonObject().getString( STEP_SCRIPT_KEY );
                 script = script.replaceAll( "\\r[\\n]?", System.lineSeparator() );
                 responseText( routingContext, 200 ).end( script );
             }
@@ -60,43 +65,70 @@ public class ScriptHandler extends HarvesterApiClient
     {
         String tenant = MainVerticle.getTenant( routingContext );
         String id = routingContext.request().getParam( "id" );
-        String script = routingContext.getBodyAsString();
-        getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
-            if ( getStep.result().found() )
-            {
-                String validationResponse = validateScriptAsXml( script );
-                if ( validationResponse.equals( "OK" ) )
+        String name = routingContext.request().getParam( "name" );
+        if ( name == null || name.isEmpty() )
+        {
+            responseText( routingContext, 400 ).end(
+                    "Parameter 'name' is mandatory when putting a script to the step. The value should match the name of the step to PUT to." );
+        }
+        else
+        {
+            String script = routingContext.getBodyAsString();
+            getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
+                if ( getStep.result().found() )
                 {
                     JsonObject step = getStep.result().jsonObject();
-                    step.put( "script", script );
+                    String stepType = step.getString( STEP_TYPE_KEY );
+                    String stepName = step.getString( STEP_NAME_KEY );
+                    if ( !stepType.equals( VALID_STEP_TYPE ) )
+                    {
+                        responseText( routingContext, 400 ).end(
+                                "Can only PUT scripts to steps of type 'XmlTransformStep', step " + id + ", '" + stepName + "' is '" + stepType + "'" );
+                    }
+                    else if ( stepName.matches( name.replaceAll( "\\*", ".*" ) ) )
+                    {
 
-                    putConfigRecord( routingContext, step, id, ApiPaths.HARVESTER_STEPS_PATH, tenant ).onComplete(
-                            putStep -> {
+                        String validationResponse = validateScriptAsXml( script );
+                        if ( validationResponse.equals( "OK" ) )
+                        {
+                            step.put( STEP_SCRIPT_KEY, script );
+
+                            putConfigRecord( routingContext, step, id, ApiPaths.HARVESTER_STEPS_PATH,
+                                    tenant ).onComplete( putStep -> {
                                 if ( putStep.succeeded() )
                                 {
-                                    responseText( routingContext, 200 ).end( "Script updated for step " + id );
+                                    responseText( routingContext, 200 ).end(
+                                            "Script updated for step " + id + ", '" + stepName + "'" );
                                 }
                                 else
                                 {
                                     responseText( routingContext, 500 ).end( putStep.cause().getMessage() );
                                 }
                             } );
+                        }
+                        else
+                        {
+                            responseText( routingContext, 422 ).end(
+                                    "Validation of the script as XML failed, error message was: " + validationResponse );
+                        }
+                    }
+                    else
+                    {
+                        responseText( routingContext, 400 ).end(
+                                "A script with ID " + id + " was found, but it's name [" + stepName + "] did not match the name provided [" + name + "]." );
+                    }
+                }
+                else if ( getStep.result().wasNotFound() )
+                {
+                    responseText( routingContext, 404 ).end( "Did not find step with ID " + id + " to PUT script to" );
                 }
                 else
                 {
-                    responseText( routingContext, 422 ).end(
-                            "Validation of the script as XML failed, error message was: " + validationResponse );
+                    responseText( routingContext, getStep.result().statusCode() ).end(
+                            getStep.result().errorMessage() );
                 }
-            }
-            else if ( getStep.result().wasNotFound() )
-            {
-                responseText( routingContext, 404 ).end( "Did not find step with ID " + id + " to PUT script to" );
-            }
-            else
-            {
-                responseText( routingContext, getStep.result().statusCode() ).end( getStep.result().errorMessage() );
-            }
-        } );
+            } );
+        }
     }
 
     public String validateScriptAsXml( String script )

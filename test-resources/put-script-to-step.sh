@@ -1,6 +1,7 @@
 #!/bin/bash
 ID=$1
-DATA=$2
+NAME=$2
+DATA=$3
 
 if [ -z $token ]
   then
@@ -9,9 +10,9 @@ if [ -z $token ]
 fi
 if [ -z $DATA ]
   then
-    echo "Usage: . ./put-admin-record.sh [id] [xslt file name]"
+    echo "Usage: . ./put-admin-record.sh [id] [step name (possibly with truncation)]  [xslt file name]"
     return || exit
 fi
 
 
-curl -i -w '\n' --http1.1 -X PUT  "$protocol://$host/harvester-admin/steps/${ID}/script" --data-binary @${DATA} -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"
+curl -i -w '\n' --http1.1 -X PUT  "$protocol://$host/harvester-admin/steps/${ID}/script?name=${NAME}" --data-binary @${DATA} -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"
