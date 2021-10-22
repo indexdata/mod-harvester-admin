@@ -15,8 +15,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.statics.Config;
 
-import java.lang.management.ManagementFactory;
-
 import static org.folio.harvesteradmin.statics.ApiPaths.*;
 
 /**
@@ -38,9 +36,11 @@ public class MainVerticle extends AbstractVerticle
   @Override
   public void start( Promise<Void> promise )
   {
-    new Config();
-    logger.info(
-            "Starting Harvester admin service " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + Config.servicePort );
+    Config config = new Config();
+    if ( config.isHarvesterConfigOkay() )
+    {
+      logger.info( config.toString() );
+    }
     RequestDispatcher requestDispatcher = new RequestDispatcher( vertx );
     JobLauncher jobLauncher = new JobLauncher( vertx );
     ScriptHandler scriptHandler = new ScriptHandler( vertx );
@@ -91,8 +91,16 @@ public class MainVerticle extends AbstractVerticle
     vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
       if ( result.succeeded() )
       {
-        logger.info( "Succeeded in starting the listener for Harvester admin service" );
-        promise.complete();
+        if ( config.isHarvesterConfigOkay() )
+        {
+          logger.info( "Succeeded in starting the listener for Harvester admin service" );
+          promise.complete();
+        }
+        else
+        {
+          logger.error( "There was a problem configuring the connection to Harvester" );
+          promise.fail( "Could not configure the access to Harvester" );
+        }
       }
       else
       {

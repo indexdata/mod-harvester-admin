@@ -1082,7 +1082,7 @@ public class HarvesterApiClient
     protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String harvesterPath, String id, String tenant )
     {
         Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
+        harvesterGetRequest( harvesterPath + "/" + id ).send( ar -> {
             ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar,
                     harvesterPath, id, tenant );
             promise.complete( adaptedResponse );
