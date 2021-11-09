@@ -7,7 +7,6 @@ if [ -z $token ]
     echo "Can't find okapi token-- Make sure to run a login script."
     return || exit 
 fi
-OPTS=`cat apis/harvester-admin-endpoints`;
 
 
 if [ "$CURL_OPTIONS" = "" ]; then

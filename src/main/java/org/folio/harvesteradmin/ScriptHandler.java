@@ -73,7 +73,7 @@ public class ScriptHandler extends HarvesterApiClient
         }
         else
         {
-            String script = routingContext.getBodyAsString();
+            String script = routingContext.getBodyAsString().replaceAll( System.lineSeparator(), "\n" );
             getConfigRecordById( ApiPaths.HARVESTER_STEPS_PATH, id, tenant ).onComplete( getStep -> {
                 if ( getStep.result().found() )
                 {
@@ -140,7 +140,7 @@ public class ScriptHandler extends HarvesterApiClient
         }
         catch ( ParserConfigurationException | IOException | SAXException pe )
         {
-            return pe.getMessage();
+            return "Validation failed for script [ " + script + "]: " + pe.getMessage();
         }
         return "OK";
     }
