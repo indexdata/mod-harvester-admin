@@ -8,7 +8,7 @@ access to control the workings of the Harvester.
 
 The Harvester is a collection of modules that can read data from a variety of data sources like FTP servers, local file
 systems, OAI-PMH servers and web pages, transform those data through highly configurable XSLT based transformation
-pipelines and store the transformed data to storage systems like Solr databases or FOLIO Inventory. It's primary use is
+pipelines and store the transformed data to storage systems like Solr databases or FOLIO Inventory. Its primary use is
 harvesting of bibliographic records.
 
 Harvest job definitions, scheduling, and transformation pipelines are configured in a MySQL database. The Harvester has
