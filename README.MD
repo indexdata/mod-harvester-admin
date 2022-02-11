@@ -18,6 +18,26 @@ JSF based admin UI for admins to create and update configurations through the RE
 Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients
 can then use for managing harvest jobs.
 
+## Configuration
+
+The module's access to the legacy harvester service is condigured by the following environment variables:
+
+* `harvester.protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also supported.
+* `harvester.host` -- the hostname or IP address on which the legacy service is running. Must be provided.
+* `harvester.port` -- the port on which to contact the harvester host. Defaults to 80 if the protocol is `http`, 443 if it is `https`.
+* `harvester.auth.basic.username` -- if provided, a username to submit as part of HTTP Basic authentication
+* `harvester.auth.basic.password` -- if provided, a username to submit as part of HTTP Basic authentication. If neither username nor password is provided, then HTTP Basic authentication is not used at all.
+
+In addition, if the `acl_filter.by_tenant` environment variable is set to the string value `"false"`, then tenant-filtering is turned off, and all tenants' harvesting jobs are available to any tenant. **Do not use this in production.**
+
+## Build and run
+
+```
+mvn install
+export harvester.host=palci-harvester.reshare.indexdata.com
+java -jar target/mod-harvester-admin-fat.jar
+```
+
 ## Provided Interfaces
 
 ### /harvester-admin/harvestables
