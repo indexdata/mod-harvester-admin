@@ -3,3 +3,7 @@ harvester-admin-0.1.yaml: harvester-admin-0.1.yaml.m4
 	m4 $? > $@
 	chmod 444 $@
 
+# Ensure folio-tools/api-lint/api_lint.py is on $PATH
+lint:
+	api_lint.py -t OAS -d .
+
