@@ -278,8 +278,24 @@
             <configuration>
               <fileSets>
                 <fileSet>
+                  <sourceFile>${project.build.directory}/DeploymentDescriptor-environment-template.json</sourceFile>
+                  <destinationFile>${project.build.directory}/DeploymentDescriptor-environment.json</destinationFile>
+                </fileSet>
+                <fileSet>
+                  <sourceFile>${project.build.directory}/DeploymentDescriptor-template.json</sourceFile>
+                  <destinationFile>${project.build.directory}/DeploymentDescriptor.json</destinationFile>
+                </fileSet>
+                <fileSet>
+                  <sourceFile>${project.build.directory}/DiscoveryDescriptor-template.json</sourceFile>
+                  <destinationFile>${project.build.directory}/DiscoveryDescriptor.json</destinationFile>
+                </fileSet>
+                <fileSet>
                   <sourceFile>${project.build.directory}/ModuleDescriptor-template.json</sourceFile>
                   <destinationFile>${project.build.directory}/ModuleDescriptor.json</destinationFile>
+                </fileSet>
+                <fileSet>
+                  <sourceFile>${project.build.directory}/TenantModuleDescriptor-template.json</sourceFile>
+                  <destinationFile>${project.build.directory}/TenantModuleDescriptor.json</destinationFile>
                 </fileSet>
               </fileSets>
             </configuration>
