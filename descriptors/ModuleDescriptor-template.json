@@ -266,7 +266,7 @@
     },
     {
       "permissionName": "harvester-admin.storages.collection.get",
-      "displayName": "harvester admin - get harvestable collection",
+      "displayName": "harvester admin - get storage collection",
       "description": "get storage collection from storage"
     },
     {
@@ -296,7 +296,7 @@
     },
     {
       "permissionName": "harvester-admin.transformations.collection.get",
-      "displayName": "harvester admin - get harvestable collection",
+      "displayName": "harvester admin - get transformation collection",
       "description": "get transformation collection from storage"
     },
     {
@@ -326,7 +326,7 @@
     },
     {
       "permissionName": "harvester-admin.steps.collection.get",
-      "displayName": "harvester admin - get harvestable collection",
+      "displayName": "harvester admin - get step collection",
       "description": "get step collection from storage"
     },
     {
@@ -356,7 +356,7 @@
     },
     {
       "permissionName": "harvester-admin.transformations-steps.collection.get",
-      "displayName": "harvester admin - get harvestable collection",
+      "displayName": "harvester admin - get transformation-step collection",
       "description": "get transformation-step collection from storage"
     },
     {
@@ -397,7 +397,7 @@
     {
       "permissionName": "harvester-admin.delete-all",
       "displayName": "harvester admin - delete all configurations of given types",
-      "description": "delete collections of harvestables, storages, transformations, and steps",
+      "description": "delete collections of harvestables, storages, transformations, steps, and transformation-steps",
       "subPermissions": [
         "harvester-admin.harvestables.collection.delete",
         "harvester-admin.storages.collection.delete",
