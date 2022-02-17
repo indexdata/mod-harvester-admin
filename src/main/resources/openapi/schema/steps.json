@@ -2,7 +2,7 @@
   "description": "brief transformation step records",
   "type": "object",
   "properties": {
-    "harvestables": {
+    "steps": {
       "description": "List of transformation step definitions",
       "type": "array",
       "items": {

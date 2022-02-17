@@ -2,7 +2,7 @@
   "description": "transformation step associations",
   "type": "object",
   "properties": {
-    "harvestables": {
+    "transformationSteps": {
       "description": "List of transformation steps associated with transformation pipelines",
       "type": "array",
       "items": {

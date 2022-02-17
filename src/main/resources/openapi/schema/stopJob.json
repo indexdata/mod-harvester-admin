@@ -1,0 +1,5 @@
+{
+  "description": "Instructions to stop a harvest job",
+  "type": "object",
+  "additionalProperties": true
+}

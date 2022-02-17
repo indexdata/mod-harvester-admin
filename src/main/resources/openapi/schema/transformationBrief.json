@@ -25,7 +25,7 @@
     "type": {
       "type": "string",
       "description": "free-text describing what kind of transformation this step performs"
-    },
-    "additionalProperties": false
-  }
+    }
+  },
+  "additionalProperties": true
 }

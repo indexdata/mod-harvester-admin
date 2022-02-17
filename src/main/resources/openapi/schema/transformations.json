@@ -2,7 +2,7 @@
   "description": "brief transformation configuration records",
   "type": "object",
   "properties": {
-    "harvestables": {
+    "transformations": {
       "description": "List of transformation definitions",
       "type": "array",
       "items": {
