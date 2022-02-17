@@ -2,7 +2,7 @@
   "description": "brief storage configuration records",
   "type": "object",
   "properties": {
-    "harvestables": {
+    "storages": {
       "description": "List of storage definitions",
       "type": "array",
       "items": {
