@@ -7,3 +7,7 @@ harvester-admin-0.1.yaml: harvester-admin-0.1.yaml.m4
 lint:
 	api_lint.py -t OAS -d .
 
+# To install: sudo npm -g install ajv-cli
+schemalint:
+	ajv compile -s "schema/*.json"
+
