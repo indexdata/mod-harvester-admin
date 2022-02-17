@@ -35,7 +35,7 @@ define(`DELETE_RESPONSE', `delete:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"')dnl
 dnl
