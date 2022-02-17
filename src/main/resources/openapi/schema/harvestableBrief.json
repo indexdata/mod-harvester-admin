@@ -51,13 +51,15 @@
       "type": "string",
       "description": "the date and time when a job with this definition should be run (if job is enabled)"
     },
-    "jobClass": "string",
-    "enum": [
-      "XmlBulkResource",
-      "OaiPmhResource",
-      "HarvestConnectorResource"
-    ],
-    "description": "indicates the type of source from which the job would harvest and thus the kind of processing the Harvester would perform for running the job"
+    "jobClass": {
+      "type": "string",
+      "enum": [
+        "XmlBulkResource",
+        "OaiPmhResource",
+        "HarvestConnectorResource"
+      ],
+      "description": "indicates the type of source from which the job would harvest and thus the kind of processing the Harvester would perform for running the job"
+    }
   },
   "additionalProperties": false
 }
