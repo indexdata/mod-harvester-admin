@@ -42,7 +42,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/harvestables/{id}:
@@ -83,7 +83,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/jobs/run:
@@ -162,7 +162,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/storages/{id}:
@@ -203,7 +203,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/transformations:
@@ -242,7 +242,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/transformations/{id}:
@@ -283,7 +283,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/steps:
@@ -322,7 +322,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/steps/{id}:
@@ -363,7 +363,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/steps/{id}/script:
@@ -434,7 +434,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
   /harvester-admin/tsas/{id}:
@@ -475,7 +475,7 @@ paths:
         "204":
           description: No content
         "404":
-          $ref: "#/components/responses/trait_404")
+          $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
 components:
