@@ -3,7 +3,7 @@
   "type": "object",
   "properties": {
     "id": {
-      "type": "integer",
+      "type": "string",
       "description": "unique ID for the job definition"
     },
     "name": {
@@ -47,7 +47,7 @@
       "type": "string",
       "description": "the date and time when this definition was last modified"
     },
-    "nextHarvestScheduled": {
+    "nextHarvestSchedule": {
       "type": "string",
       "description": "the date and time when a job with this definition should be run (if job is enabled)"
     },
@@ -59,6 +59,14 @@
         "HarvestConnectorResource"
       ],
       "description": "indicates the type of source from which the job would harvest and thus the kind of processing the Harvester would perform for running the job"
+    },
+    "amountHarvested": {
+      "type": "string",
+      "description": "Number of records harvested in last run. It seems this should really be an integer, but string is what the WSAPI gives us"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message summarising results of last run"
     }
   },
   "additionalProperties": false
