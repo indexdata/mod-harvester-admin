@@ -8,7 +8,7 @@ lint: schemalint apilint
 schemalint:
 	ajv compile -s "schema/*.json"
 
-apilint:
+apilint: harvester-admin-0.1.yaml
 	api_lint.py -t OAS -d .
 
 doc:
