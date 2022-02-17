@@ -53,6 +53,8 @@ paths:
           description: OK
           content:
             application/json:
+              example:
+                $ref: example/harvestable.json
               schema:
                 $ref: schema/harvestableBrief.json
         "500":

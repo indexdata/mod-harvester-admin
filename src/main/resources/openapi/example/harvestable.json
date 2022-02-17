@@ -1,0 +1,14 @@
+{
+  "amountHarvested": "86",
+  "currentStatus": "OK",
+  "enabled": "false",
+  "id": "307502",
+  "jobClass": "OaiPmhResource",
+  "lastHarvestFinished": "2021-02-21T11:53:02Z",
+  "lastHarvestStarted": "2021-02-21T11:49:18Z",
+  "lastUpdated": "2021-02-21T11:49:18Z",
+  "message": "Instances_processed/loaded/deletions(signals)/failed:__86___86___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__86___86___0___0_ Items_processed/loaded/deleted/failed:__86___86___0___0_ Source_records_processed/loaded/deleted/failed:__86___86___0___0_",
+  "name": "Bloomsburg to palci-si.reshare (prod)",
+  "nextHarvestSchedule": "2022-06-10T10:10:00Z",
+  "storageUrl": "https://palci-si-okapi.reshare.indexdata.com/"
+}

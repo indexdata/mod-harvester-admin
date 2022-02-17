@@ -5,6 +5,9 @@ define(`GET_RESPONSE', `get:
           description: OK
           content:
             application/json:
+ifelse($3, `', `dnl', `dnl
+              example:
+                $ref: example/$3.json')
               schema:
                 $ref: schema/$2.json
         "500":
@@ -74,7 +77,7 @@ paths:
     POST_RESPONSE(`Create new harvest job definition', `harvestableBrief', `harvestableBrief')
     DELETE_RESPONSE(`Delete all harvest job definitions')
   /harvester-admin/harvestables/{id}:
-    GET_RESPONSE(`Get detailed harvest job definition', `harvestableBrief')
+    GET_RESPONSE(`Get detailed harvest job definition', `harvestableBrief', `harvestable')
     PUT_RESPONSE(`Update a harvest job definition', `harvestableBrief', `harvestableBrief')
     DELETE_RESPONSE(`Delete a harvest job definition')
   /harvester-admin/jobs/run:

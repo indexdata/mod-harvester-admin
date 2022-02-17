@@ -8,10 +8,11 @@ To simplify the build process, we check in the generated file as well as the sou
 
 ## Checking
 
-[The `Makefile`](Makefile) provides three targets that can be used to check the correctness of the OpenAPI specification and its associated JSON Schemas:
+[The `Makefile`](Makefile) provides four targets that can be used to check the correctness of the OpenAPI specification and its associated JSON Schemas:
 * `schemalint` checks the JSON schemas using [AJV](https://ajv.js.org/)
+* `examplelint` checks that the example records conform to the appropriate schemas
 * `apilint` checks the API file using [FOLIO's api-lint](https://github.com/folio-org/folio-tools/tree/master/api-lint)
-* `lint` runs both these checks
+* `lint` runs all threee of these checks
 
 The AJV command-lint client can be installed using `npm -g install ajv-cli`.
 
