@@ -1,4 +1,5 @@
 {
+  "$id" : "harvestableBrief.json",
   "description": "brief harvest job definition record",
   "type": "object",
   "properties": {

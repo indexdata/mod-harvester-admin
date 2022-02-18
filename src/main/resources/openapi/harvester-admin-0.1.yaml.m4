@@ -73,7 +73,7 @@ info:
   version: v0.1
 paths:
   /harvester-admin/harvestables:
-    GET_RESPONSE(`Get brief harvest job definitions', `harvestables')
+    GET_RESPONSE(`Get brief harvest job definitions', `harvestables', `harvestables')
     POST_RESPONSE(`Create new harvest job definition', `harvestableBrief', `harvestableBrief')
     DELETE_RESPONSE(`Delete all harvest job definitions')
   /harvester-admin/harvestables/{id}:

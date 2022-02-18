@@ -6,10 +6,11 @@ harvester-admin-0.1.yaml: harvester-admin-0.1.yaml.m4
 lint: schemalint examplelint apilint
 
 schemalint:
-	ajv compile -s "schema/*.json"
+	ajv compile -s "schema/harvestables.json" -r "schema/harvestableBrief.json"
 
 examplelint:
 	ajv test -s schema/harvestableBrief.json -d example/harvestable.json --valid
+	ajv test -s schema/harvestables.json -r schema/harvestableBrief.json -d example/harvestables.json --valid
 
 apilint: harvester-admin-0.1.yaml
 	api_lint.py -t OAS -d .
