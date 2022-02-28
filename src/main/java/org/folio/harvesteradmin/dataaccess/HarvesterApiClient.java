@@ -6,6 +6,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -28,9 +29,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import static org.folio.harvesteradmin.statics.ApiPaths.*;
 import static org.folio.okapi.common.HttpResponse.*;
@@ -38,7 +41,7 @@ import static org.folio.okapi.common.HttpResponse.*;
 public class HarvesterApiClient
 {
     protected final static String HEADER_CONTENT_TYPE = "Content-Type";
-    protected final static Logger logger = LogManager.getLogger( HarvesterApiClient.class );
+    protected final static Logger logger = LogManager.getLogger(HarvesterApiClient.class);
     protected final static int BAD_REQUEST = 400;
     protected final static int INTERNAL_SERVER_ERROR = 500;
     protected final static int NO_CONTENT = 204;
@@ -48,90 +51,72 @@ public class HarvesterApiClient
     protected final WebClient restClient;
     private static final Map<String, String> rootOfEntityByHarvesterPath = new HashMap<>();
     private static final Map<String, String> rootOfResultSetByHarvesterPath = new HashMap<>();
+    private static final String REQUEST_PARAMETER_QUERY = "query";
+    private static final String REQUEST_PARAMETER_LIMIT = "limit";
+    private static final String REQUEST_PARAMETER_OFFSET = "offset";
+    private static final String REQUEST_PARAMETER_ORDER_BY = "orderBy";
+    private static final Set<String> supportedGetRequestParameters = new HashSet<>();
+    private static final Map<String, String> folioToLegacyParameter = new HashMap<>();
 
-    static
-    {
-        rootOfEntityByHarvesterPath.put( HARVESTER_HARVESTABLES_PATH, EntityRootNames.HARVESTABLE_ROOT_PROPERTY );
-        rootOfEntityByHarvesterPath.put( HARVESTER_STORAGES_PATH, EntityRootNames.STORAGE_ROOT_PROPERTY );
-        rootOfEntityByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_PATH, EntityRootNames.TRANSFORMATION_ROOT_PROPERTY );
-        rootOfEntityByHarvesterPath.put( HARVESTER_STEPS_PATH, EntityRootNames.STEP_ROOT_PROPERTY );
-        rootOfEntityByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_STEPS_PATH,
-                EntityRootNames.TRANSFORMATION_STEP_ROOT_PROPERTY );
-        rootOfResultSetByHarvesterPath.put( HARVESTER_HARVESTABLES_PATH,
-                EntityRootNames.HARVESTABLE_SET_ROOT_PROPERTY );
-        rootOfResultSetByHarvesterPath.put( HARVESTER_STORAGES_PATH, EntityRootNames.STORAGE_SET_ROOT_PROPERTY );
-        rootOfResultSetByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_PATH,
-                EntityRootNames.TRANSFORMATION_SET_ROOT_PROPERTY );
-        rootOfResultSetByHarvesterPath.put( HARVESTER_STEPS_PATH, EntityRootNames.STEP_SET_ROOT_PROPERTY );
-        rootOfResultSetByHarvesterPath.put( HARVESTER_TRANSFORMATIONS_STEPS_PATH,
-                EntityRootNames.TRANSFORMATION_STEP_SET_ROOT_PROPERTY );
+    static {
+        rootOfEntityByHarvesterPath.put(HARVESTER_HARVESTABLES_PATH,
+                EntityRootNames.HARVESTABLE_ROOT_PROPERTY);
+        rootOfEntityByHarvesterPath.put(HARVESTER_STORAGES_PATH,
+                EntityRootNames.STORAGE_ROOT_PROPERTY);
+        rootOfEntityByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_PATH,
+                EntityRootNames.TRANSFORMATION_ROOT_PROPERTY);
+        rootOfEntityByHarvesterPath.put(HARVESTER_STEPS_PATH, EntityRootNames.STEP_ROOT_PROPERTY);
+        rootOfEntityByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+                EntityRootNames.TRANSFORMATION_STEP_ROOT_PROPERTY);
+        rootOfResultSetByHarvesterPath.put(HARVESTER_HARVESTABLES_PATH,
+                EntityRootNames.HARVESTABLE_SET_ROOT_PROPERTY);
+        rootOfResultSetByHarvesterPath.put(HARVESTER_STORAGES_PATH,
+                EntityRootNames.STORAGE_SET_ROOT_PROPERTY);
+        rootOfResultSetByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_PATH,
+                EntityRootNames.TRANSFORMATION_SET_ROOT_PROPERTY);
+        rootOfResultSetByHarvesterPath.put(HARVESTER_STEPS_PATH,
+                EntityRootNames.STEP_SET_ROOT_PROPERTY);
+        rootOfResultSetByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_STEPS_PATH,
+                EntityRootNames.TRANSFORMATION_STEP_SET_ROOT_PROPERTY);
+
     }
 
-
-    public HarvesterApiClient( Vertx vertx )
-    {
-        restClient = WebClient.create( vertx );
+    static {
+        supportedGetRequestParameters.add(REQUEST_PARAMETER_QUERY);
+        supportedGetRequestParameters.add(REQUEST_PARAMETER_LIMIT);
+        supportedGetRequestParameters.add(REQUEST_PARAMETER_OFFSET);
+        supportedGetRequestParameters.add(REQUEST_PARAMETER_ORDER_BY);
+        folioToLegacyParameter.put(REQUEST_PARAMETER_QUERY, "query");
+        folioToLegacyParameter.put(REQUEST_PARAMETER_LIMIT, "max");
+        folioToLegacyParameter.put(REQUEST_PARAMETER_OFFSET, "start");
+        folioToLegacyParameter.put(REQUEST_PARAMETER_ORDER_BY, "sort");
     }
 
-    public static String mapToNameOfRootOfResultSet( String harvesterPath )
-    {
-        return rootOfResultSetByHarvesterPath.get( harvesterPath );
+    public HarvesterApiClient(Vertx vertx) {
+        restClient = WebClient.create(vertx);
     }
 
-    public void respondWithConfigRecords( RoutingContext routingContext, String harvesterPath, String tenant )
-    {
-        logger.debug( "In respondWithConfigRecords, path " + harvesterPath );
-        String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-        if ( isNonJsonContentType( routingContext ) )
-        {
-            responseError( routingContext, BAD_REQUEST,
-                    "Only accepts Content-Type application/json, was: " + contentType );
+    public static Map<String, String> getSupportedGetRequestParameters(HttpServerRequest request) {
+        Map<String, String> requestParameterMap = new HashMap<>();
+        for (String param : supportedGetRequestParameters) {
+            String paramValue = request.getParam(param);
+            if (paramValue != null && !paramValue.isEmpty()) {
+                requestParameterMap.put(param, paramValue);
+            }
         }
-        else
-        {
-            String query = routingContext.request().getParam( "query" );
-            getConfigRecords( harvesterPath, query, tenant ).onComplete( get -> {
-                if ( get.result().wasOK() )
-                {
-                    responseJson( routingContext, get.result().statusCode() ).end(
-                            get.result().jsonObject().encodePrettily() );
-                }
-                else
-                {
-                    logger.error(
-                            "GET " + harvesterPath + ( query == null || query.isEmpty() ? "" : "(" + query + ")" ) + " encountered a server error: " + get.result().errorMessage() );
-                    responseText( routingContext, get.result().statusCode() ).end( get.result().errorMessage() );
-                }
-            } );
-        }
+        return requestParameterMap;
     }
 
-    public HttpRequest<Buffer> harvesterGetRequest( String pathAndQuery )
-    {
-        HttpRequest<Buffer> request = restClient.get( Config.harvesterHost, pathAndQuery );
-        if ( Config.hasHarvesterPort() )
-        {
-            request.port( Config.harvesterPort );
-        }
-        if ( Config.harvesterRequiresSsl() )
-        {
-            request.ssl( true );
-        }
-        if ( Config.hasBasicAuthForHarvester() )
-        {
-            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
-        }
-        return request;
+    public static String mapToNameOfRootOfResultSet(String harvesterPath) {
+        return rootOfResultSetByHarvesterPath.get(harvesterPath);
     }
 
-    public HttpRequest<Buffer> harvesterPutRequest( String path )
-    {
-        HttpRequest<Buffer> request = restClient.put( Config.harvesterHost, path );
-        if ( Config.hasHarvesterPort() )
-        {
-            request.port( Config.harvesterPort );
+    public HttpRequest<Buffer> harvesterPutRequest(String path) {
+        HttpRequest<Buffer> request = restClient.put(Config.harvesterHost, path);
+        if (Config.hasHarvesterPort()) {
+            request.port(Config.harvesterPort);
         }
-        if ( Config.harvesterRequiresSsl() )
+        if (Config.harvesterRequiresSsl())
         {
             request.ssl( true );
         }
@@ -152,34 +137,41 @@ public class HarvesterApiClient
         }
         if ( Config.harvesterRequiresSsl() )
         {
-            request.ssl( true );
+            request.ssl(true);
         }
-        if ( Config.hasBasicAuthForHarvester() )
-        {
-            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
         }
-        request.putHeader( HEADER_CONTENT_TYPE, "application/xml" );
+        request.putHeader(HEADER_CONTENT_TYPE, "application/xml");
         return request;
     }
 
-    public Future<ProcessedHarvesterResponseGet> getConfigRecords( String harvesterPath, String query, String tenant )
-    {
-        Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
-        String pathAndQuery = harvesterPath + ( query == null || query.isEmpty() ? aclFilter(
-                tenant ) : "?query=" + URLEncoder.encode( query, StandardCharsets.UTF_8 ) ) + andAclFilter( tenant );
-        harvesterGetRequest( pathAndQuery ).send(
-                ar -> promise.complete( new ProcessedHarvesterResponseGet( ar, harvesterPath, query ) ) );
-        return promise.future();
+    private static String buildQueryString(Map<String, String> parameterMap) {
+        StringBuilder queryString = new StringBuilder();
+        if (parameterMap != null) {
+            Object[] keys = parameterMap.keySet().toArray();
+            for (int i = 0; i < keys.length; i++) {
+                if (i == 0) {
+                    queryString.append("?");
+                } else {
+                    queryString.append("&");
+                }
+                String key = (String) keys[i];
+                queryString.append(folioToLegacyParameter.get(key));
+                queryString.append("=");
+                queryString.append(
+                        URLEncoder.encode(parameterMap.get(key), StandardCharsets.UTF_8));
+            }
+        }
+        return queryString.toString();
     }
 
-    public void respondWithConfigRecordById( RoutingContext routingContext, String harvesterPath, String tenant )
-    {
-        String id = routingContext.request().getParam( "id" );
-        String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-        if ( isNonJsonContentType( routingContext ) )
-        {
-            responseError( routingContext, BAD_REQUEST,
-                    "Only accepts Content-Type application/json, was: " + contentType );
+    public void respondWithConfigRecordById(RoutingContext routingContext, String harvesterPath, String tenant) {
+        String id = routingContext.request().getParam("id");
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
         }
         else
         {
@@ -828,28 +820,159 @@ public class HarvesterApiClient
                             responseText( routingContext, idLookUp.result().statusCode() ).end(
                                     "There was an error (" + idLookUp.result().statusCode() + ") looking up " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.result().errorMessage() );
                         }
+                    } else {
+                        responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                "Could not look up record " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage());
                     }
-                    else
-                    {
-                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                "Could not look up record " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
-                    }
-                } );
+                });
     }
 
-    private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord( RoutingContext routingContext, String harvesterPath, String id, String tenant )
-    {
+    public HttpRequest<Buffer> harvesterGetRequest(String pathAndQuery) {
+        HttpRequest<Buffer> request = restClient.get(Config.harvesterHost, pathAndQuery);
+        if (Config.hasHarvesterPort()) {
+            request.port(Config.harvesterPort);
+        }
+        if (Config.harvesterRequiresSsl()) {
+            request.ssl(true);
+        }
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
+        }
+        return request;
+    }
+
+    private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord(RoutingContext routingContext, String harvesterPath, String id, String tenant) {
         Promise<AsyncResult<HttpResponse<Buffer>>> promise = Promise.promise();
-        restClient.delete( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
-            if ( ar.succeeded() )
-            {
-                promise.complete( ar );
+        restClient.delete(Config.harvesterPort, Config.harvesterHost,
+                harvesterPath + "/" + id).send(ar -> {
+            if (ar.succeeded()) {
+                promise.complete(ar);
+            } else {
+                promise.fail(ar.cause());
             }
-            else
-            {
-                promise.fail( ar.cause() );
+        });
+        return promise.future();
+    }
+
+    public void respondWithConfigRecords(RoutingContext routingContext, String harvesterPath, String tenant) {
+        logger.debug("In respondWithConfigRecords, path " + harvesterPath);
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
+        } else {
+            Map<String, String> queryParameters = getSupportedGetRequestParameters(
+                    routingContext.request());
+            getConfigRecords(harvesterPath, queryParameters, tenant).onComplete(get -> {
+                if (get.result().wasOK()) {
+                    responseJson(routingContext, get.result().statusCode()).end(
+                            get.result().jsonObject().encodePrettily());
+                } else {
+                    String query = buildQueryString(queryParameters);
+                    logger.error(
+                            "GET " + harvesterPath + ( query.isEmpty() ? "" : "(" + query + ")" ) + " encountered a server error: " + get.result().errorMessage());
+                    responseText(routingContext, get.result().statusCode()).end(
+                            get.result().errorMessage());
+                }
+            });
+        }
+    }
+
+    private Future<Boolean> noHarvestablesFound(String tenant) {
+        logger.debug("Checking for harvesting configurations");
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get(Config.harvesterPort, Config.harvesterHost,
+                HARVESTER_HARVESTABLES_PATH).send(ar -> {
+            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet(ar,
+                    HARVESTER_HARVESTABLES_PATH, "acl=" + tenant);
+            if (response.wasOK()) {
+                int records = Integer.parseInt(response.jsonObject().getString("totalRecords"));
+                promise.complete(records == 0);
+            } else {
+                logger.error(
+                        "There was a problem looking up harvestables: " + response.errorMessage());
+                promise.complete(false);
             }
-        } );
+        });
+        return promise.future();
+    }
+
+    private Future<Boolean> noStepAssociationsFound(String tenant) {
+        logger.debug("Checking for step associations");
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get(Config.harvesterPort, Config.harvesterHost,
+                HARVESTER_TRANSFORMATIONS_STEPS_PATH).send(ar -> {
+            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet(ar,
+                    HARVESTER_TRANSFORMATIONS_STEPS_PATH, null);
+            if (response.wasOK()) {
+                int records = Integer.parseInt(response.jsonObject().getString("totalRecords"));
+                promise.complete(records == 0);
+            } else {
+                logger.error(
+                        "There was a problem looking up transformation-step associations (tsas): " + response.errorMessage());
+                promise.complete(false);
+            }
+        });
+        return promise.future();
+    }
+
+    private Future<Boolean> noJobsRunning(RoutingContext routingContext, String tenant) {
+        logger.debug("Checking for running jobs");
+        String query = "query=currentStatus=RUNNING";
+        Promise<Boolean> promise = Promise.promise();
+        restClient.get(Config.harvesterPort, Config.harvesterHost,
+                HARVESTER_HARVESTABLES_PATH + "?" + query).send(ar -> {
+            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet(ar,
+                    HARVESTER_HARVESTABLES_PATH, query);
+            if (response.wasOK()) {
+                int records = Integer.parseInt(response.jsonObject().getString("totalRecords"));
+                promise.complete(records == 0);
+            } else {
+                logger.error(
+                        "There was a problem looking up running jobs: " + response.errorMessage());
+                promise.complete(false);
+            }
+        });
+        return promise.future();
+    }
+
+    private boolean isNonJsonContentType(RoutingContext ctx) {
+        String contentType = ctx.request().getHeader(HEADER_CONTENT_TYPE);
+        return ( contentType != null && !contentType.startsWith("application/json") );
+    }
+
+    protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById(String harvesterPath, String id, String tenant) {
+        Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+        harvesterGetRequest(harvesterPath + "/" + id).send(ar -> {
+            ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById(
+                    ar, harvesterPath, id, tenant);
+            promise.complete(adaptedResponse);
+        });
+        return promise.future();
+    }
+
+    /**
+     * Get the Harvester's name for the root element of entities from the requested Harvester path.
+     * Required for wrapping/unwrapping during data conversions.
+     *
+     * @param harvesterPath defines the name of root property of an entity
+     * @return name of the root element for entities from the Harvester path corresponding to the
+     * given request path
+     */
+    private String mapToNameOfRootOfEntity(String harvesterPath) {
+        return rootOfEntityByHarvesterPath.get(harvesterPath);
+    }
+
+    public Future<ProcessedHarvesterResponseGet> getConfigRecords(String harvesterPath, Map<String, String> queryParameters, String tenant) {
+        Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
+        String query = buildQueryString(queryParameters);
+
+        String pathAndQuery = harvesterPath + ( query.isEmpty() ? aclFilter(
+                tenant) : query + andAclFilter(tenant) );
+
+        harvesterGetRequest(pathAndQuery).send(ar -> promise.complete(
+                new ProcessedHarvesterResponseGet(ar, harvesterPath, query)));
+
         return promise.future();
     }
 
@@ -858,19 +981,15 @@ public class HarvesterApiClient
      *
      * @param harvesterPath The path from the request
      */
-    public void deleteConfigRecordsAndRespond( RoutingContext routingContext, String harvesterPath, String tenant )
-    {
-        logger.debug( "Checks before delete of records at " + harvesterPath );
-        switch ( harvesterPath )
-        {
+    public void deleteConfigRecordsAndRespond(RoutingContext routingContext, String harvesterPath, String tenant) {
+        logger.debug("Checks before delete of records at " + harvesterPath);
+        switch ( harvesterPath ) {
             case HARVESTER_HARVESTABLES_PATH:
-                noJobsRunning( routingContext, tenant ).onComplete( result -> {
-                    if ( result.succeeded() )
-                    {
-                        if ( result.result() )
-                        {
-                            logger.debug( "No jobs running, can delete all harvestables " );
-                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null, tenant );
+                noJobsRunning(routingContext, tenant).onComplete(result -> {
+                    if (result.succeeded()) {
+                        if (result.result()) {
+                            logger.debug("No jobs running, can delete all harvestables ");
+                            deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
                         }
                         else
                         {
@@ -891,10 +1010,10 @@ public class HarvesterApiClient
                     {
                         if ( noHarvestables.result() )
                         {
-                            logger.debug( "No harvest configurations found, Can delete all transformations" );
-                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null, tenant );
-                        }
-                        else
+                            logger.debug(
+                                    "No harvest configurations found, Can delete all transformations");
+                            deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all transformation pipelines, there are harvestable(s) potentially using some" );
@@ -913,10 +1032,10 @@ public class HarvesterApiClient
                     {
                         if ( noAssociations.result() )
                         {
-                            logger.debug( "No steps associated with transformation pipelines. Can delete all steps" );
-                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null, tenant );
-                        }
-                        else
+                            logger.debug(
+                                    "No steps associated with transformation pipelines. Can delete all steps");
+                            deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all steps, some are associated with transformation pipelines" );
@@ -935,10 +1054,10 @@ public class HarvesterApiClient
                     {
                         if ( noHarvestables.result() )
                         {
-                            logger.debug( "No harvest configurations found, Can delete all storages" );
-                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null, tenant );
-                        }
-                        else
+                            logger.debug(
+                                    "No harvest configurations found, Can delete all storages");
+                            deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all storages, there are harvestable(s) potentially using some" );
@@ -957,44 +1076,40 @@ public class HarvesterApiClient
                     {
                         if ( result.result() )
                         {
-                            logger.debug( "No jobs are running, can delete all transformation step associations" );
-                            deleteAllRecordsAndRespond( routingContext, harvesterPath, null, tenant );
-                        }
-                        else
+                            logger.debug(
+                                    "No jobs are running, can delete all transformation step associations");
+                            deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all transformation step associations, there are job(s) running" );
                         }
                     }
-                    else
-                    {
-                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                "There was a problem checking for running jobs, deletion of transformation step associations aborted: " + result.cause().getMessage() );
+                    else {
+                        responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                "There was a problem checking for running jobs, deletion of transformation step associations aborted: " + result.cause().getMessage());
                     }
-                } );
+                });
                 break;
         }
     }
 
-    private void deleteAllRecordsAndRespond( RoutingContext routingContext, String harvesterPath, String query, String tenant )
-    {
-        getConfigRecords( harvesterPath, query, tenant ).onComplete( get -> {
-            if ( get.result().wasOK() )
-            {
-                if ( get.result().totalRecords() > 0 )
-                {
-                    logger.info( "Deleting " + get.result().totalRecords() + " from " + harvesterPath );
+    private void deleteAllRecordsAndRespond(RoutingContext routingContext, String harvesterPath, String tenant) {
+        getConfigRecords(harvesterPath, null, tenant).onComplete(get -> {
+            if (get.result().wasOK()) {
+                if (get.result().totalRecords() > 0) {
+                    logger.info(
+                            "Deleting " + get.result().totalRecords() + " from " + harvesterPath);
                     List<Future> deleteEntityFutures = new ArrayList<>();
-                    for ( Object o : get.result().getRecords() )
-                    {
+                    for (Object o : get.result().getRecords()) {
                         JsonObject entity = (JsonObject) o;
-                        deleteEntityFutures.add(
-                                deleteConfigRecord( routingContext, harvesterPath, entity.getString( "id" ), tenant ) );
+                        deleteEntityFutures.add(deleteConfigRecord(routingContext, harvesterPath,
+                                entity.getString("id"), tenant));
                     }
-                    CompositeFuture.all( deleteEntityFutures ).onComplete( result -> {
-                        if ( result.succeeded() )
-                        {
-                            responseText( routingContext, 204 ).end( "All records at " + harvesterPath + " deleted." );
+                    CompositeFuture.all(deleteEntityFutures).onComplete(result -> {
+                        if (result.succeeded()) {
+                            responseText(routingContext, 204).end(
+                                    "All records at " + harvesterPath + " deleted.");
                         }
                         else
                         {
@@ -1007,100 +1122,6 @@ public class HarvesterApiClient
         } );
     }
 
-    private Future<Boolean> noHarvestablesFound( String tenant )
-    {
-        logger.debug( "Checking for harvesting configurations" );
-        Promise<Boolean> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_HARVESTABLES_PATH ).send( ar -> {
-            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar, HARVESTER_HARVESTABLES_PATH,
-                    "acl=" + tenant );
-            if ( response.wasOK() )
-            {
-                int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
-                promise.complete( records == 0 );
-            }
-            else
-            {
-                logger.error( "There was a problem looking up harvestables: " + response.errorMessage() );
-                promise.complete( false );
-            }
-        } );
-        return promise.future();
-    }
-
-    private Future<Boolean> noStepAssociationsFound( String tenant )
-    {
-        logger.debug( "Checking for step associations" );
-        Promise<Boolean> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_TRANSFORMATIONS_STEPS_PATH ).send( ar -> {
-            ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar,
-                    HARVESTER_TRANSFORMATIONS_STEPS_PATH, null );
-            if ( response.wasOK() )
-            {
-                int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
-                promise.complete( records == 0 );
-            }
-            else
-            {
-                logger.error(
-                        "There was a problem looking up transformation-step associations (tsas): " + response.errorMessage() );
-                promise.complete( false );
-            }
-        } );
-        return promise.future();
-    }
-
-    private Future<Boolean> noJobsRunning( RoutingContext routingContext, String tenant )
-    {
-        logger.debug( "Checking for running jobs" );
-        String query = "query=currentStatus=RUNNING";
-        Promise<Boolean> promise = Promise.promise();
-        restClient.get( Config.harvesterPort, Config.harvesterHost, HARVESTER_HARVESTABLES_PATH + "?" + query ).send(
-                ar -> {
-                    ProcessedHarvesterResponseGet response = new ProcessedHarvesterResponseGet( ar,
-                            HARVESTER_HARVESTABLES_PATH, query );
-                    if ( response.wasOK() )
-                    {
-                        int records = Integer.parseInt( response.jsonObject().getString( "totalRecords" ) );
-                        promise.complete( records == 0 );
-                    }
-                    else
-                    {
-                        logger.error( "There was a problem looking up running jobs: " + response.errorMessage() );
-                        promise.complete( false );
-                    }
-                } );
-        return promise.future();
-    }
-
-    private boolean isNonJsonContentType( RoutingContext ctx )
-    {
-        String contentType = ctx.request().getHeader( HEADER_CONTENT_TYPE );
-        return ( contentType != null && !contentType.startsWith( "application/json" ) );
-    }
-
-    protected Future<ProcessedHarvesterResponseGetById> lookUpHarvesterRecordById( String harvesterPath, String id, String tenant )
-    {
-        Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-        harvesterGetRequest( harvesterPath + "/" + id ).send( ar -> {
-            ProcessedHarvesterResponseGetById adaptedResponse = new ProcessedHarvesterResponseGetById( ar,
-                    harvesterPath, id, tenant );
-            promise.complete( adaptedResponse );
-        } );
-        return promise.future();
-    }
-
-    /**
-     * Get the Harvester's name for the root element of entities from the requested Harvester path. Required for
-     * wrapping/unwrapping during data conversions.
-     *
-     * @param harvesterPath defines the name of root property of an entity
-     * @return name of the root element for entities from the Harvester path corresponding to the given request path
-     */
-    private String mapToNameOfRootOfEntity( String harvesterPath )
-    {
-        return rootOfEntityByHarvesterPath.get( harvesterPath );
-    }
 
     private String aclFilter( String tenant )
     {
