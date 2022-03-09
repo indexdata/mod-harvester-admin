@@ -1,0 +1,27 @@
+name: api-schema-lint
+
+# https://dev.folio.org/guides/describe-schema/
+
+on: [push, pull_request]
+
+jobs:
+  api-schema-lint:
+    env:
+      API_DIRECTORIES: 'src/main/resources/openapi'
+      API_EXCLUDES: 'example'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.REF }}
+        submodules: recursive
+    - name: Prepare folio-tools
+      run: |
+        git clone https://github.com/folio-org/folio-tools
+        cd folio-tools/api-schema-lint && yarn install && pip3 install -r requirements.txt
+    - name: Do api-schema-lint
+      run: |
+        python3 folio-tools/api-schema-lint/api_schema_lint.py --loglevel info \
+          --directories $API_DIRECTORIES --excludes $API_EXCLUDES
+
