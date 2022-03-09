@@ -2,14 +2,7 @@ name: api-schema-lint
 
 # https://dev.folio.org/guides/describe-schema/
 
-# STATUS: 20220309: testing FOLIO-3204
-
-# For production:
-#on: [push, pull_request]
-# For testing:
-on:
-  push:
-    branches: [ DEVOPS-946-workflows-api ]
+on: [push, pull_request]
 
 jobs:
   api-schema-lint:
