@@ -2,7 +2,13 @@ name: api-lint
 
 # https://dev.folio.org/guides/api-lint/
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'src/main/resources/openapi/**'
+  pull_request:
+    paths:
+      - 'src/main/resources/openapi/**'
 
 jobs:
   api-lint:
