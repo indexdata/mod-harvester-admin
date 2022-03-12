@@ -2,7 +2,13 @@ name: api-schema-lint
 
 # https://dev.folio.org/guides/describe-schema/
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'src/main/resources/openapi/**'
+  pull_request:
+    paths:
+      - 'src/main/resources/openapi/**'
 
 jobs:
   api-schema-lint:
