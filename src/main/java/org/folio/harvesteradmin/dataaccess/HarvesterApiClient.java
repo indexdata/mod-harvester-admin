@@ -135,14 +135,27 @@ public class HarvesterApiClient
         {
             request.port( Config.harvesterPort );
         }
-        if ( Config.harvesterRequiresSsl() )
-        {
+        if ( Config.harvesterRequiresSsl() ) {
             request.ssl(true);
         }
         if (Config.hasBasicAuthForHarvester()) {
             request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
         }
         request.putHeader(HEADER_CONTENT_TYPE, "application/xml");
+        return request;
+    }
+
+    public HttpRequest<Buffer> harvesterDeleteRequest(String path) {
+        HttpRequest<Buffer> request = restClient.delete(Config.harvesterHost, path);
+        if (Config.hasHarvesterPort()) {
+            request.port(Config.harvesterPort);
+        }
+        if (Config.harvesterRequiresSsl()) {
+            request.ssl(true);
+        }
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
+        }
         return request;
     }
 
@@ -793,18 +806,13 @@ public class HarvesterApiClient
                         }
                         else if ( idLookUp.result().wasOK() )
                         {
-                            restClient.delete( Config.harvesterPort, Config.harvesterHost,
-                                    harvesterPath + "/" + id ).send( ar -> {
-                                if ( ar.succeeded() )
-                                {
-                                    if ( ar.result().statusCode() == NO_CONTENT )
-                                    {
-                                        responseText( routingContext, ar.result().statusCode() ).end(
-                                                harvesterPath + "/" + id + " deleted" );
-                                    }
-                                    else
-                                    {
-                                        responseText( routingContext, ar.result().statusCode() ).end(
+                            harvesterDeleteRequest(harvesterPath + "/" + id).send(ar -> {
+                                if (ar.succeeded()) {
+                                    if (ar.result().statusCode() == NO_CONTENT) {
+                                        responseText(routingContext, ar.result().statusCode()).end(
+                                                harvesterPath + "/" + id + " deleted");
+                                    } else {
+                                        responseText(routingContext, ar.result().statusCode()).end(
                                                 "Could not delete " + harvesterPath + "/" + id + ": " + ar.result().bodyAsString() );
                                     }
                                 }
@@ -843,8 +851,7 @@ public class HarvesterApiClient
 
     private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord(RoutingContext routingContext, String harvesterPath, String id, String tenant) {
         Promise<AsyncResult<HttpResponse<Buffer>>> promise = Promise.promise();
-        restClient.delete(Config.harvesterPort, Config.harvesterHost,
-                harvesterPath + "/" + id).send(ar -> {
+        harvesterDeleteRequest(harvesterPath + "/" + id).send(ar -> {
             if (ar.succeeded()) {
                 promise.complete(ar);
             } else {
