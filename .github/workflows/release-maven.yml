@@ -1,16 +1,24 @@
-name: build-maven
+name: release-maven
 
 # STATUS: 20220401: testing DEVOPS-946
 
 on:
-#  push:
-#    paths-ignore:
-#      - '**/*.[mM][dD]'
-#      - '**/*.[tT][xX][tT]'
-  workflow_dispatch:
+  push:
+# For production:
+#    tags:
+#      - '[0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
+# For workflow development:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+-[a-zA-Z0-9]+'  # i.e. snapshot tag only
+    branches: [DEVOPS-946-workflows-maven]
+
+env:
+  FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
+  CONTAINER_REGISTRY: 'ghcr.io'
+  IMAGE_NAME: 'indexdata/mod-harvester-admin'
 
 jobs:
-  build-maven:
+  release-maven:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,6 +41,7 @@ jobs:
           echo "DEFAULT_BRANCH=${{ env.DEFAULT_BRANCH }}"
           echo "github.REF=${{ github.REF }}"
           echo "github.REF_NAME=${{ github.REF_NAME }}"
+          echo "FOLIO_MD_REGISTRY=${{ env.FOLIO_MD_REGISTRY }}"
       - name: Report dependencies that are snaphots
         run: mvn dependency:list | { grep -i snapshot || true; }
       - name: Do Maven build
@@ -48,3 +57,24 @@ jobs:
           fi
         env:
           MOD_DESCRIPTOR: 'target/ModuleDescriptor.json'
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.ACTOR }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract docker metadata
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Publish ModuleDescriptor
+        run: |
+          echo "TODO: Publish ${{ env.MODULE_DESCRIPTOR }} to ${{ env.FOLIO_MD_REGISTRY }}"
