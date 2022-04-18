@@ -6,10 +6,10 @@ on:
   push:
 # For production:
 #    tags:
-#      - '[0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
+#      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
 # For workflow development:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+-[a-zA-Z]+.?-?[0-9]+'  # i.e. snapshot tag only
+      - '[vV][0-9]+.[0-9]+.[0-9]+-[a-zA-Z]+.?-?[0-9]+'  # i.e. snapshot tag only
 
 env:
   FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
@@ -56,7 +56,27 @@ jobs:
           fi
         env:
           MOD_DESCRIPTOR: './target/ModuleDescriptor.json'
-      - name: Log into GitHub Container Registry
+      - name: Login ModuleDescriptor registry
+        id: login-md-registry
+        uses: indiesdev/curl@v1.1
+        with:
+          url: "${{ env.FOLIO_MD_REGISTRY }}/authn/login"
+          method: "POST"
+          accept: 201
+          headers: |
+            {
+              "content-type": "application/json",
+              "x-okapi-tenant": "${{ secrets.FOLIO_REGISTRY_TENANT }}"
+            }
+          body: |
+            {
+              "username": "${{ secrets.FOLIO_REGISTRY_USERNAME }}",
+              "password": "${{ secrets.FOLIO_REGISTRY_PASSWORD }}"
+            }
+      - name: Get the MD registry login token
+        run: |
+          echo "TOKEN_MD_REGISTRY=${{ fromJSON(steps.login-md-registry.outputs.response).headers['x-okapi-token'] }}" >> $GITHUB_ENV
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
@@ -79,13 +99,16 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ${{ env.MODULE_DESCRIPTOR }}
-      - name: Publish ModuleDescriptor
-        uses: fjogeleit/http-request-action@v1
+      - name: Publish ModuleDescriptor to MD registry
+        id: result-md-registry
+        uses: indiesdev/curl@v1.1
         with:
-          url: ${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules
-          method: 'POST'
-          contentType: 'application/json; charset=utf-8'
-          customHeaders: '{ "Accept": "application/json; charset=utf-8" }'
-          data: ${{ steps.moduleDescriptor.outputs.content }}
-          username: ${{ secrets.FOLIO_REGISTRY_USERNAME }}
-          password: ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
+          url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules"
+          method: "POST"
+          headers: |
+            {
+              "content-type": "application/json",
+              "x-okapi-tenant": "${{ secrets.FOLIO_REGISTRY_TENANT }}",
+              "x-okapi-token": "${{ env.TOKEN_MD_REGISTRY }}"
+            }
+          body: ${{ steps.moduleDescriptor.outputs.content }}
