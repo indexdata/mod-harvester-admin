@@ -1,15 +1,9 @@
 name: release-maven
 
-# STATUS: testing DEVOPS-946
-
 on:
   push:
-# For production:
-#    tags:
-#      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
-# For workflow development:
     tags:
-      - '[vV][0-9]+.[0-9]+.[0-9]+-[a-zA-Z]+.?-?[0-9]+'  # i.e. snapshot tag only
+      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
 
 env:
   FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
@@ -33,14 +27,6 @@ jobs:
           echo "MODULE_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
           echo "MODULE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
           echo "DEFAULT_BRANCH=${{ github.event.repository.default_branch }}" >> $GITHUB_ENV
-      - name: Report the variables
-        run: |
-          echo "MODULE_NAME=${{ env.MODULE_NAME }}"
-          echo "MODULE_VERSION=${{ env.MODULE_VERSION }}"
-          echo "DEFAULT_BRANCH=${{ env.DEFAULT_BRANCH }}"
-          echo "github.REF=${{ github.REF }}"
-          echo "github.REF_NAME=${{ github.REF_NAME }}"
-          echo "FOLIO_MD_REGISTRY=${{ env.FOLIO_MD_REGISTRY }}"
       - name: Report dependencies that are snaphots
         run: mvn dependency:list | { grep -i snapshot || true; }
       - name: Do Maven build
@@ -87,6 +73,9 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.vendor=Index Data LLC
+            org.opencontainers.image.documentation=https://github.com/indexdata/localindices/tree/master/doc
       - name: Build and publish Docker image
         uses: docker/build-push-action@v2
         with:
@@ -105,6 +94,7 @@ jobs:
         with:
           url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules"
           method: "POST"
+          accept: 201
           headers: |
             {
               "content-type": "application/json",
