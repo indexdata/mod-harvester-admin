@@ -2,38 +2,46 @@ name: api-lint
 
 # https://dev.folio.org/guides/api-lint/
 
-on: [push, pull_request]
+env:
+  API_TYPES: 'OAS'
+  API_DIRECTORIES: 'src/main/resources/openapi'
+  API_EXCLUDES: ''
+  API_WARNINGS: 'false'
+
+on:
+  push:
+    paths:
+      - 'src/main/resources/openapi/**'
+  pull_request:
+    paths:
+      - 'src/main/resources/openapi/**'
 
 jobs:
   api-lint:
-    env:
-      API_TYPES: 'OAS'
-      API_DIRECTORIES: 'src/main/resources/openapi'
-      API_EXCLUDES: ''
-      API_WARNINGS: 'false'
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        ref: ${{ github.REF }}
-        submodules: recursive
-    - name: Prepare folio-tools
-      run: |
-        git clone https://github.com/folio-org/folio-tools
-        cd folio-tools/api-lint && yarn install && pip3 install -r requirements.txt
-    - name: Configure default options
-      run: |
-        echo "OPTION_WARNINGS=''" >> $GITHUB_ENV
-
-    - name: Configure option warnings
-      if: ${{ env.API_WARNINGS == 'true' }}
-      run: |
-        echo "OPTION_WARNINGS=--warnings" >> $GITHUB_ENV
-
-    - name: Do api-lint
-      run: |
-        python3 folio-tools/api-lint/api_lint.py --loglevel info \
-        --types $API_TYPES --directories $API_DIRECTORIES \
-        --excludes $API_EXCLUDES $OPTION_WARNINGS
-
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Prepare folio-tools
+        run: |
+          git clone https://github.com/folio-org/folio-tools
+          cd folio-tools/api-lint \
+            && yarn install \
+            && pip3 install -r requirements.txt
+      - name: Configure default options
+        run: |
+          echo "OPTION_WARNINGS=''" >> $GITHUB_ENV
+      - name: Configure option warnings
+        if: ${{ env.API_WARNINGS == 'true' }}
+        run: |
+          echo "OPTION_WARNINGS=--warnings" >> $GITHUB_ENV
+      - name: Do api-lint
+        run: |
+          python3 folio-tools/api-lint/api_lint.py \
+            --loglevel info \
+            --types ${{ env.API_TYPES }} \
+            --directories ${{ env.API_DIRECTORIES }} \
+            --excludes ${{ env.API_EXCLUDES }} \
+            ${{ env.OPTION_WARNINGS }}
