@@ -216,16 +216,16 @@
           "methods": [
             "PUT"
           ],
-          "pathPattern": "/harvester-admin/jobs/run",
+          "pathPattern": "/harvester-admin/jobs/run/{id}",
           "permissionsRequired": [
             "harvester-admin.run-jobs"
           ]
         },
         {
           "methods": [
-            "POST"
+            "PUT"
           ],
-          "pathPattern": "/harvester-admin/jobs/stop",
+          "pathPattern": "/harvester-admin/jobs/stop/{id}",
           "permissionsRequired": [
             "harvester-admin.stop-jobs"
           ]

@@ -35,9 +35,8 @@ public class JobLauncher extends HarvesterApiClient
     public void startJob( RoutingContext routingContext )
     {
 
-        String tenant = MainVerticle.getTenant( routingContext );
-        JsonObject runRequest = routingContext.getBodyAsJson();
-        String harvestableId = runRequest.getString( PROP_HARVESTABLE_ID );
+        String tenant = MainVerticle.getTenant(routingContext);
+        String harvestableId = routingContext.request().getParam("id");
         lookUpHarvesterRecordById( HARVESTER_HARVESTABLES_PATH, harvestableId, tenant ).onComplete( lookUp -> {
             if ( lookUp.succeeded() )
             {
@@ -70,8 +69,8 @@ public class JobLauncher extends HarvesterApiClient
                         }
                         else
                         {
-                            responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                    "An error occurred when trying to start job using " + runRequest.encode() + ": " + putResponse.cause().getMessage() );
+                            responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                    "An error occurred when trying to start job  " + harvestableId + ": " + putResponse.cause().getMessage());
                         }
                     } );
                 }
@@ -89,8 +88,47 @@ public class JobLauncher extends HarvesterApiClient
         } );
     }
 
-    public void stopJob( RoutingContext routingContext )
-    {
+    public void stopJob( RoutingContext routingContext ) {
+        String tenant = MainVerticle.getTenant(routingContext);
+        String harvestableId = routingContext.request().getParam("id");
+        lookUpHarvesterRecordById(HARVESTER_HARVESTABLES_PATH, harvestableId, tenant).onComplete(
+                lookUp -> {
+                    if (lookUp.succeeded()) {
+                        if (lookUp.result().wasNotFound()) {
+                            responseText(routingContext, NOT_FOUND).end(
+                                    "Did not find a harvest configuration with ID " + harvestableId + ". No job stopped.");
+                        } else if (lookUp.result().wasOK() && !lookUp.result().jsonObject().getString(
+                                "currentStatus").equals("RUNNING")) {
+                            responseText(routingContext, BAD_REQUEST).end(
+                                    "This configuration has no running job, cannot stop it. " + lookUp.result().jsonObject().getString(
+                                            "name"));
+                        } else if (lookUp.result().wasOK()) {
+                            JsonObject harvestConfig = lookUp.result().jsonObject().copy();
+                            harvestConfig.put(PROP_LAST_UPDATED, dateFormat.format(new Date()));
+                            putConfigRecord(routingContext, harvestConfig, harvestableId,
+                                    HARVESTER_HARVESTABLES_PATH, tenant).onComplete(putResponse -> {
+                                if (putResponse.succeeded()) {
+                                    JsonObject responseOk = new JsonObject();
+                                    responseOk.put(PROP_HARVESTABLE_ID, harvestableId);
+                                    responseOk.put(PROP_NAME, harvestConfig.getString("name"));
+                                    responseOk.put(PROP_INITIATED,
+                                            harvestConfig.getString(PROP_LAST_UPDATED));
+                                    responseJson(routingContext, OK).end(
+                                            responseOk.encodePrettily());
+                                } else {
+                                    responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                            "An error occurred when trying to stop job using " + harvestableId + ": " + putResponse.cause().getMessage());
+                                }
+                            });
+                        } else {
+                            responseText(routingContext, lookUp.result().statusCode()).end(
+                                    "A problem occurred when looking for the job to stop:" + lookUp.result().errorMessage());
+                        }
+                    } else {
+                        responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                "Could not look up harvest configuration. No job stopped.");
+                    }
+                });
 
     }
 

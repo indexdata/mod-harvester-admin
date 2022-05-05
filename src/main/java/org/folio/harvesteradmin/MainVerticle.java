@@ -76,27 +76,25 @@ public class MainVerticle extends AbstractVerticle
     router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
     router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
     router.delete( THIS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
-    router.get( THIS_STEPS_ID_SCRIPT_PATH ).handler( scriptHandler::handleGetScript );
-    router.put( THIS_STEPS_ID_SCRIPT_PATH ).handler( scriptHandler::handlePutScript );
+    router.get(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handleGetScript);
+    router.put(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handlePutScript);
 
-    router.get( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_TRANSFORMATIONS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_TRANSFORMATIONS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
+    router.get(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handleGet);
+    router.get(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handleGetById);
+    router.put(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handlePut);
+    router.post(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handlePost);
+    router.delete(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handleDeleteById);
+    router.delete(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handleDelete);
 
-    router.put( THIS_RUN_JOB_PATH ).handler( jobLauncher::startJob );
+    router.put(THIS_RUN_JOB_ID_PATH).handler(jobLauncher::startJob);
+    router.put(THIS_STOP_JOB_ID_PATH).handler(jobLauncher::stopJob);
 
-    vertx.createHttpServer().requestHandler( router ).listen( Config.servicePort, result -> {
-      if ( result.succeeded() )
-      {
-        if ( config.isHarvesterConfigOkay() )
-        {
-          logger.info( "Succeeded in starting the listener for Harvester admin service" );
+    vertx.createHttpServer().requestHandler(router).listen(Config.servicePort, result -> {
+      if (result.succeeded()) {
+        if (config.isHarvesterConfigOkay()) {
+          logger.info("Succeeded in starting the listener for Harvester admin service");
           promise.complete();
-        }
-        else
+        } else
         {
           logger.error( "There was a problem configuring the connection to Harvester" );
           promise.fail( "Could not configure the access to Harvester" );
