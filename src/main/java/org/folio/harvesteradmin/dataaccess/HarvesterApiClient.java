@@ -7,6 +7,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -366,26 +367,14 @@ public class HarvesterApiClient
         {
             postTransformationAndRespond( routingContext, tenant );
         }
-        else
-        {
-            JsonObject requestJson = routingContext.getBodyAsJson();
-            //logger.debug( "POST body: " + requestJson.encodePrettily() );
-            String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-            if ( isNonJsonContentType( routingContext ) )
-            {
-                responseError( routingContext, BAD_REQUEST,
-                        "Only accepts Content-Type application/json, was: " + contentType );
-            }
-            else
-            {
-                String id = requestJson.getString( "id" );
-                if ( id == null )
-                {
-                    doPostAndRetrieveAndRespond( routingContext, requestJson, harvesterPath, tenant );
-                }
-                else
-                {
-                    lookUpHarvesterRecordById( harvesterPath, id, tenant ).onComplete(
+        else {
+            JsonObject requestJson = getValidRequestJson(routingContext);
+            if (requestJson != null) {
+                String id = requestJson.getString("id");
+                if (id == null) {
+                    doPostAndRetrieveAndRespond(routingContext, requestJson, harvesterPath, tenant);
+                } else {
+                    lookUpHarvesterRecordById(harvesterPath, id, tenant).onComplete(
                             idLookUp -> {  // going to return 422 if found
                                 if ( idLookUp.succeeded() )
                                 {
@@ -1118,25 +1107,43 @@ public class HarvesterApiClient
                             responseText(routingContext, 204).end(
                                     "All records at " + harvesterPath + " deleted.");
                         }
-                        else
-                        {
-                            responseText( routingContext, 500 ).end(
-                                    "There was a problem deleting records at " + harvesterPath + ": " + result.cause() );
+                        else {
+                            responseText(routingContext, 500).end(
+                                    "There was a problem deleting records at " + harvesterPath + ": " + result.cause());
                         }
-                    } );
+                    });
                 }
             }
-        } );
+        });
     }
 
+    private JsonObject getValidRequestJson(RoutingContext routingContext) {
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
+            return null;
+        }
+        try {
+            return routingContext.getBodyAsJson();
+        }
+        catch (DecodeException de) {
+            String message = de.getMessage();
+            String strip = "at [Source";
+            if (message.contains(strip)) {
+                message = message.substring(0, message.indexOf(strip));
+            }
+            responseError(routingContext, BAD_REQUEST,
+                    "Could not parse incoming JSON object. " + message);
+            return null;
+        }
+    }
 
-    private String aclFilter( String tenant )
-    {
+    private String aclFilter(String tenant) {
         return Config.filterByTenant ? "?acl=" + tenant : "";
     }
 
-    private String andAclFilter( String tenant )
-    {
+    private String andAclFilter(String tenant) {
         return Config.filterByTenant ? "&acl=" + tenant : "";
     }
 
