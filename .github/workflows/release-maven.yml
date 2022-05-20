@@ -3,7 +3,7 @@ name: release-maven
 on:
   push:
     tags:
-      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
+      - '[vV][0-9]+.[0-9]+.[0-9]+*'  # i.e. release tag only
 
 env:
   FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
