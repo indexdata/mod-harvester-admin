@@ -3,8 +3,8 @@ name: release-maven
 on:
   push:
     tags:
-      - '[vV][0-9]+.[0-9]+.[0-9]+*'  # i.e. release tag only
-
+#      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
+      - '[vV][0-9]+.[0-9]+.[0-9]+*'  # i.e. allow snapshot tag
 env:
   FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
   CONTAINER_REGISTRY: 'ghcr.io'
@@ -63,21 +63,21 @@ jobs:
         run: |
           echo "TOKEN_MD_REGISTRY=${{ fromJSON(steps.login-md-registry.outputs.response).headers['x-okapi-token'] }}" >> $GITHUB_ENV
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ github.ACTOR }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract docker metadata
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.vendor=Index Data LLC
             org.opencontainers.image.documentation=https://github.com/indexdata/localindices/tree/master/doc
       - name: Build and publish Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           push: true
