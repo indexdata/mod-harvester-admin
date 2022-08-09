@@ -20,7 +20,7 @@ can then use for managing harvest jobs.
 
 ## Configuration
 
-The module's access to the legacy harvester service is condigured by the following environment variables:
+The module's access to the legacy harvester service is configured by the following environment variables:
 
 * `harvester.protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also supported.
 * `harvester.host` -- the hostname or IP address on which the legacy service is running. Must be provided.
