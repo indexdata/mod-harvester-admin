@@ -14,7 +14,7 @@ env:
   AWS_S3_REGION: 'us-east-1'
   AWS_S3_ACCESS_KEY_ID: ${{ secrets.INDEXDATA_S3_ACCESS_KEY_ID }}
   AWS_S3_ACCESS_KEY: ${{ secrets.INDEXDATA_S3_SECRET_ACCESS_KEY }}
-  TEST_S3_PUBLISH: 'false'
+  TEST_S3_PUBLISH: 'true'
 
 # For production:
 #on:
@@ -28,8 +28,6 @@ env:
 on:
   push:
     branches: [ DEVOPS-946-workflows-api-doc ]
-#    paths:
-#      - 'src/main/resources/openapi/**'
     tags: '[vV][0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
