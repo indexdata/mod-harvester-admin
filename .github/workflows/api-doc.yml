@@ -17,18 +17,17 @@ env:
   TEST_S3_PUBLISH: 'true'
 
 # For production:
-#on:
-#  push:
-#    branches: [ main, master ]
-#    paths:
-#      - 'src/main/resources/openapi/**'
-#    tags: '[vV][0-9]+.[0-9]+.[0-9]+*'
-#
-# For testing:
 on:
   push:
-    branches: [ DEVOPS-946-workflows-api-doc ]
+    branches: [ main, master ]
+    paths:
+      - 'src/main/resources/openapi/**'
     tags: '[vV][0-9]+.[0-9]+.[0-9]+*'
+
+# For testing:
+#on:
+#  push:
+#    branches: [ DEVOPS-946-workflows-api-doc ]
 
 jobs:
   api-doc:
@@ -45,8 +44,8 @@ jobs:
           cd folio-tools/api-doc \
             && yarn install \
             && pip3 install -r requirements.txt
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Obtain version
+      - name: Obtain version if release tag
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
           version=$(echo ${GITHUB_REF#refs/tags/[vV]} | awk -F'.' '{ printf("%d.%d", $1, $2) }')
           echo "VERSION_MAJ_MIN=${version}" >> $GITHUB_ENV
@@ -65,7 +64,7 @@ jobs:
             option_release=""
           fi
           python3 folio-tools/api-doc/api_doc.py \
-            --loglevel debug \
+            --loglevel info \
             --types ${{ env.API_TYPES }} \
             --directories ${{ env.API_DIRECTORIES }} \
             --excludes ${{ env.API_EXCLUDES }} \
