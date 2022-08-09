@@ -1,5 +1,5 @@
 {
-  "description": "response to confirm that a harvest job was started",
+  "description": "Response to confirm that a harvest job was started",
   "type": "object",
   "properties": {
     "harvestableId": {
