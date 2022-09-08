@@ -88,14 +88,9 @@ paths:
           $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
-  /harvester-admin/jobs/run:
+  /harvester-admin/jobs/run/{id}:
     put:
       description: Starts a harvest job immediately if possible
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: schema/runJob.json
       responses:
         "200":
           description: OK
@@ -109,14 +104,9 @@ paths:
           $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
-  /harvester-admin/jobs/stop:
-    post:
+  /harvester-admin/jobs/stop/{id}:
+    put:
       description: Stops a harvest job
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: schema/stopJob.json
       responses:
         "201":
           description: Created
