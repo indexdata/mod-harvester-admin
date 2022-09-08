@@ -104,31 +104,16 @@ public class HarvesterApiClient
         return requestParameterMap;
     }
 
+    public static String mapToNameOfRootOfResultSet(String harvesterPath) {
+        return rootOfResultSetByHarvesterPath.get(harvesterPath);
+    }
 
-    public HttpRequest<Buffer> harvesterGetRequest(String pathAndQuery) {
-        HttpRequest<Buffer> request = restClient.get(Config.harvesterHost, pathAndQuery);
+    public HttpRequest<Buffer> harvesterPutRequest(String path) {
+        HttpRequest<Buffer> request = restClient.put(Config.harvesterHost, path);
         if (Config.hasHarvesterPort()) {
             request.port(Config.harvesterPort);
         }
-        if ( Config.harvesterRequiresSsl() )
-        {
-            request.ssl( true );
-        }
-        if ( Config.hasBasicAuthForHarvester() )
-        {
-            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
-        }
-        return request;
-    }
-
-    public HttpRequest<Buffer> harvesterPutRequest( String path )
-    {
-        HttpRequest<Buffer> request = restClient.put( Config.harvesterHost, path );
-        if ( Config.hasHarvesterPort() )
-        {
-            request.port( Config.harvesterPort );
-        }
-        if ( Config.harvesterRequiresSsl() )
+        if (Config.harvesterRequiresSsl())
         {
             request.ssl( true );
         }
@@ -149,28 +134,41 @@ public class HarvesterApiClient
         }
         if ( Config.harvesterRequiresSsl() )
         {
-            request.ssl( true );
+            request.ssl(true);
         }
-        if ( Config.hasBasicAuthForHarvester() )
-        {
-            request.basicAuthentication( Config.basicAuthUsername, Config.basicAuthPassword );
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
         }
-        request.putHeader( HEADER_CONTENT_TYPE, "application/xml" );
+        request.putHeader(HEADER_CONTENT_TYPE, "application/xml");
         return request;
     }
 
-    public static String mapToNameOfRootOfResultSet(String harvesterPath) {
-        return rootOfResultSetByHarvesterPath.get(harvesterPath);
+    private static String buildQueryString(Map<String, String> parameterMap) {
+        StringBuilder queryString = new StringBuilder();
+        if (parameterMap != null) {
+            Object[] keys = parameterMap.keySet().toArray();
+            for (int i = 0; i < keys.length; i++) {
+                if (i == 0) {
+                    queryString.append("?");
+                } else {
+                    queryString.append("&");
+                }
+                String key = (String) keys[i];
+                queryString.append(folioToLegacyParameter.get(key));
+                queryString.append("=");
+                queryString.append(
+                        URLEncoder.encode(parameterMap.get(key), StandardCharsets.UTF_8));
+            }
+        }
+        return queryString.toString();
     }
 
-    public void respondWithConfigRecordById( RoutingContext routingContext, String harvesterPath, String tenant )
-    {
-        String id = routingContext.request().getParam( "id" );
-        String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-        if ( isNonJsonContentType( routingContext ) )
-        {
-            responseError( routingContext, BAD_REQUEST,
-                    "Only accepts Content-Type application/json, was: " + contentType );
+    public void respondWithConfigRecordById(RoutingContext routingContext, String harvesterPath, String tenant) {
+        String id = routingContext.request().getParam("id");
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
         }
         else
         {
@@ -819,20 +817,32 @@ public class HarvesterApiClient
                             responseText( routingContext, idLookUp.result().statusCode() ).end(
                                     "There was an error (" + idLookUp.result().statusCode() + ") looking up " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.result().errorMessage() );
                         }
+                    } else {
+                        responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                "Could not look up record " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage());
                     }
-                    else
-                    {
-                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                "Could not look up record " + harvesterPath + "/" + id + " before DELETE: " + idLookUp.cause().getMessage() );
-                    }
-                } );
+                });
     }
 
-    private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord( RoutingContext routingContext, String harvesterPath, String id, String tenant )
-    {
+    public HttpRequest<Buffer> harvesterGetRequest(String pathAndQuery) {
+        HttpRequest<Buffer> request = restClient.get(Config.harvesterHost, pathAndQuery);
+        if (Config.hasHarvesterPort()) {
+            request.port(Config.harvesterPort);
+        }
+        if (Config.harvesterRequiresSsl()) {
+            request.ssl(true);
+        }
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
+        }
+        return request;
+    }
+
+    private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord(RoutingContext routingContext, String harvesterPath, String id, String tenant) {
         Promise<AsyncResult<HttpResponse<Buffer>>> promise = Promise.promise();
-        restClient.delete( Config.harvesterPort, Config.harvesterHost, harvesterPath + "/" + id ).send( ar -> {
-            if ( ar.succeeded() ) {
+        restClient.delete(Config.harvesterPort, Config.harvesterHost,
+                harvesterPath + "/" + id).send(ar -> {
+            if (ar.succeeded()) {
                 promise.complete(ar);
             } else {
                 promise.fail(ar.cause());
@@ -841,25 +851,6 @@ public class HarvesterApiClient
         return promise.future();
     }
 
-    private static String buildQueryString(Map<String, String> parameterMap) {
-        StringBuilder queryString = new StringBuilder();
-        if (parameterMap != null) {
-            Object[] keys = parameterMap.keySet().toArray();
-            for (int i = 0; i < keys.length; i++) {
-                if (i == 0) {
-                    queryString.append("?");
-                } else {
-                    queryString.append("&");
-                }
-                String key = (String) keys[i];
-                queryString.append(folioToLegacyParameter.get(key));
-                queryString.append("=");
-                queryString.append(
-                        URLEncoder.encode(parameterMap.get(key), StandardCharsets.UTF_8));
-            }
-        }
-        return queryString.toString();
-    }
 
     public void respondWithConfigRecords(RoutingContext routingContext, String harvesterPath, String tenant) {
         logger.debug("In respondWithConfigRecords, path " + harvesterPath);
@@ -969,6 +960,7 @@ public class HarvesterApiClient
     private String mapToNameOfRootOfEntity(String harvesterPath) {
         return rootOfEntityByHarvesterPath.get(harvesterPath);
     }
+
 
     public Future<ProcessedHarvesterResponseGet> getConfigRecords(String harvesterPath, Map<String, String> queryParameters, String tenant) {
         Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
