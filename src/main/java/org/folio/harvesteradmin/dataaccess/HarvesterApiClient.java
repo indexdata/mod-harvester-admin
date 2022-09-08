@@ -7,6 +7,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -54,6 +55,7 @@ public class HarvesterApiClient
     private static final String REQUEST_PARAMETER_QUERY = "query";
     private static final String REQUEST_PARAMETER_LIMIT = "limit";
     private static final String REQUEST_PARAMETER_OFFSET = "offset";
+    private static final String REQUEST_PARAMETER_ORDER_BY = "orderBy";
     private static final Set<String> supportedGetRequestParameters = new HashSet<>();
     private static final Map<String, String> folioToLegacyParameter = new HashMap<>();
 
@@ -84,9 +86,11 @@ public class HarvesterApiClient
         supportedGetRequestParameters.add(REQUEST_PARAMETER_QUERY);
         supportedGetRequestParameters.add(REQUEST_PARAMETER_LIMIT);
         supportedGetRequestParameters.add(REQUEST_PARAMETER_OFFSET);
+        supportedGetRequestParameters.add(REQUEST_PARAMETER_ORDER_BY);
         folioToLegacyParameter.put(REQUEST_PARAMETER_QUERY, "query");
         folioToLegacyParameter.put(REQUEST_PARAMETER_LIMIT, "max");
         folioToLegacyParameter.put(REQUEST_PARAMETER_OFFSET, "start");
+        folioToLegacyParameter.put(REQUEST_PARAMETER_ORDER_BY, "sort");
     }
 
     public HarvesterApiClient(Vertx vertx) {
@@ -132,14 +136,27 @@ public class HarvesterApiClient
         {
             request.port( Config.harvesterPort );
         }
-        if ( Config.harvesterRequiresSsl() )
-        {
+        if ( Config.harvesterRequiresSsl() ) {
             request.ssl(true);
         }
         if (Config.hasBasicAuthForHarvester()) {
             request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
         }
         request.putHeader(HEADER_CONTENT_TYPE, "application/xml");
+        return request;
+    }
+
+    public HttpRequest<Buffer> harvesterDeleteRequest(String path) {
+        HttpRequest<Buffer> request = restClient.delete(Config.harvesterHost, path);
+        if (Config.hasHarvesterPort()) {
+            request.port(Config.harvesterPort);
+        }
+        if (Config.harvesterRequiresSsl()) {
+            request.ssl(true);
+        }
+        if (Config.hasBasicAuthForHarvester()) {
+            request.basicAuthentication(Config.basicAuthUsername, Config.basicAuthPassword);
+        }
         return request;
     }
 
@@ -350,26 +367,14 @@ public class HarvesterApiClient
         {
             postTransformationAndRespond( routingContext, tenant );
         }
-        else
-        {
-            JsonObject requestJson = routingContext.getBodyAsJson();
-            //logger.debug( "POST body: " + requestJson.encodePrettily() );
-            String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-            if ( isNonJsonContentType( routingContext ) )
-            {
-                responseError( routingContext, BAD_REQUEST,
-                        "Only accepts Content-Type application/json, was: " + contentType );
-            }
-            else
-            {
-                String id = requestJson.getString( "id" );
-                if ( id == null )
-                {
-                    doPostAndRetrieveAndRespond( routingContext, requestJson, harvesterPath, tenant );
-                }
-                else
-                {
-                    lookUpHarvesterRecordById( harvesterPath, id, tenant ).onComplete(
+        else {
+            JsonObject requestJson = getValidRequestJson(routingContext);
+            if (requestJson != null) {
+                String id = requestJson.getString("id");
+                if (id == null) {
+                    doPostAndRetrieveAndRespond(routingContext, requestJson, harvesterPath, tenant);
+                } else {
+                    lookUpHarvesterRecordById(harvesterPath, id, tenant).onComplete(
                             idLookUp -> {  // going to return 422 if found
                                 if ( idLookUp.succeeded() )
                                 {
@@ -790,18 +795,13 @@ public class HarvesterApiClient
                         }
                         else if ( idLookUp.result().wasOK() )
                         {
-                            restClient.delete( Config.harvesterPort, Config.harvesterHost,
-                                    harvesterPath + "/" + id ).send( ar -> {
-                                if ( ar.succeeded() )
-                                {
-                                    if ( ar.result().statusCode() == NO_CONTENT )
-                                    {
-                                        responseText( routingContext, ar.result().statusCode() ).end(
-                                                harvesterPath + "/" + id + " deleted" );
-                                    }
-                                    else
-                                    {
-                                        responseText( routingContext, ar.result().statusCode() ).end(
+                            harvesterDeleteRequest(harvesterPath + "/" + id).send(ar -> {
+                                if (ar.succeeded()) {
+                                    if (ar.result().statusCode() == NO_CONTENT) {
+                                        responseText(routingContext, ar.result().statusCode()).end(
+                                                harvesterPath + "/" + id + " deleted");
+                                    } else {
+                                        responseText(routingContext, ar.result().statusCode()).end(
                                                 "Could not delete " + harvesterPath + "/" + id + ": " + ar.result().bodyAsString() );
                                     }
                                 }
@@ -840,8 +840,7 @@ public class HarvesterApiClient
 
     private Future<AsyncResult<HttpResponse<Buffer>>> deleteConfigRecord(RoutingContext routingContext, String harvesterPath, String id, String tenant) {
         Promise<AsyncResult<HttpResponse<Buffer>>> promise = Promise.promise();
-        restClient.delete(Config.harvesterPort, Config.harvesterHost,
-                harvesterPath + "/" + id).send(ar -> {
+        harvesterDeleteRequest(harvesterPath + "/" + id).send(ar -> {
             if (ar.succeeded()) {
                 promise.complete(ar);
             } else {
@@ -850,7 +849,6 @@ public class HarvesterApiClient
         });
         return promise.future();
     }
-
 
     public void respondWithConfigRecords(RoutingContext routingContext, String harvesterPath, String tenant) {
         logger.debug("In respondWithConfigRecords, path " + harvesterPath);
@@ -961,7 +959,6 @@ public class HarvesterApiClient
         return rootOfEntityByHarvesterPath.get(harvesterPath);
     }
 
-
     public Future<ProcessedHarvesterResponseGet> getConfigRecords(String harvesterPath, Map<String, String> queryParameters, String tenant) {
         Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
         String query = buildQueryString(queryParameters);
@@ -982,15 +979,12 @@ public class HarvesterApiClient
      */
     public void deleteConfigRecordsAndRespond(RoutingContext routingContext, String harvesterPath, String tenant) {
         logger.debug("Checks before delete of records at " + harvesterPath);
-        switch ( harvesterPath )
-        {
+        switch ( harvesterPath ) {
             case HARVESTER_HARVESTABLES_PATH:
-                noJobsRunning( routingContext, tenant ).onComplete( result -> {
-                    if ( result.succeeded() )
-                    {
-                        if ( result.result() )
-                        {
-                            logger.debug( "No jobs running, can delete all harvestables ");
+                noJobsRunning(routingContext, tenant).onComplete(result -> {
+                    if (result.succeeded()) {
+                        if (result.result()) {
+                            logger.debug("No jobs running, can delete all harvestables ");
                             deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
                         }
                         else
@@ -1012,10 +1006,10 @@ public class HarvesterApiClient
                     {
                         if ( noHarvestables.result() )
                         {
-                            logger.debug( "No harvest configurations found, Can delete all transformations");
+                            logger.debug(
+                                    "No harvest configurations found, Can delete all transformations");
                             deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
-                        }
-                        else
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all transformation pipelines, there are harvestable(s) potentially using some" );
@@ -1034,10 +1028,10 @@ public class HarvesterApiClient
                     {
                         if ( noAssociations.result() )
                         {
-                            logger.debug( "No steps associated with transformation pipelines. Can delete all steps");
+                            logger.debug(
+                                    "No steps associated with transformation pipelines. Can delete all steps");
                             deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
-                        }
-                        else
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all steps, some are associated with transformation pipelines" );
@@ -1056,10 +1050,10 @@ public class HarvesterApiClient
                     {
                         if ( noHarvestables.result() )
                         {
-                            logger.debug( "No harvest configurations found, Can delete all storages");
+                            logger.debug(
+                                    "No harvest configurations found, Can delete all storages");
                             deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
-                        }
-                        else
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all storages, there are harvestable(s) potentially using some" );
@@ -1078,21 +1072,20 @@ public class HarvesterApiClient
                     {
                         if ( result.result() )
                         {
-                            logger.debug( "No jobs are running, can delete all transformation step associations");
+                            logger.debug(
+                                    "No jobs are running, can delete all transformation step associations");
                             deleteAllRecordsAndRespond(routingContext, harvesterPath, tenant);
-                        }
-                        else
+                        } else
                         {
                             responseText( routingContext, BAD_REQUEST ).end(
                                     "Cannot delete all transformation step associations, there are job(s) running" );
                         }
                     }
-                    else
-                    {
-                        responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                "There was a problem checking for running jobs, deletion of transformation step associations aborted: " + result.cause().getMessage() );
+                    else {
+                        responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                "There was a problem checking for running jobs, deletion of transformation step associations aborted: " + result.cause().getMessage());
                     }
-                } );
+                });
                 break;
         }
     }
@@ -1106,33 +1099,51 @@ public class HarvesterApiClient
                     List<Future> deleteEntityFutures = new ArrayList<>();
                     for (Object o : get.result().getRecords()) {
                         JsonObject entity = (JsonObject) o;
-                        deleteEntityFutures.add(
-                                deleteConfigRecord( routingContext, harvesterPath, entity.getString( "id" ), tenant ) );
+                        deleteEntityFutures.add(deleteConfigRecord(routingContext, harvesterPath,
+                                entity.getString("id"), tenant));
                     }
-                    CompositeFuture.all( deleteEntityFutures ).onComplete( result -> {
-                        if ( result.succeeded() )
-                        {
-                            responseText( routingContext, 204 ).end( "All records at " + harvesterPath + " deleted." );
+                    CompositeFuture.all(deleteEntityFutures).onComplete(result -> {
+                        if (result.succeeded()) {
+                            responseText(routingContext, 204).end(
+                                    "All records at " + harvesterPath + " deleted.");
                         }
-                        else
-                        {
-                            responseText( routingContext, 500 ).end(
-                                    "There was a problem deleting records at " + harvesterPath + ": " + result.cause() );
+                        else {
+                            responseText(routingContext, 500).end(
+                                    "There was a problem deleting records at " + harvesterPath + ": " + result.cause());
                         }
-                    } );
+                    });
                 }
             }
-        } );
+        });
     }
 
+    private JsonObject getValidRequestJson(RoutingContext routingContext) {
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
+            return null;
+        }
+        try {
+            return routingContext.getBodyAsJson();
+        }
+        catch (DecodeException de) {
+            String message = de.getMessage();
+            String strip = "at [Source";
+            if (message.contains(strip)) {
+                message = message.substring(0, message.indexOf(strip));
+            }
+            responseError(routingContext, BAD_REQUEST,
+                    "Could not parse incoming JSON object. " + message);
+            return null;
+        }
+    }
 
-    private String aclFilter( String tenant )
-    {
+    private String aclFilter(String tenant) {
         return Config.filterByTenant ? "?acl=" + tenant : "";
     }
 
-    private String andAclFilter( String tenant )
-    {
+    private String andAclFilter(String tenant) {
         return Config.filterByTenant ? "&acl=" + tenant : "";
     }
 

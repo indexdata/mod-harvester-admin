@@ -1,0 +1,104 @@
+name: release-maven
+
+on:
+  push:
+    tags:
+#      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
+      - '[vV][0-9]+.[0-9]+.[0-9]+*'  # i.e. allow snapshot tag
+env:
+  FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
+  CONTAINER_REGISTRY: 'ghcr.io'
+  IMAGE_NAME: 'indexdata/mod-harvester-admin'
+
+jobs:
+  release-maven:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+      - name: Gather some variables
+        run: |
+          echo "MODULE_NAME=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+          echo "MODULE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+          echo "DEFAULT_BRANCH=${{ github.event.repository.default_branch }}" >> $GITHUB_ENV
+      - name: Report dependencies that are snaphots
+        run: mvn dependency:list | { grep -i snapshot || true; }
+      - name: Do Maven build
+        run: mvn clean install
+      - name: Ensure built ModuleDescriptor
+        run: |
+          if test -f "$MOD_DESCRIPTOR"; then
+            echo "Found $MOD_DESCRIPTOR"
+            echo "MODULE_DESCRIPTOR=$MOD_DESCRIPTOR" >> $GITHUB_ENV
+          else
+            echo "Could not find $MOD_DESCRIPTOR"
+            exit 1
+          fi
+        env:
+          MOD_DESCRIPTOR: './target/ModuleDescriptor.json'
+      - name: Login ModuleDescriptor registry
+        id: login-md-registry
+        uses: indiesdev/curl@v1.1
+        with:
+          url: "${{ env.FOLIO_MD_REGISTRY }}/authn/login"
+          method: "POST"
+          accept: 201
+          headers: |
+            {
+              "content-type": "application/json",
+              "x-okapi-tenant": "${{ secrets.FOLIO_REGISTRY_TENANT }}"
+            }
+          body: |
+            {
+              "username": "${{ secrets.FOLIO_REGISTRY_USERNAME }}",
+              "password": "${{ secrets.FOLIO_REGISTRY_PASSWORD }}"
+            }
+      - name: Get the MD registry login token
+        run: |
+          echo "TOKEN_MD_REGISTRY=${{ fromJSON(steps.login-md-registry.outputs.response).headers['x-okapi-token'] }}" >> $GITHUB_ENV
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.ACTOR }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.vendor=Index Data LLC
+            org.opencontainers.image.documentation=https://github.com/indexdata/localindices/tree/master/doc
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Read ModuleDescriptor
+        id: moduleDescriptor
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ${{ env.MODULE_DESCRIPTOR }}
+      - name: Publish ModuleDescriptor to MD registry
+        id: result-md-registry
+        uses: indiesdev/curl@v1.1
+        with:
+          url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules"
+          method: "POST"
+          accept: 201
+          headers: |
+            {
+              "content-type": "application/json",
+              "x-okapi-tenant": "${{ secrets.FOLIO_REGISTRY_TENANT }}",
+              "x-okapi-token": "${{ env.TOKEN_MD_REGISTRY }}"
+            }
+          body: ${{ steps.moduleDescriptor.outputs.content }}
