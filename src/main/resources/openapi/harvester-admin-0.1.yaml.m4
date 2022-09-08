@@ -80,10 +80,10 @@ paths:
     GET_RESPONSE(`Get detailed harvest job definition', `harvestableBrief', `harvestable')
     PUT_RESPONSE(`Update a harvest job definition', `harvestableBrief', `harvestableBrief')
     DELETE_RESPONSE(`Delete a harvest job definition')
-  /harvester-admin/jobs/run:
-    PUT_RESPONSE(`Starts a harvest job immediately if possible', `runJob', `jobStarted')
-  /harvester-admin/jobs/stop:
-    POST_RESPONSE(`Stops a harvest job', `stopJob', `jobStopped')
+  /harvester-admin/jobs/run/{id}:
+    PUT_RESPONSE(`Starts a harvest job immediately if possible', `jobStarted')
+  /harvester-admin/jobs/stop/{id}:
+    PUT_RESPONSE(`Stops a harvest job', `jobStopped')
   /harvester-admin/storages:
     GET_RESPONSE(`Get brief storage definition records', `storages')
     POST_RESPONSE(`Create new storage definition', `storageBrief', `storageBrief')
