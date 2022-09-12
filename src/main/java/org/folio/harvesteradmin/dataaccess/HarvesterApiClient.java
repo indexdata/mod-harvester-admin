@@ -195,98 +195,102 @@ public class HarvesterApiClient
                     responseJson( routingContext, getById.result().statusCode() ).end(
                             getById.result().jsonObject().encodePrettily() );
                 }
-                else
-                {
-                    if ( getById.result().wasInternalServerError() )
-                    {
+                else {
+                    if (getById.result().wasInternalServerError()) {
                         logger.error(
-                                " GET by ID (" + id + ") to " + harvesterPath + " encountered a server error: " + getById.result().errorMessage() );
+                                " GET by ID (" + id + ") to " + harvesterPath + " encountered a server error: " + getById.result().errorMessage());
                     }
-                    responseText( routingContext, getById.result().statusCode() ).end(
-                            getById.result().errorMessage() );
+                    responseText(routingContext, getById.result().statusCode()).end(
+                            getById.result().errorMessage());
 
                 }
-            } );
+            });
         }
     }
 
-    protected Future<ProcessedHarvesterResponseGetById> getConfigRecordById( String harvesterPath, String id, String tenant )
-    {
+    public void respondWithHarvestLogById(RoutingContext routingContext, String tenant) {
+        String id = routingContext.request().getParam("id");
+        lookUpHarvesterRecordById(HARVESTER_HARVESTABLES_PATH, id, tenant).onComplete(idLookup -> {
+            if (idLookup.succeeded()) {
+                ProcessedHarvesterResponse idLookUpResponse = idLookup.result();
+                if (idLookup.result().wasNotFound()) {
+                    responseText(routingContext, idLookUpResponse.statusCode()).end(
+                            idLookup.result().errorMessage());
+                } else if (idLookup.result().wasOK()) {
+                    harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/log").send(
+                            ar -> responseText(routingContext, 200).end(
+                                    ar.result().bodyAsString()));
+                } else {
+                    responseText(routingContext, idLookUpResponse.statusCode()).end(
+                            "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + HARVESTER_HARVESTABLES_PATH + "/" + id + " to get logs: " + idLookUpResponse.errorMessage());
+                }
+            } else {
+                responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                        "Could not look up harvest job " + HARVESTER_HARVESTABLES_PATH + "/" + id + " to get logs : " + idLookup.cause().getMessage());
+            }
+        });
+    }
+
+    protected Future<ProcessedHarvesterResponseGetById> getConfigRecordById(String harvesterPath, String id, String tenant) {
         Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-        harvesterGetRequest( harvesterPath + "/" + id ).send(
-                ar -> promise.complete( new ProcessedHarvesterResponseGetById( ar, harvesterPath, id, tenant ) ) );
+        harvesterGetRequest(harvesterPath + "/" + id).send(ar -> promise.complete(
+                new ProcessedHarvesterResponseGetById(ar, harvesterPath, id, tenant)));
         return promise.future();
     }
 
-    public void putConfigRecordAndRespond( RoutingContext routingContext, String harvesterPath, String tenant )
-    {
-        String id = routingContext.request().getParam( "id" );
+    public void putConfigRecordAndRespond(RoutingContext routingContext, String harvesterPath, String tenant) {
+        String id = routingContext.request().getParam("id");
         JsonObject jsonToPut = routingContext.getBodyAsJson();
-        String contentType = routingContext.request().getHeader( HEADER_CONTENT_TYPE );
-        if ( isNonJsonContentType( routingContext ) )
+        String contentType = routingContext.request().getHeader(HEADER_CONTENT_TYPE);
+        if (isNonJsonContentType(routingContext)) {
+            responseError(routingContext, BAD_REQUEST,
+                    "Only accepts Content-Type application/json, was: " + contentType);
+        } else
         {
-            responseError( routingContext, BAD_REQUEST,
-                    "Only accepts Content-Type application/json, was: " + contentType );
-        }
-        else
-        {
-            lookUpHarvesterRecordById( harvesterPath, id, tenant ).onComplete(
+            lookUpHarvesterRecordById(harvesterPath, id, tenant).onComplete(
                     idLookUp -> {    // going to return 404 if not found
-                        if ( idLookUp.succeeded() )
-                        {
+                        if (idLookUp.succeeded()) {
                             ProcessedHarvesterResponse idLookUpResponse = idLookUp.result();
-                            if ( idLookUp.result().wasNotFound() )
-                            {
-                                responseText( routingContext, idLookUpResponse.statusCode() ).end(
-                                        idLookUp.result().errorMessage() );
-                            }
-                            else if ( idLookUp.result().wasOK() )
-                            {
-                                try
-                                {
-                                    String xml = JsonToHarvesterXml.convertToHarvesterRecord( jsonToPut,
-                                            mapToNameOfRootOfEntity( harvesterPath ), tenant );
-                                    harvesterPutRequest( harvesterPath + "/" + id ).sendBuffer( Buffer.buffer( xml ),
-                                            put -> {
-                                                if ( put.succeeded() )
-                                                {
-                                                    if ( put.result().statusCode() == NO_CONTENT )
-                                                    {
-                                                        responseText( routingContext, put.result().statusCode() ).end(
-                                                                "" );
+                            if (idLookUp.result().wasNotFound()) {
+                                responseText(routingContext, idLookUpResponse.statusCode()).end(
+                                        idLookUp.result().errorMessage());
+                            } else if (idLookUp.result().wasOK()) {
+                                try {
+                                    String xml = JsonToHarvesterXml.convertToHarvesterRecord(
+                                            jsonToPut, mapToNameOfRootOfEntity(harvesterPath),
+                                            tenant);
+                                    harvesterPutRequest(harvesterPath + "/" + id).sendBuffer(
+                                            Buffer.buffer(xml), put -> {
+                                                if (put.succeeded()) {
+                                                    if (put.result().statusCode() == NO_CONTENT) {
+                                                        responseText(routingContext,
+                                                                put.result().statusCode()).end("");
+                                                    } else {
+                                                        responseText(routingContext,
+                                                                put.result().statusCode()).end(
+                                                                "There was a problem PUTting to " + harvesterPath + "/" + id + ": " + put.result().statusMessage());
                                                     }
-                                                    else
-                                                    {
-                                                        responseText( routingContext, put.result().statusCode() ).end(
-                                                                "There was a problem PUTting to " + harvesterPath + "/" + id + ": " + put.result().statusMessage() );
-                                    }
+                                                } else {
+                                                    responseText(routingContext,
+                                                            INTERNAL_SERVER_ERROR).end(
+                                                            "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage());
+                                                }
+                                            });
                                 }
-                                else
-                                {
-                                    responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                            "There was an error PUTting to " + harvesterPath + "/" + id + ": " + put.cause().getMessage() );
+                                catch (TransformerException | ParserConfigurationException e) {
+                                    logger.error("Error parsing json " + jsonToPut);
+                                    responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                            "Error parsing json " + jsonToPut);
                                 }
-                            } );
+                            } else {
+                                responseText(routingContext, idLookUpResponse.statusCode()).end(
+                                        "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + harvesterPath + "/" + id + " before PUT: " + idLookUpResponse.errorMessage());
+                            }
+                        } else {
+                            responseText(routingContext, INTERNAL_SERVER_ERROR).end(
+                                    "Could not look up record " + harvesterPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage());
                         }
-                        catch ( TransformerException | ParserConfigurationException e )
-                        {
-                            logger.error( "Error parsing json " + jsonToPut );
-                            responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                                    "Error parsing json " + jsonToPut );
-                        }
-                    }
-                    else
-                    {
-                        responseText( routingContext, idLookUpResponse.statusCode() ).end(
-                                "There was an error (" + idLookUpResponse.statusCode() + ") looking up " + harvesterPath + "/" + id + " before PUT: " + idLookUpResponse.errorMessage() );
-                    }
-                }
-                else
-                {
-                    responseText( routingContext, INTERNAL_SERVER_ERROR ).end(
-                            "Could not look up record " + harvesterPath + "/" + id + " before PUT: " + idLookUp.cause().getMessage() );
-                }
-            } );
+                    });
         }
     }
 
