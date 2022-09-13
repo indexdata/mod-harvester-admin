@@ -54,38 +54,40 @@ public class RequestDispatcher
 
   public void handlePut( RoutingContext routingContext )
   {
-    client.putConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
-            MainVerticle.getTenant( routingContext ) );
+    client.putConfigRecordAndRespond(routingContext, mapToHarvesterPath(routingContext),
+            MainVerticle.getTenant(routingContext));
   }
 
-  public void handlePost( RoutingContext routingContext )
-  {
-    client.postConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
-            MainVerticle.getTenant( routingContext ) );
+  public void handlePost(RoutingContext routingContext) {
+    client.postConfigRecordAndRespond(routingContext, mapToHarvesterPath(routingContext),
+            MainVerticle.getTenant(routingContext));
   }
 
-  public void handleDeleteById( RoutingContext routingContext )
-  {
-    client.deleteConfigRecordAndRespond( routingContext, mapToHarvesterPath( routingContext ),
-            MainVerticle.getTenant( routingContext ) );
+  public void handleDeleteById(RoutingContext routingContext) {
+    client.deleteConfigRecordAndRespond(routingContext, mapToHarvesterPath(routingContext),
+            MainVerticle.getTenant(routingContext));
   }
 
-  public void handleDelete( RoutingContext routingContext )
-  {
-    client.deleteConfigRecordsAndRespond( routingContext, mapToHarvesterPath( routingContext ),
-            MainVerticle.getTenant( routingContext ) );
+  public void handleDelete(RoutingContext routingContext) {
+    client.deleteConfigRecordsAndRespond(routingContext, mapToHarvesterPath(routingContext),
+            MainVerticle.getTenant(routingContext));
+  }
+
+  public void handleGetLog(RoutingContext routingContext) {
+    client.respondWithHarvestLogById(routingContext, MainVerticle.getTenant(routingContext));
   }
 
   /**
-   * Get harvester path from request path (after stripping off the ID part of the request path, if any)
+   * Get harvester path from request path (after stripping off the ID part of the request path, if
+   * any)
    *
    * @param routingContext context to get path and possible ID parameter from
    * @return Harvester API path corresponding to the given request path
    */
-  private String mapToHarvesterPath( RoutingContext routingContext )
-  {
+  private String mapToHarvesterPath(RoutingContext routingContext) {
     return harvesterPathByRequestPath.get(
-            routingContext.request().path().replaceAll( "/" + routingContext.pathParam( "id" ) + "$", "" ) );
+            routingContext.request().path().replaceAll("/" + routingContext.pathParam("id") + "$",
+                    ""));
   }
 
 }

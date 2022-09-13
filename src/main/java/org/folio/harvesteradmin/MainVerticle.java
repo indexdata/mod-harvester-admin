@@ -22,7 +22,6 @@ import static org.folio.harvesteradmin.statics.ApiPaths.*;
  *
  * @author ne
  */
-@SuppressWarnings( "SpellCheckingInspection" )
 public class MainVerticle extends AbstractVerticle
 {
 
@@ -37,44 +36,46 @@ public class MainVerticle extends AbstractVerticle
   public void start( Promise<Void> promise )
   {
     Config config = new Config();
-    if ( config.isHarvesterConfigOkay() )
-    {
-      logger.info( config.toString() );
+    if (config.isHarvesterConfigOkay()) {
+      logger.info(config.toString());
     }
-    RequestDispatcher requestDispatcher = new RequestDispatcher( vertx );
-    JobLauncher jobLauncher = new JobLauncher( vertx );
-    ScriptHandler scriptHandler = new ScriptHandler( vertx );
+    RequestDispatcher requestDispatcher = new RequestDispatcher(vertx);
+    JobLauncher jobLauncher = new JobLauncher(vertx);
+    ScriptHandler scriptHandler = new ScriptHandler(vertx);
 
-    Router router = Router.router( vertx );
-    router.put( "/*" ).handler( BodyHandler.create() ); // Tell vertx we want the whole PUT body in the handler
-    router.post( "/*" ).handler( BodyHandler.create() );
+    Router router = Router.router(vertx);
+    router.put("/*").handler(
+            BodyHandler.create()); // Tell vertx we want the whole PUT body in the handler
+    router.post("/*").handler(BodyHandler.create());
 
-    router.get( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleDelete );
+    router.get(THIS_HARVESTABLES_PATH).handler(requestDispatcher::handleGet);
+    router.get(THIS_HARVESTABLES_ID_PATH).handler(requestDispatcher::handleGetById);
+    router.put(THIS_HARVESTABLES_ID_PATH).handler(requestDispatcher::handlePut);
+    router.post(THIS_HARVESTABLES_PATH).handler(requestDispatcher::handlePost);
+    router.delete(THIS_HARVESTABLES_ID_PATH).handler(requestDispatcher::handleDeleteById);
+    router.delete(THIS_HARVESTABLES_PATH).handler(requestDispatcher::handleDelete);
 
-    router.get( THIS_STORAGES_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_STORAGES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_STORAGES_PATH ).handler( requestDispatcher::handleDelete );
+    router.get(THIS_HARVESTABLES_LOG_PATH).handler(requestDispatcher::handleGetLog);
 
-    router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleDelete );
+    router.get(THIS_STORAGES_PATH).handler(requestDispatcher::handleGet);
+    router.get(THIS_STORAGES_ID_PATH).handler(requestDispatcher::handleGetById);
+    router.put(THIS_STORAGES_ID_PATH).handler(requestDispatcher::handlePut);
+    router.post(THIS_STORAGES_PATH).handler(requestDispatcher::handlePost);
+    router.delete(THIS_STORAGES_ID_PATH).handler(requestDispatcher::handleDeleteById);
+    router.delete(THIS_STORAGES_PATH).handler(requestDispatcher::handleDelete);
 
-    router.get( THIS_STEPS_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
+    router.get(THIS_TRANSFORMATIONS_PATH).handler(requestDispatcher::handleGet);
+    router.get(THIS_TRANSFORMATIONS_ID_PATH).handler(requestDispatcher::handleGetById);
+    router.put(THIS_TRANSFORMATIONS_ID_PATH).handler(requestDispatcher::handlePut);
+    router.post(THIS_TRANSFORMATIONS_PATH).handler(requestDispatcher::handlePost);
+    router.delete(THIS_TRANSFORMATIONS_ID_PATH).handler(requestDispatcher::handleDeleteById);
+    router.delete(THIS_TRANSFORMATIONS_PATH).handler(requestDispatcher::handleDelete);
+
+    router.get(THIS_STEPS_PATH).handler(requestDispatcher::handleGet);
+    router.get(THIS_STEPS_ID_PATH).handler(requestDispatcher::handleGetById);
+    router.put(THIS_STEPS_ID_PATH).handler(requestDispatcher::handlePut);
+    router.post(THIS_STEPS_PATH).handler(requestDispatcher::handlePost);
+    router.delete(THIS_STEPS_ID_PATH).handler(requestDispatcher::handleDeleteById);
     router.delete( THIS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
     router.get(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handleGetScript);
     router.put(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handlePutScript);

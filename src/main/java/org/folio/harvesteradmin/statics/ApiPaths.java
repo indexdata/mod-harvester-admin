@@ -15,10 +15,12 @@ public class ApiPaths
     public final static String TRANSFORMATIONS_PATH = "/transformations";
     public final static String STEPS_PATH = "/steps";
     public final static String TRANSFORMATIONS_STEPS_PATH = "/tsas";
+    public final static String LOG_PATH = "/log";
 
     // FOLIO harvester-admin APIs
     public final static String THIS_HARVESTABLES_PATH = THIS_API_BASE_PATH + HARVESTABLES_PATH;
     public final static String THIS_HARVESTABLES_ID_PATH = THIS_API_BASE_PATH + HARVESTABLES_PATH + THIS_ID_PATH;
+    public final static String THIS_HARVESTABLES_LOG_PATH = THIS_API_BASE_PATH + HARVESTABLES_PATH + THIS_ID_PATH + LOG_PATH;
     public final static String THIS_STORAGES_PATH = THIS_API_BASE_PATH + STORAGES_PATH;
     public final static String THIS_STORAGES_ID_PATH = THIS_API_BASE_PATH + STORAGES_PATH + THIS_ID_PATH;
     public final static String THIS_TRANSFORMATIONS_PATH = THIS_API_BASE_PATH + TRANSFORMATIONS_PATH;
