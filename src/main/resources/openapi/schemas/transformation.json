@@ -1,0 +1,22 @@
+{
+  "description": "A transformation pipeline",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique record identifier."
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the transformation pipeline."
+    },
+    "description": {
+      "type": "string",
+      "description": "Details about the pipeline."
+    }
+  },
+  "required": [
+    "id", "name"
+  ],
+  "additionalProperties": true
+}

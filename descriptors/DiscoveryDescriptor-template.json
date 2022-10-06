@@ -1,5 +1,0 @@
-{
-  "srvcId": "${artifactId}-${version}",
-  "instId": "127.0.0.1-12369",
-  "url" : "http://127.0.0.1:12369"
-}

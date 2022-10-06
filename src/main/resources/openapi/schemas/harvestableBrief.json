@@ -68,6 +68,5 @@
       "type": "string",
       "description": "Message summarising results of last run"
     }
-  },
-  "additionalProperties": false
+  }
 }
