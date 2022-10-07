@@ -81,6 +81,16 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
               routingContext.failure().getMessage());
         });
     routerBuilder
+        .operation("putStorage")
+            .handler(ctx -> putConfigRecord(vertx, ctx))
+                .failureHandler(routingContext -> {
+                  responseError(
+                      routingContext,
+                      routingContext.statusCode(),
+                      routingContext.failure().getMessage()
+                  );
+                });
+    routerBuilder
         .operation("deleteStorage")
         .handler(ctx -> deleteConfigRecord(vertx, ctx))
         .failureHandler(routingContext -> {
@@ -106,6 +116,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
               routingContext.statusCode(),
               routingContext.failure().getMessage());
         });
+    routerBuilder
+        .operation("putTransformation")
+            .handler(ctx -> putConfigRecord(vertx, ctx))
+                .failureHandler(routingContext -> {
+                  responseError(
+                      routingContext,
+                      routingContext.statusCode(),
+                      routingContext.failure().getMessage());
+                });
     routerBuilder
         .operation("deleteTransformation")
         .handler(ctx -> deleteConfigRecord(vertx, ctx))
@@ -220,6 +239,23 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
       }
       return null;
     });
+  }
+
+  private Future<Void> putConfigRecord(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+    return legacyStorage.putConfigRecord(routingContext).map(response -> {
+      if (response.wasOK()) {
+        responseJson(
+            routingContext, response.statusCode())
+            .end(response.jsonObject().encodePrettily());
+      } else {
+        responseError(
+            routingContext, response.statusCode(), response.errorMessage());
+      }
+      return null;
+    });
+
   }
 
   private Future<Void> deleteConfigRecord(Vertx vertx, RoutingContext routingContext) {

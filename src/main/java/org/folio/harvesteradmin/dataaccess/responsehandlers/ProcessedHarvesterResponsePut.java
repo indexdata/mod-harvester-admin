@@ -11,6 +11,7 @@ public class ProcessedHarvesterResponsePut extends ProcessedHarvesterResponse {
       String requestPath,
       String legacyPath) {
 
+    statusCode = harvesterResponse.result().statusCode();
   }
 
   /**
