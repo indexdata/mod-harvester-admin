@@ -5,12 +5,17 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 
 public class ProcessedHarvesterResponsePut extends ProcessedHarvesterResponse {
+  public AsyncResult<HttpResponse<Buffer>> harvesterResponse;
 
+  /**
+   * Constructor.
+   */
   public ProcessedHarvesterResponsePut(
       AsyncResult<HttpResponse<Buffer>> harvesterResponse,
       String requestPath,
       String legacyPath) {
-
+    this.harvesterResponse = harvesterResponse;
+    this.bodyAsString = harvesterResponse.result().bodyAsString();
     statusCode = harvesterResponse.result().statusCode();
   }
 

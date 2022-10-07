@@ -1,23 +1,15 @@
 package org.folio.harvesteradmin.test.sampleData;
 import io.vertx.core.json.JsonObject;
+import org.folio.harvesteradmin.test.SampleId;
 
 public class Samples {
-  public static final int SAMPLES_ID_PREFIX = 9631;
 
-  /**
-   * Obtains an ID starting with {{SAMPLES_ID_PREFIX}}.
-   * The prefix is used for cleaning up sample records when the unit test completes.
-   */
-  public static int sampleId(int id) {
-    return (SAMPLES_ID_PREFIX * 100000) + id;
-  }
-
-  public static final int BASE_STORAGE_ID = 9999;
-  public static final int BASE_TRANSFORMATION_ID = 9999;
-
+  public static final SampleId BASE_STORAGE_ID = new SampleId(9999);
+  public static final SampleId BASE_TRANSFORMATION_ID = new SampleId(9999);
+  public static final SampleId SAMPLE_STEP_ID = new SampleId(9999);
   public static JsonObject BASE_STORAGE_JSON = new JsonObject(
       "{\n"
-          + "  \"id\" : \"" + sampleId(BASE_STORAGE_ID) + "\",\n"
+          + "  \"id\" : \"" + BASE_STORAGE_ID.fullId() + "\",\n"
           + "  \"name\": \"BASE_STORAGE\",\n"
           + "  \"description\" : \"Test storage definition\",\n"
           + "  \"type\" : \"inventoryStorage\",\n"
@@ -36,12 +28,60 @@ public class Samples {
   public static JsonObject BASE_TRANSFORMATION_JSON = new JsonObject(
       "{\n"
           + "  \"name\" : \"BASE_TRANSFORMATION\",\n"
-          + "  \"id\" : \"" + sampleId(BASE_STORAGE_ID) + "\",\n"
+          + "  \"id\" : \"" + BASE_STORAGE_ID.fullId() + "\",\n"
           + "  \"description\" : \"Test\",\n"
           + "  \"enabled\" : \"true\",\n"
           + "  \"type\" : \"basicTransformation\"\n"
           + "}\n"
   );
-
-
+  public static JsonObject SAMPLE_STEP =
+      new JsonObject(
+          "{\n"
+              + "  \"id\" : \"" + SAMPLE_STEP_ID + "\",   \n"
+              + "  \"name\" : \"Test step\",\n"
+              + "  \"description\" : \"Sample record\",\n"
+              + "  \"inputFormat\" : \"XML\",\n"
+              + "  \"outputFormat\" : \"XML\",\n"
+              + "  \"script\" : \"\",\n"
+              + "  \"testData\" : \"\",\n"
+              + "  \"testOutput\" : \"\",\n"
+              + "  \"type\" : \"XmlTransformStep\"\n"
+              + "}\n"
+      );
+  public static String SAMPLE_SCRIPT =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+          + "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\n"
+          + "                xmlns:pz=\"http://www.indexdata.com/pazpar2/1.0\" version=\"1.0\" >\n"
+          + "    \n"
+          + "  <xsl:output method=\"xml\" indent=\"yes\" />\n"
+          + "  <xsl:template match=\"/\">\n"
+          + "    <collection>\n"
+          + "      <xsl:apply-templates />\n"
+          + "      </collection>\n"
+          + "    </xsl:template>\n"
+          + "    <xsl:template match=\"feed\">\n"
+          + "            <xsl:apply-templates />\n"
+          + "    </xsl:template>\n"
+          + "    <xsl:template match=\"doc\">\n"
+          + "      <pz:record>\n"
+          + " <pz:metadata type=\"id\">\n"
+          + "   <xsl:value-of select=\"substring-after(url,'http://')\" />\n"
+          + "    </pz:metadata>\n"
+          + "  <pz:metadata type=\"title\">\n"
+          + "    <xsl:value-of select=\"substring-after(title, 'Wikipedia: ')\" />\n"
+          + "   </pz:metadata>\n"
+          + "  <!-- <field name=\"title-abbreviated\"> <xsl:value-of select=\"substring-before"
+          + "(substring-after(concat(title, \n"
+          + "       ' ('), 'Wikipedia: '), ' (')\"/> </field> -->\n"
+          + "  <!-- <field name=\"date\"> <xsl:value-of select=\"date\" /> </field> -->\n"
+          + "  <pz:metadata type=\"description\">\n"
+          + "    <xsl:value-of select=\"abstract\" />\n"
+          + "    </pz:metadata>\n"
+          + "  <pz:metadata type=\"electronic-url\">\n"
+          + "   <xsl:value-of select=\"url\" />\n"
+          + "   </pz:metadata>\n"
+          + "  </pz:record>\n"
+          + "      </xsl:template>\n"
+          + "</xsl:stylesheet>\n";
+  
 }

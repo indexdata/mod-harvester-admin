@@ -1,20 +1,24 @@
 package org.folio.harvesteradmin.test;
 
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_HARVESTABLES_PATH;
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STORAGES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFORMATIONS_PATH;
 import static org.folio.harvesteradmin.test.Api.deleteConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecords;
 import static org.folio.harvesteradmin.test.Api.putConfigRecord;
+import static org.folio.harvesteradmin.test.Api.putScript;
 import static org.folio.harvesteradmin.test.Api.responseJson;
 import static org.folio.harvesteradmin.test.Api.postConfigRecord;
+import static org.folio.harvesteradmin.test.SampleId.SAMPLES_ID_PREFIX;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_STORAGE_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_STORAGE_JSON;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_TRANSFORMATION_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_TRANSFORMATION_JSON;
-import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLES_ID_PREFIX;
-import static org.folio.harvesteradmin.test.sampleData.Samples.sampleId;
+import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_SCRIPT;
+import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP;
+import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_ID;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
@@ -44,6 +48,7 @@ public class HarvesterAdminTestSuite {
   Vertx vertx;
   private static final int PORT_HARVESTER_ADMIN = 9031;
   public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
+  public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
   public static final Header OKAPI_TENANT = new Header ("X-Okapi-Tenant", "diku");
 
 
@@ -65,6 +70,7 @@ public class HarvesterAdminTestSuite {
     vertx.deployVerticle(
         MainVerticle.class.getName(), new DeploymentOptions())
         .onComplete(testContext.asyncAssertSuccess(outcome -> {
+          deleteSamplesFromLegacyHarvester();
         }));
   }
 
@@ -81,6 +87,7 @@ public class HarvesterAdminTestSuite {
     deleteRecordsByIdPrefix(THIS_HARVESTABLES_PATH, "harvestables");
     deleteRecordsByIdPrefix(THIS_STORAGES_PATH, "storages");
     deleteRecordsByIdPrefix(THIS_TRANSFORMATIONS_PATH, "transformations");
+    deleteRecordsByIdPrefix(THIS_STEPS_PATH, "transformationSteps");
   }
 
   private void deleteRecordsByIdPrefix(String path, String recordsArrayProperty) {
@@ -99,12 +106,12 @@ public class HarvesterAdminTestSuite {
     RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     JsonObject record = responseJson(
-        getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID, 200));
+        getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 200));
     String recordId = record.getString("id");
     record.put("name", "MODIFIED: " + record.getString("name"));
     putConfigRecord(THIS_STORAGES_PATH, recordId, record, 204);
     JsonObject updatedRecord = responseJson(
-        getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID, 200));
+        getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 200));
     assertTrue("Name is modified",
         updatedRecord.getString("name").startsWith("MODIFIED"));
     deleteConfigRecord(THIS_STORAGES_PATH, recordId, 204);
@@ -115,12 +122,12 @@ public class HarvesterAdminTestSuite {
     RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     JsonObject record = responseJson(
-        getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID, 200));
+        getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200));
     String recordId = record.getString("id");
     record.put("name", "MODIFIED: " + record.getString("name"));
     putConfigRecord(THIS_TRANSFORMATIONS_PATH, recordId, record, 204);
     JsonObject updatedRecord = responseJson(
-        getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID, 200));
+        getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200));
     assertTrue("Name is modified",
         updatedRecord.getString("name").startsWith("MODIFIED"));
     deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, recordId, 204);
@@ -129,22 +136,22 @@ public class HarvesterAdminTestSuite {
   @Test
   public void canCreateHarvestable(TestContext testContext )
   {
-    final int harvestableId = 1;
+    SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
         new JsonObject(
             "{\n"
-                + "  \"id\": \"" + sampleId(harvestableId) +"\",\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
                 + "  \"name\": \"Test harvest job\",\n"
                 + "  \"type\": \"oaiPmh\",\n"
                 + "  \"enabled\": \"false\",\n"
                 + "  \"harvestImmediately\": \"false\",\n"
                 + "  \"storage\": {\n"
                 + "    \"entityType\": \"inventoryStorageEntity\",\n"
-                + "    \"id\": \"" + sampleId(BASE_STORAGE_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
                 + "  },\n"
                 + "  \"transformation\": {\n"
                 + "    \"entityType\": \"basicTransformation\",\n"
-                + "    \"id\": \"" + sampleId(BASE_TRANSFORMATION_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
                 + "  },\n"
                 + "  \"metadataPrefix\": \"marc21\",\n"
                 + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
@@ -158,28 +165,28 @@ public class HarvesterAdminTestSuite {
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     JsonObject result = responseJson(
         postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201));
-    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId, 200);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
   }
 
   @Test
   public void cannotCreateHarvestableWithWrongStorageId()
   {
-    final int harvestableId = 1;
+    final SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
         new JsonObject(
             "{\n"
-                + "  \"id\": \"" + sampleId(harvestableId) +"\",\n"
+                + "  \"id\": \"" + harvestableId +"\",\n"
                 + "  \"name\": \"Test harvest job\",\n"
                 + "  \"type\": \"oaiPmh\",\n"
                 + "  \"enabled\": \"false\",\n"
                 + "  \"harvestImmediately\": \"false\",\n"
                 + "  \"storage\": {\n"
                 + "    \"entityType\": \"inventoryStorageEntity\",\n"
-                + "    \"id\": \"" + sampleId(BASE_STORAGE_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID + "\"\n"
                 + "  },\n"
                 + "  \"transformation\": {\n"
                 + "    \"entityType\": \"basicTransformation\",\n"
-                + "    \"id\": \"" + sampleId(BASE_TRANSFORMATION_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID + "\"\n"
                 + "  },\n"
                 + "  \"metadataPrefix\": \"marc21\",\n"
                 + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
@@ -191,28 +198,28 @@ public class HarvesterAdminTestSuite {
     RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
-    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId, 404);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
   @Test
   public void cannotCreateHarvestableWithWrongTransformationId()
   {
-    final int harvestableId = 1;
+    final SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
         new JsonObject(
             "{\n"
-                + "  \"id\": \"" + sampleId(harvestableId) +"\",\n"
+                + "  \"id\": \"" + harvestableId +"\",\n"
                 + "  \"name\": \"Test harvest job\",\n"
                 + "  \"type\": \"oaiPmh\",\n"
                 + "  \"enabled\": \"false\",\n"
                 + "  \"harvestImmediately\": \"false\",\n"
                 + "  \"storage\": {\n"
                 + "    \"entityType\": \"inventoryStorageEntity\",\n"
-                + "    \"id\": \"" + sampleId(BASE_STORAGE_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID + "\"\n"
                 + "  },\n"
                 + "  \"transformation\": {\n"
                 + "    \"entityType\": \"basicTransformation\",\n"
-                + "    \"id\": \"" + sampleId(BASE_TRANSFORMATION_ID) + "\"\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID + "\"\n"
                 + "  },\n"
                 + "  \"metadataPrefix\": \"marc21\",\n"
                 + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
@@ -224,7 +231,32 @@ public class HarvesterAdminTestSuite {
     RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
-    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId, 404);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
+  @Test
+  public void canCreateUpdateAndDeleteStep()
+  {
+    RestAssured.port = PORT_HARVESTER_ADMIN;
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    JsonObject record = responseJson(
+        getConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP_ID.toString(), 200));
+    record.put("name", "MODIFIED: " + record.getString("name"));
+    putConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP_ID.toString(), record, 204);
+    JsonObject updatedRecord = responseJson(
+        getConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP_ID.toString(), 200));
+    assertTrue("Name is modified",
+        updatedRecord.getString("name").startsWith("MODIFIED"));
+    deleteConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP_ID.toString(), 204);
+
+  }
+
+  @Test
+  public void canPopulateScriptToStep()
+  {
+    RestAssured.port = PORT_HARVESTER_ADMIN;
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
+        204);
+  }
 }

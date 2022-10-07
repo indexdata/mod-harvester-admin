@@ -152,6 +152,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
               routingContext.failure().getMessage());
         });
     routerBuilder
+        .operation("putStep")
+        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(routingContext -> {
+          responseError(
+              routingContext,
+              routingContext.statusCode(),
+              routingContext.failure().getMessage());
+        });
+    routerBuilder
         .operation("deleteStep")
         .handler(ctx -> deleteConfigRecord(vertx, ctx))
         .failureHandler(routingContext -> {
@@ -167,7 +176,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             .handler(ctx -> getScript(vertx, ctx));
     routerBuilder
         .operation("putScript")
-            .handler(ctx -> putScript(vertx, ctx));
+        .handler(ctx -> putScript(vertx, ctx))
+        .failureHandler(routingContext -> {
+          responseError(
+              routingContext,
+              routingContext.statusCode(),
+              routingContext.failure().getMessage());
+        });
 
     routerBuilder
         .operation("getTsas")
@@ -290,7 +305,14 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> putScript(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.putScript(routingContext).mapEmpty();
+    return legacyStorage.putScript(routingContext)
+        .onComplete(response -> {
+          responseText(routingContext, 204).end();
+        })
+        .onFailure(response -> {
+          responseError(routingContext, 500, response.getMessage());
+        })
+        .mapEmpty();
   }
 
   /**

@@ -1,8 +1,9 @@
 package org.folio.harvesteradmin.test;
 
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_JSON;
+import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_XML;
 import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.OKAPI_TENANT;
-import static org.folio.harvesteradmin.test.sampleData.Samples.sampleId;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -25,15 +26,15 @@ public class Api {
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
   }
 
-  public static Response getConfigRecord(String api, int id) {
+  public static Response getConfigRecord(String api, String id) {
     return getConfigRecord(api, id, 200);
   }
 
-  public static Response getConfigRecord(String api, int id, int expectStatus) {
+  public static Response getConfigRecord(String api, String id, int expectStatus) {
     return RestAssured
         .given()
         .header(OKAPI_TENANT)
-        .get(api + "/" + sampleId(id))
+        .get(api + "/" + id)
         .then()
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
   }
@@ -62,7 +63,6 @@ public class Api {
         .delete(api + "/" + id)
         .then()
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
-
   }
 
   public static Response putConfigRecord(String api, String id, JsonObject record, int status) {
@@ -75,4 +75,14 @@ public class Api {
         .log().ifValidationFails().statusCode(status).extract().response();
   }
 
+  public static Response putScript(String stepId, String stepName, String xsl, int status) {
+    return RestAssured.given()
+        .header(OKAPI_TENANT)
+        .header(CONTENT_TYPE_XML)
+        .body(xsl)
+        .put(THIS_STEPS_PATH + "/" + stepId + "/script?name="+stepName)
+        .then()
+        .log().ifValidationFails().statusCode(status).extract().response();
+
+  }
 }

@@ -104,13 +104,12 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponseGetById> getConfigRecordById(
       String harvesterPath, String id) {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
-    logger.info("GET " + harvesterPath + "/" + id);
+    logger.debug("GET " + harvesterPath + "/" + id);
     harvesterGetRequest(harvesterPath + "/" + id).send(ar -> {
       promise.complete(
           new ProcessedHarvesterResponseGetById(ar, harvesterPath, id, tenant));
     });
     return promise.future();
-
   }
 
   /**
@@ -184,7 +183,7 @@ public class LegacyHarvesterStorage {
           String location = ar.result().getHeader("Location");
           if (ar.result().statusCode() == CREATED && location != null) {
             String idFromLocation = location.split("/")[location.split("/").length - 1];
-            logger.info("Got id from location: " + location);
+            logger.debug("Got id from location: " + location);
             getConfigRecordById(harvesterPath, idFromLocation).onComplete(
                 // going to return 500, internal server error if not found, 201, Created if found
                 lookUpNewlyCreatedRecord -> promise.complete(
@@ -345,7 +344,7 @@ public class LegacyHarvesterStorage {
   private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(
       RoutingContext routingContext) {
     JsonObject transformationJson = routingContext.body().asJsonObject();
-    logger.info("About to POST-then-PUT " + transformationJson.encodePrettily());
+    logger.debug("About to POST-then-PUT " + transformationJson.encodePrettily());
     Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();
     typeToEmbeddedTypeMap.put("CustomTransformStep", "customTransformationStep");
     typeToEmbeddedTypeMap.put("XmlTransformStep", "xmlTransformationStep");
@@ -358,7 +357,7 @@ public class LegacyHarvesterStorage {
       JsonObject step = (JsonObject) arrayObject;
       String stepId = step.containsKey("step") ? step.getJsonObject("step").getString("id")
           : step.getString("stepId");
-      logger.info("Looking up input step ID: " + stepId);
+      logger.debug("Looking up input step ID: " + stepId);
       stepFutures.add(getConfigRecordById(HARVESTER_STEPS_PATH, stepId));
     }
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
@@ -647,10 +646,12 @@ public class LegacyHarvesterStorage {
           String stepType = step.getString(STEP_TYPE_KEY);
           String stepName = step.getString(STEP_NAME_KEY);
           if (!stepType.equals(VALID_STEP_TYPE)) {
-            promise.fail("400: Can only PUT scripts to steps of type 'XmlTransformStep', step "
-                + id + ", '" + stepName + "' is '" + stepType + "'");
+            promise.complete(
+                new ProcessedHarvesterResponsePut(
+                    400,
+                    "Can only PUT scripts to steps of type 'XmlTransformStep', step "
+                        + id + ", '" + stepName + "' is '" + stepType + "'"));
           } else if (stepName.matches(name.replaceAll("\\*", ".*"))) {
-
             String validationResponse = validateScriptAsXml(script);
             if (validationResponse.equals("OK")) {
               step.put(STEP_SCRIPT_KEY, script);
@@ -658,23 +659,35 @@ public class LegacyHarvesterStorage {
               putConfigRecord(routingContext, ApiPaths.HARVESTER_STEPS_PATH, step, id)
                   .onComplete(putStep -> {
                     if (putStep.succeeded()) {
-                      promise.complete(putStep.result());
+                      promise.complete(new ProcessedHarvesterResponsePut(
+                          putStep.result().harvesterResponse, routingContext.request().path(), ""));
                     } else {
-                      promise.fail(putStep.cause().getMessage());
+                      promise.complete(
+                          new ProcessedHarvesterResponsePut(
+                              putStep.result().statusCode(),putStep.cause().getMessage()));
                     }
                   });
             } else {
-              promise.fail("422: Validation of the script as XML failed, error message was: "
-                      + validationResponse);
+              promise.complete(
+                  new ProcessedHarvesterResponsePut(
+                      422,
+                      "Validation of the script as XML failed, error message was: "
+                      + validationResponse));
             }
           } else {
-            promise.fail("400: A script with ID " + id + " was found, but it's name [" + stepName
-                    + "] did not match the name provided [" + name + "].");
+            promise.complete(
+                new ProcessedHarvesterResponsePut(
+                    400,
+                    "A script with ID " + id + " was found, but it's name [" + stepName
+                    + "] did not match the name provided [" + name + "]."));
           }
         } else if (getStep.result().wasNotFound()) {
-          promise.fail("404: Did not find step with ID " + id + " to PUT script to");
+          promise.complete(
+              new ProcessedHarvesterResponsePut(
+                  404, "Did not find step with ID " + id + " to PUT script to"));
         } else {
-          promise.fail(getStep.result().statusCode() + ": " + getStep.result().errorMessage());
+          promise.complete(new ProcessedHarvesterResponsePut(
+              getStep.result().statusCode(), getStep.result().errorMessage()));
         }
       });
     }
