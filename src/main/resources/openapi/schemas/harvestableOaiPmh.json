@@ -20,12 +20,14 @@
     },
     "storage": {
       "type": "object",
+      "description": "Reference to applied storage target.",
       "properties": {
         "entityType": {
           "type": "string",
           "enum" : [
             "inventoryStorageEntity"
-          ]
+          ],
+          "description": "The type of storage."
         },
         "id": {
           "type": "string",
@@ -35,12 +37,14 @@
     },
     "transformation": {
       "type": "object",
+      "description": "Reference to applied transformation pipeline.",
       "properties": {
         "entityType": {
           "type": "string",
           "enum": [
             "basicTransformation"
-          ]
+          ],
+          "description": "The type of transformation."
         },
         "id": {
           "type": "string",
@@ -55,7 +59,8 @@
     },
     "harvestImmediately": {
       "type": "string",
-      "enum": ["true", "false"]
+      "enum": ["true", "false"],
+      "description": "Whether to harvest when the config is persisted."
     },
     "dateFormat": {
       "type": "string",
