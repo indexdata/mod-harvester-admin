@@ -387,7 +387,6 @@ public class LegacyHarvesterStorage {
                       for (int i = 0; i < steps.result().size(); i++) {
                         ProcessedHarvesterResponseGetById stepResponse = steps.result().resultAt(i);
                         final JsonObject stepJson = stepResponse.jsonObject();
-                        logger.info("Looking at step JSON: " + stepJson.encodePrettily());
                         JsonObject tsaJson = new JsonObject();
                         tsaJson.put("id", Integer.toString(getRandomInt()));
                         tsaJson.put("position", Integer.toString(i + 1));

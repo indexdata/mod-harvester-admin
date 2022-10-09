@@ -7,6 +7,7 @@ public class Samples {
   public static final SampleId BASE_STORAGE_ID = new SampleId(9999);
   public static final SampleId BASE_TRANSFORMATION_ID = new SampleId(9999);
   public static final SampleId SAMPLE_STEP_ID = new SampleId(9999);
+  public static final SampleId SAMPLE_STEP_2_ID = new SampleId(9998);
   public static JsonObject BASE_STORAGE_JSON = new JsonObject(
       "{\n"
           + "  \"id\" : \"" + BASE_STORAGE_ID.fullId() + "\",\n"
@@ -83,5 +84,20 @@ public class Samples {
           + "  </pz:record>\n"
           + "      </xsl:template>\n"
           + "</xsl:stylesheet>\n";
-  
+
+  public static JsonObject SAMPLE_STEP_2 =
+      new JsonObject(
+          "{\n"
+              + "  \"id\" : \"" + SAMPLE_STEP_2_ID + "\",   \n"
+              + "  \"name\" : \"Test step 2\",\n"
+              + "  \"description\" : \"Sample record\",\n"
+              + "  \"inputFormat\" : \"XML\",\n"
+              + "  \"outputFormat\" : \"XML\",\n"
+              + "  \"script\" : \"\",\n"
+              + "  \"testData\" : \"\",\n"
+              + "  \"testOutput\" : \"\",\n"
+              + "  \"type\" : \"XmlTransformStep\"\n"
+              + "}\n"
+      );
+
 }

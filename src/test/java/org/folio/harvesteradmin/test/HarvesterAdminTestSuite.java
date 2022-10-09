@@ -18,11 +18,13 @@ import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_TRANSFORMATI
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_TRANSFORMATION_JSON;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_SCRIPT;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP;
+import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_ID;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
+import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -134,7 +136,7 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
-  public void canCreateHarvestable(TestContext testContext )
+  public void canCreateHarvestable()
   {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
@@ -258,5 +260,18 @@ public class HarvesterAdminTestSuite {
     postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
     putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
         204);
+  }
+
+  @Test
+  public void canCreateTransformationWithSteps() {
+    RestAssured.port = PORT_HARVESTER_ADMIN;
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
+    JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
+    JsonArray stepAssociations = new JsonArray();
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP_2.getString("id")));
+    pipeline.put("stepAssociations", stepAssociations);
+    Response response = postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
   }
 }
