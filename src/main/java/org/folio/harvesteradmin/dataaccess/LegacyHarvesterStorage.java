@@ -1,10 +1,6 @@
 package org.folio.harvesteradmin.dataaccess;
 
 import static org.folio.harvesteradmin.dataaccess.HarvesterApiClient.NOT_FOUND;
-import static org.folio.harvesteradmin.dataaccess.ScriptHandler.STEP_NAME_KEY;
-import static org.folio.harvesteradmin.dataaccess.ScriptHandler.STEP_SCRIPT_KEY;
-import static org.folio.harvesteradmin.dataaccess.ScriptHandler.STEP_TYPE_KEY;
-import static org.folio.harvesteradmin.dataaccess.ScriptHandler.VALID_STEP_TYPE;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STEPS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
@@ -52,13 +48,16 @@ import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterRe
 import org.folio.harvesteradmin.dataaccess.statics.ApiPaths;
 import org.folio.harvesteradmin.dataaccess.statics.EntityRootNames;
 import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
-import org.folio.tlib.util.TenantUtil;
 import org.xml.sax.SAXException;
 
 
 public class LegacyHarvesterStorage {
 
 
+  public static final String VALID_STEP_TYPE = "XmlTransformStep";
+  public static final String STEP_NAME_KEY = "name";
+  public static final String STEP_TYPE_KEY = "type";
+  public static final String STEP_SCRIPT_KEY = "script";
   private final String tenant;
   private static final String HEADER_CONTENT_TYPE = "Content-Type";
   public static final int BAD_REQUEST = 400;
