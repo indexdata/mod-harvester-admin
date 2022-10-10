@@ -1,0 +1,24 @@
+{
+  "$schema":"http://json-schema.org/draft-06/schema#",
+  "description": "An bulk XML harvest job definition",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique ID for the job definition, will be assigned if not provided."
+    },
+    "name": {
+      "type": "string",
+      "description": "The name assigned to the harvest configuration."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "xmlBulk"
+      ],
+      "description": "The type of harvest configuration, ie. OAI-PMH or bulk XML."
+    }
+  },
+  "additionalProperties": false,
+  "required": ["name", "type"]
+}

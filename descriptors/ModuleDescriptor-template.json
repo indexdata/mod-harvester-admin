@@ -3,111 +3,77 @@
   "name": "Harvester Admin Module",
   "provides": [
     {
+      "id": "_tenant",
+      "version": "2.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
+        }, {
+          "methods": ["GET","DELETE"],
+          "pathPattern": "/_/tenant/{id}",
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
       "id": "harvester-admin",
-      "version": "0.1",
+      "version": "1.0",
       "handlers": [
         {
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/harvestables",
           "permissionsRequired": ["harvester-admin.harvestables.collection.get"]
         }, {
-          "methods": [
-            "GET"
-          ],
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/harvestables",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/harvestables",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.collection.delete"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/harvestables/{id}/log",
-          "permissionsRequired": [
-            "harvester-admin.harvestables.log.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.harvestables.log.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
-          "permissionsRequired": [
-            "harvester-admin.storages.collection.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.storages.collection.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages/{id}",
-          "permissionsRequired": [
-            "harvester-admin.storages.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.storages.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/storages",
-          "permissionsRequired": [
-            "harvester-admin.storages.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.storages.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/storages/{id}",
-          "permissionsRequired": [
-            "harvester-admin.storages.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.storages.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/storages/{id}",
-          "permissionsRequired": [
-            "harvester-admin.storages.item.delete"
-          ]
+          "permissionsRequired": []
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/storages/{id}",
+          "permissionsRequired": ["harvester-admin.storages.item.delete"]
         }, {
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/storages",
@@ -131,166 +97,80 @@
         }, {
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/transformations/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": [ "harvester-admin.transformations.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/transformations",
-          "permissionsRequired": [
-            "harvester-admin.transformations.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations.collection.delete"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.collection.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.collection.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.collection.delete"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps/{id}/script",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.get"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/steps/{id}/script",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.put"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.collection.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.delete"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/jobs/run/{id}",
-          "permissionsRequired": [
-            "harvester-admin.run-jobs"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.run-jobs"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/jobs/stop/{id}",
-          "permissionsRequired": [
-            "harvester-admin.stop-jobs"
-          ]
+          "permissionsRequired": ["harvester-admin.stop-jobs"]
         }
       ]
     }
   ],
+  "requires": [],
   "permissionSets": [
     {
       "permissionName": "harvester-admin.harvestables.collection.get",
@@ -504,8 +384,5 @@
         "harvester-admin.harvestables.log.get"
       ]
     }
-  ],
-  "launchDescriptor": {
-    "dockerImage": "${artifactId}:${version}"
-  }
+  ]
 }

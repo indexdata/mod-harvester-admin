@@ -1,0 +1,54 @@
+{
+  "description": "A storage definition",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique storage identifier."
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the storage definition."
+    },
+    "description": {
+      "type": "string",
+      "description": "Free text details about the storage definition."
+    },
+    "enabled": {
+      "type": "string",
+      "description": "Boolean string to indicate if the storage definition can be used."
+    },
+    "bulkSize": {
+      "type": "string",
+      "description": "Size of chunks to harvest at a time."
+    },
+    "currentStatus": {
+      "type": "string",
+      "description": "Status of the storage definition."
+    },
+    "retryCount": {
+      "type": "string",
+      "description": "Number of times to retry storage operation."
+    },
+    "retryWait": {
+      "description": "Seconds to wait between retries."
+    },
+    "timeout": {
+      "type": "string",
+      "description": "Seconds to wait before giving up a storage operation."
+    },
+    "url": {
+      "type": "string",
+      "description": "Address of the storage service."
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of storage."
+    },
+    "json": {
+      "type": "object",
+      "description": "Free form configuration"
+    }
+  },
+  "additionalProperties": false
+}
