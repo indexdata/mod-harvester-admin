@@ -1,6 +1,5 @@
 package org.folio.harvesteradmin.dataaccess;
 
-import static org.folio.harvesteradmin.dataaccess.HarvesterApiClient.NOT_FOUND;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STEPS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
@@ -60,7 +59,7 @@ public class LegacyHarvesterStorage {
   public static final String STEP_SCRIPT_KEY = "script";
   private final String tenant;
   private static final String HEADER_CONTENT_TYPE = "Content-Type";
-  public static final int BAD_REQUEST = 400;
+  public static final int NOT_FOUND = 404;
   public static final int INTERNAL_SERVER_ERROR = 500;
   public static final int NO_CONTENT = 204;
   public static final int CREATED = 201;
