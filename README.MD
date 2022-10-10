@@ -22,22 +22,13 @@ can then use for managing harvest jobs.
 
 The module's access to the legacy harvester service is configured by the following environment variables:
 
-* `harvester.protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also supported.
-* `harvester.host` -- the hostname or IP address on which the legacy service is running. Must be provided.
-* `harvester.port` -- the port on which to contact the harvester host. Defaults to 80 if the protocol is `http`, 443 if it is `https`.
-* `harvester.auth.basic.username` -- if provided, a username to submit as part of HTTP Basic authentication
-* `harvester.auth.basic.password` -- if provided, a username to submit as part of HTTP Basic authentication. If neither username nor password is provided, then HTTP Basic authentication is not used at all.
+* `harvester_protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also supported.
+* `harvester_host` -- the hostname or IP address on which the legacy service is running. Must be provided.
+* `harvester_port` -- the port on which to contact the harvester host. Defaults to 80 if the protocol is `http`, 443 if it is `https`.
+* `harvester_auth_basic_username` -- if provided, a username to submit as part of HTTP Basic authentication
+* `harvester_auth_basic_password` -- if provided, a username to submit as part of HTTP Basic authentication. If neither username nor password is provided, then HTTP Basic authentication is not used at all.
 
-In addition, if the `acl_filter.by_tenant` environment variable is set to the string value `"false"`, then tenant-filtering is turned off, and all tenants' harvesting jobs are available to any tenant. **Do not use this in production.**
-
-In Bourne-shell-derived Unix shells such as `sh` and `bash`, the syntax `export NAME=VALUE` is rejected for environment-variable names containing periods. In the absence of way to this directly in the usual shells, one workaround is to use C-shell, which has different syntax, to launch the module:
-
-```
-sh$ mvn install
-sh$ csh
-csh% setenv harvester.host palci-harvester.reshare.indexdata.com
-csh% java -jar target/mod-harvester-admin-fat.jar
-```
+In addition, if the `acl_filter_by_tenant` environment variable is set to the string value `"false"`, then tenant-filtering is turned off, and all tenants' harvesting jobs are available to any tenant. **Do not use this in production.**
 
 ## Provided Interfaces
 
