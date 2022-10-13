@@ -29,7 +29,7 @@ public class Samples {
   public static JsonObject BASE_TRANSFORMATION_JSON = new JsonObject(
       "{\n"
           + "  \"name\" : \"BASE_TRANSFORMATION\",\n"
-          + "  \"id\" : \"" + BASE_STORAGE_ID.fullId() + "\",\n"
+          + "  \"id\" : \"" + BASE_TRANSFORMATION_ID.fullId() + "\",\n"
           + "  \"description\" : \"Test\",\n"
           + "  \"enabled\" : \"true\",\n"
           + "  \"type\" : \"basicTransformation\"\n"

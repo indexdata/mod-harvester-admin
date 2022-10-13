@@ -83,6 +83,13 @@ public class Api {
         .put(THIS_STEPS_PATH + "/" + stepId + "/script?name="+stepName)
         .then()
         .log().ifValidationFails().statusCode(status).extract().response();
+  }
 
+  public static Response getScript(String stepId, int status) {
+    return RestAssured.given()
+        .header(OKAPI_TENANT)
+        .get(THIS_STEPS_PATH + "/" + stepId + "/script")
+        .then()
+        .log().ifValidationFails().statusCode(status).extract().response();
   }
 }

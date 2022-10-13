@@ -7,6 +7,7 @@ import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFOR
 import static org.folio.harvesteradmin.test.Api.deleteConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecords;
+import static org.folio.harvesteradmin.test.Api.getScript;
 import static org.folio.harvesteradmin.test.Api.putConfigRecord;
 import static org.folio.harvesteradmin.test.Api.putScript;
 import static org.folio.harvesteradmin.test.Api.responseJson;
@@ -24,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
-import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -67,6 +67,7 @@ public class HarvesterAdminTestSuite {
 
     // Register the testContext exception handler to catch assertThat
     vertx.exceptionHandler(testContext.exceptionHandler());
+    RestAssured.port = PORT_HARVESTER_ADMIN;
 
     System.setProperty("port", String.valueOf(PORT_HARVESTER_ADMIN));
     vertx.deployVerticle(
@@ -93,7 +94,6 @@ public class HarvesterAdminTestSuite {
   }
 
   private void deleteRecordsByIdPrefix(String path, String recordsArrayProperty) {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     JsonObject samples = responseJson(
         getConfigRecords(path, "id=" + SAMPLES_ID_PREFIX + "*", 200));
     JsonArray sampleRecords = samples.getJsonArray(recordsArrayProperty);
@@ -105,7 +105,6 @@ public class HarvesterAdminTestSuite {
 
   @Test
   public void canCreateUpdateAndDeleteStorageConfiguration() {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     JsonObject record = responseJson(
         getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 200));
@@ -121,7 +120,6 @@ public class HarvesterAdminTestSuite {
 
   @Test
   public void canCreateUpdateAndDeleteTransformationPipelineNoSteps() {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     JsonObject record = responseJson(
         getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200));
@@ -162,11 +160,9 @@ public class HarvesterAdminTestSuite {
                 + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
             + "}"
         );
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
-    JsonObject result = responseJson(
-        postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201));
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
   }
 
@@ -197,7 +193,6 @@ public class HarvesterAdminTestSuite {
                 + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
                 + "}"
         );
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
@@ -230,7 +225,6 @@ public class HarvesterAdminTestSuite {
                 + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
                 + "}"
         );
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
@@ -239,7 +233,6 @@ public class HarvesterAdminTestSuite {
   @Test
   public void canCreateUpdateAndDeleteStep()
   {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
     JsonObject record = responseJson(
         getConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP_ID.toString(), 200));
@@ -256,15 +249,14 @@ public class HarvesterAdminTestSuite {
   @Test
   public void canPopulateScriptToStep()
   {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
     postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
     putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
         204);
+    getScript(SAMPLE_STEP.getString("id"), 200);
   }
 
   @Test
-  public void canCreateTransformationWithSteps() {
-    RestAssured.port = PORT_HARVESTER_ADMIN;
+  public void canCreateAndDeleteTransformationWithSteps() {
     postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
     postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
     JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
@@ -272,6 +264,84 @@ public class HarvesterAdminTestSuite {
     stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
     stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP_2.getString("id")));
     pipeline.put("stepAssociations", stepAssociations);
-    Response response = postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
+    deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 204);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 404);
+  }
+
+  // @Test - disabled because at this point you can
+  public void cannotDeleteTransformationThatIsInUse() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
+    deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 204);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
+  }
+
+  @Test
+  public void cannotDeleteStorageThatIsInUse() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
+    deleteConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 400);
+    getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 200);
+  }
+
+  @Test
+  public void deletingNonExistingConfigWillReturnNotFound() {
+    deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, "bad-id", 404);
+    deleteConfigRecord(THIS_HARVESTABLES_PATH, "bad-id", 404);
+    deleteConfigRecord(THIS_STEPS_PATH, "bad-id", 404);
   }
 }
