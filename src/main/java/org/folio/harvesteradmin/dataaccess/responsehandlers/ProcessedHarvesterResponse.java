@@ -16,10 +16,6 @@ public abstract class ProcessedHarvesterResponse {
   protected JsonObject jsonObject = new JsonObject();
   protected String harvesterPath;
 
-  public String getHarvesterResponseBody() {
-    return bodyAsString;
-  }
-
   public int statusCode() {
     return statusCode;
   }
@@ -36,16 +32,8 @@ public abstract class ProcessedHarvesterResponse {
     return statusCode == 200;
   }
 
-  public boolean wasUnprocessableEntity() {
-    return statusCode == 422;
-  }
-
   public boolean wasCreated() {
     return statusCode == 201;
-  }
-
-  public boolean wasInternalServerError() {
-    return statusCode == 500;
   }
 
   public boolean wasNotFound() {

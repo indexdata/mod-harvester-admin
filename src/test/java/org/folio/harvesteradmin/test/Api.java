@@ -1,5 +1,6 @@
 package org.folio.harvesteradmin.test;
 
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_JSON;
 import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_XML;
@@ -89,6 +90,14 @@ public class Api {
     return RestAssured.given()
         .header(OKAPI_TENANT)
         .get(THIS_STEPS_PATH + "/" + stepId + "/script")
+        .then()
+        .log().ifValidationFails().statusCode(status).extract().response();
+  }
+
+  public static Response getJobLog(String harvestableId, int status) {
+    return RestAssured.given()
+        .header(OKAPI_TENANT)
+        .get(THIS_HARVESTABLES_PATH + "/" + harvestableId + "/log")
         .then()
         .log().ifValidationFails().statusCode(status).extract().response();
   }

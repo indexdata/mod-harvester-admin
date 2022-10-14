@@ -10,13 +10,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.RouterBuilder;
-import io.vertx.ext.web.validation.RequestParameters;
-import io.vertx.ext.web.validation.ValidationHandler;
-import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
-import org.folio.harvesteradmin.moduledata.Book;
 import org.folio.harvesteradmin.modulestorage.HarvestAdminStorage;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
@@ -44,22 +40,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postHarvestable")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
         .operation("deleteHarvestable")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> deleteConfigRecord(vertx, ctx));
 
     routerBuilder
         .operation("getJobLog")
@@ -73,33 +57,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postStorage")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
         .operation("putStorage")
-            .handler(ctx -> putConfigRecord(vertx, ctx))
-                .failureHandler(routingContext -> {
-                  responseError(
-                      routingContext,
-                      routingContext.statusCode(),
-                      routingContext.failure().getMessage()
-                  );
-                });
+            .handler(ctx -> putConfigRecord(vertx, ctx));
     routerBuilder
         .operation("deleteStorage")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage()
-          );
-        });
+        .handler(ctx -> deleteConfigRecord(vertx, ctx));
 
     routerBuilder
         .operation("getTransformations")
@@ -109,32 +73,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postTransformation")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
         .operation("putTransformation")
-            .handler(ctx -> putConfigRecord(vertx, ctx))
-                .failureHandler(routingContext -> {
-                  responseError(
-                      routingContext,
-                      routingContext.statusCode(),
-                      routingContext.failure().getMessage());
-                });
+            .handler(ctx -> putConfigRecord(vertx, ctx));
     routerBuilder
         .operation("deleteTransformation")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage()
-          );
-        });
+        .handler(ctx -> deleteConfigRecord(vertx, ctx));
 
     routerBuilder
         .operation("getSteps")
@@ -144,45 +89,20 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postStep")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
         .operation("putStep")
-        .handler(ctx -> putConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> putConfigRecord(vertx, ctx));
     routerBuilder
         .operation("deleteStep")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage()
-          );
-        });
+        .handler(ctx -> deleteConfigRecord(vertx, ctx));
 
     routerBuilder
         .operation("getScript")
             .handler(ctx -> getScript(vertx, ctx));
     routerBuilder
         .operation("putScript")
-        .handler(ctx -> putScript(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> putScript(vertx, ctx));
 
     routerBuilder
         .operation("getTsas")
@@ -192,13 +112,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postTsa")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
-        .failureHandler(routingContext -> {
-          responseError(
-              routingContext,
-              routingContext.statusCode(),
-              routingContext.failure().getMessage());
-        });
+        .handler(ctx -> postConfigRecord(vertx, ctx));
+    routerBuilder
+        .operation("deleteTsa")
+        .handler(ctx -> deleteConfigRecord(vertx, ctx));
   }
 
   @Override
@@ -260,7 +177,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.putConfigRecord(routingContext).map(response -> {
-      if (response.wasOK()) {
+      if (response.wasNoContent()) {
         responseJson(
             routingContext, response.statusCode())
             .end(response.jsonObject().encodePrettily());
@@ -323,11 +240,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.getJobLog(routingContext)
         .onComplete(response -> {
-          String log = response.result().bodyAsString();
-          responseText(
-              routingContext,
-              response.result().statusCode())
-              .end(log == null ? "No logs found for this job." : log);
+          if (response.succeeded()) {
+            String log = response.result().bodyAsString();
+            responseText(
+                routingContext,
+                response.result().statusCode())
+                .end(log == null ? "No logs found for this job." : log);
+          }
         })
         .onFailure(failure -> {
           responseError(routingContext, 404, failure.getMessage());
@@ -336,6 +255,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
 
+  /* Methods accessing modules local storage.
   private Future<Void> getBook(Vertx vertx, RoutingContext ctx) {
     String tenant = TenantUtil.tenant(ctx);
 
@@ -361,5 +281,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
       return null;
     });
   }
+   */
 
 }

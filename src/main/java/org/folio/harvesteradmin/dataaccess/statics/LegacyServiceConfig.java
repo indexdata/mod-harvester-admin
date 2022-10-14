@@ -25,11 +25,11 @@ public class LegacyServiceConfig {
   public static String basicAuthPassword;
   public static boolean filterByTenant = true;
   private static final Logger logger = LogManager.getLogger("harvester-admin");
-  private final boolean harvesterConfigOkay;
-
   public LegacyServiceConfig() {
     setServiceConfig();
-    harvesterConfigOkay = setHarvesterConfig();
+    if (! setHarvesterConfig()) {
+      logger.error("There is a problem with the setup of Harvester: " + this);
+    }
   }
 
   private void setServiceConfig() {
@@ -83,10 +83,6 @@ public class LegacyServiceConfig {
         !System.getenv().getOrDefault(FILTER_BY_TENANT, "true")
             .equalsIgnoreCase("false");
     return configOk;
-  }
-
-  public boolean isHarvesterConfigOkay() {
-    return harvesterConfigOkay;
   }
 
   public String toString() {

@@ -31,7 +31,7 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
               + "] failed to produce a JSON object";
           statusCode = 500;
         } else if (LegacyServiceConfig.filterByTenant
-            && !transformed.getString("acl").equals(tenant)) {
+            && !tenant.equals(transformed.getString("acl"))) {
           statusCode = 404;
           errorMessage = apiPath + "/" + id + " not found";
         } else {
@@ -51,15 +51,6 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
       statusCode = 500;
       errorMessage =
           "GET request to " + apiPath + "/" + id + " failed with: " + response.cause().getMessage();
-    }
-  }
-
-  private JsonObject getRootObject(JsonObject json) {
-    Object[] properties = json.fieldNames().toArray();
-    if (properties.length != 1) {
-      return null;
-    } else {
-      return json.getJsonObject(properties[0].toString());
     }
   }
 

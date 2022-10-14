@@ -510,7 +510,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     put:
-      operationId: put
+      operationId: putTsa
       description: Update a transformation step association
       requestBody:
         content:

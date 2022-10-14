@@ -3,19 +3,33 @@
   "type": "object",
   "properties": {
     "id": {
-      "type": "integer",
+      "type": "string",
       "description": "unique identifier for the association"
     },
-    "stepId": {
-      "type": "integer",
-      "description": "id of step that is associated with a pipeline"
+    "type": {
+      "type": "string",
+      "description": "type of entity, optional, always 'transformationStepAssociation'"
     },
-    "transformationId": {
-      "type": "integer",
+    "step": {
+      "type": "object",
+      "description": "contains id of step that is associated with a pipeline",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id of the step associated with a pipeline"
+        },
+        "entityType": {
+          "type": "string",
+          "description": "entity type of the step, ie xmlTransformationStep (default)"
+        }
+      }
+    },
+    "transformation": {
+      "type": "string",
       "description": "id of the transformation pipeline that the step is associated with"
     },
     "position": {
-      "type": "integer",
+      "type": "string",
       "description": "the position of the step amongst other transformation steps in the pipeline"
     }
   },

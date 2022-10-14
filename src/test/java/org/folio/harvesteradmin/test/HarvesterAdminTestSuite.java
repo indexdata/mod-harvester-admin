@@ -4,9 +4,11 @@ import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_HARVESTA
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STORAGES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFORMATIONS_PATH;
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFORMATIONS_STEPS_PATH;
 import static org.folio.harvesteradmin.test.Api.deleteConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecords;
+import static org.folio.harvesteradmin.test.Api.getJobLog;
 import static org.folio.harvesteradmin.test.Api.getScript;
 import static org.folio.harvesteradmin.test.Api.putConfigRecord;
 import static org.folio.harvesteradmin.test.Api.putScript;
@@ -20,11 +22,13 @@ import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_TRANSFORMATI
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_SCRIPT;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2;
+import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_ID;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
+import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -61,7 +65,7 @@ public class HarvesterAdminTestSuite {
 
   @Before
   public void setUp(TestContext testContext) {
-    logger.debug("setUp " + name.getMethodName());
+    logger.info("setUp " + name.getMethodName());
 
     vertx = Vertx.vertx();
 
@@ -89,6 +93,7 @@ public class HarvesterAdminTestSuite {
   private void deleteSamplesFromLegacyHarvester() {
     deleteRecordsByIdPrefix(THIS_HARVESTABLES_PATH, "harvestables");
     deleteRecordsByIdPrefix(THIS_STORAGES_PATH, "storages");
+    deleteTsasByStepIdPrefix();
     deleteRecordsByIdPrefix(THIS_TRANSFORMATIONS_PATH, "transformations");
     deleteRecordsByIdPrefix(THIS_STEPS_PATH, "transformationSteps");
   }
@@ -100,6 +105,23 @@ public class HarvesterAdminTestSuite {
     for (Object o : sampleRecords) {
       String id = ((JsonObject) o).getString("id");
       deleteConfigRecord(path, id, 204);
+    }
+  }
+
+  private void deleteTsasByStepIdPrefix() {
+    Response response =
+        getConfigRecords(THIS_TRANSFORMATIONS_STEPS_PATH, "step.id=" +SAMPLES_ID_PREFIX + "*",200);
+    JsonObject transformationStepAssociations = new JsonObject(response.body().asString());
+    logger.info("TSAs to delete: ");
+    for (Object o : transformationStepAssociations.getJsonArray("transformationStepAssociations")) {
+      logger.info(((JsonObject) o).encodePrettily());
+    }
+    for (Object o : transformationStepAssociations.getJsonArray("transformationStepAssociations")) {
+      JsonObject tsas = (JsonObject) o;
+      logger.info("Found tsas " + tsas.encodePrettily());
+      String tsaId = tsas.getString("id");
+      logger.info("Trying to delete TSA " + tsaId);
+      deleteConfigRecord(THIS_TRANSFORMATIONS_STEPS_PATH, tsas.getString("id"),204);
     }
   }
 
@@ -119,6 +141,11 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
+  public void attemptAtUpdatingNonExistingRecordWillReturn404() {
+    putConfigRecord(THIS_STORAGES_PATH, "bad-id", BASE_STORAGE_JSON, 404);
+  }
+
+  @Test
   public void canCreateUpdateAndDeleteTransformationPipelineNoSteps() {
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     JsonObject record = responseJson(
@@ -134,7 +161,7 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
-  public void canCreateHarvestable()
+  public void canCreateHarvestableAndGetJobLog()
   {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
@@ -164,6 +191,45 @@ public class HarvesterAdminTestSuite {
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
+    getJobLog(harvestableId.toString(), 200);
+  }
+
+  @Test
+  public void cannotCreateTwoHarvestablesWithSameId () {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 422);
+
+  }
+
+  @Test
+  public void cannotGetLogsForNonExistingHarvestable() {
+    getJobLog("bad-id", 404);
   }
 
   @Test
@@ -231,6 +297,11 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
+  public void badQueryWillReturn400() {
+    getConfigRecords(THIS_HARVESTABLES_PATH, "badFieldName=x", 400);
+  }
+
+  @Test
   public void canCreateUpdateAndDeleteStep()
   {
     postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
@@ -268,6 +339,42 @@ public class HarvesterAdminTestSuite {
     getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
     deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 204);
     getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 404);
+  }
+
+  @Test
+  public void canAssociateAStepWithATransformation() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
+    JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
+    JsonArray stepAssociations = new JsonArray();
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
+    pipeline.put("stepAssociations", stepAssociations);
+    postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
+    JsonObject tsa = new JsonObject(
+        "{\n"
+            + "  \"step\": { \n"
+            + "    \"id\": \"" + SAMPLE_STEP_2_ID + "\"\n"
+            + "  },\n"
+            + "  \"transformation\": \"" + BASE_TRANSFORMATION_ID +"\",\n"
+            + "  \"position\": \"2\"\n"
+            + "}"
+    );
+    postConfigRecord(tsa, THIS_TRANSFORMATIONS_STEPS_PATH, 201);
+  }
+
+  @Test
+  public void cannotCreateTransformationWithNonExistingStep () {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
+    JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
+    JsonArray stepAssociations = new JsonArray();
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP_2.getString("id")));
+    stepAssociations.add(new JsonObject().put("stepId", "bad-step"));
+    pipeline.put("stepAssociations", stepAssociations);
+    postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 422);
+
   }
 
   // @Test - disabled because at this point you can
@@ -344,4 +451,15 @@ public class HarvesterAdminTestSuite {
     deleteConfigRecord(THIS_HARVESTABLES_PATH, "bad-id", 404);
     deleteConfigRecord(THIS_STEPS_PATH, "bad-id", 404);
   }
+
+  @Test
+  public void getByIdWithInvalidCharactersReturn400() {
+    getConfigRecord(THIS_HARVESTABLES_PATH, "æøå", 400);
+  }
+
+  @Test
+  public void putByIdWithInvalidCharactersReturn400() {
+    putConfigRecord(THIS_STORAGES_PATH, "æøå", BASE_STORAGE_JSON, 400);
+  }
+
 }

@@ -4,10 +4,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
 
 public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
@@ -53,18 +51,4 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
     }
   }
 
-  /**
-   * Gets total records.
-   */
-  public int totalRecords() {
-    return totalRecords;
-  }
-
-  /**
-   * Gets records.
-   */
-  public List getRecords() {
-    return jsonObject.getJsonArray(LegacyHarvesterStorage.mapToNameOfRootOfResultSet(harvesterPath))
-        .getList();
-  }
 }

@@ -8,12 +8,7 @@ Due to this special requirement, unit testing is switched off by default in the 
 `mvn install -Dmaven.test.skip=false`
 
 The Surefire plug-in configuration in the POM configures environment variables for a local Harvester, like host and port, to define the
-access, similar to what would be defined in the module's deployment descriptor. However, an IDE running the JUnit tests
-might not pick up the POM configurations, at least a current version of IntelliJ IDEA doesn't immediately do that. To
-successfully run the test suite, say, from within IntelliJ IDEA, the environment variables can be set in the Run
-Configuration.
-
-![Run Configuration](run-config.png)
+access, similar to what would be defined in the module's deployment descriptor. 
 
 ## Install a local Harvester
 

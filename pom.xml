@@ -240,7 +240,7 @@
                         <harvester_protocal>http</harvester_protocal>
                         <harvester_host>localhost</harvester_host>
                         <harvester_port>8080</harvester_port>
-                        <harvester_filter_by_tenant>false</harvester_filter_by_tenant>
+                        <acl_filter_by_tenant>false</acl_filter_by_tenant>
                     </environmentVariables>
                     <excludes>
                         <exclude>**/package/**XYZ.class</exclude>

@@ -8,7 +8,6 @@ import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.harvesterPath
 import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.mapToNameOfRootOfEntity;
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.folioToLegacyParameter;
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
-import static org.folio.harvesteradmin.dataaccess.statics.ResultSetRootNames.rootOfResultSetByHarvesterPath;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.CompositeFuture;
@@ -261,7 +260,7 @@ public class LegacyHarvesterStorage {
             } else {
 
               promisedResponse.complete(
-                  new ProcessedHarvesterResponsePut(INTERNAL_SERVER_ERROR,
+                  new ProcessedHarvesterResponsePut(idLookUp.result().statusCode(),
                       "There was an error (" + idLookUp.result().statusCode() + ") looking up "
                       + harvesterPath + "/" + id + " before PUT: " + idLookUp.result()
                       .errorMessage()));
@@ -444,6 +443,15 @@ public class LegacyHarvesterStorage {
   private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(
       RoutingContext routingContext) {
     JsonObject incomingTsa = routingContext.body().asJsonObject();
+    if (!incomingTsa.containsKey("id")) {
+      incomingTsa.put("id", getRandomInt());
+    }
+    if (!incomingTsa.containsKey("type")) {
+      incomingTsa.put("type","transformationStepAssociation");
+    }
+    if (! incomingTsa.getJsonObject("step").containsKey("entityType")) {
+      incomingTsa.getJsonObject("step").put("entityType", "xmlTransformationStep");
+    }
     String transformationId = incomingTsa.getString("transformation");
     String stepId = incomingTsa.getJsonObject("step").getString("id");
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
@@ -467,7 +475,7 @@ public class LegacyHarvesterStorage {
                         )
                     );
                   } else {
-                    doPostConfigRecord(routingContext).onComplete(postedTsa -> {
+                    doPostConfigRecord(routingContext.request().absoluteURI(), HARVESTER_TSAS_PATH, incomingTsa).onComplete(postedTsa -> {
                       if (postedTsa.succeeded() && postedTsa.result() != null) {
                         JsonObject transformationStepAssociation =
                             postedTsa.result().jsonObject();
@@ -585,7 +593,7 @@ public class LegacyHarvesterStorage {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
         if (idLookup.result().wasNotFound()) {
-          promise.fail(idLookUpResponse.errorMessage());
+          promise.fail("Could not find harvestable with ID " +id);
         } else if (idLookup.result().wasOK()) {
           harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/log")
               .send(ar -> promise.complete(ar.result()));
@@ -758,14 +766,6 @@ public class LegacyHarvesterStorage {
     return harvesterPathByRequestPath.get(
         routingContext.request().path().replaceAll("/" + routingContext.pathParam("id") + "$",
             ""));
-  }
-
-
-  /**
-   * Maps to name of root of result set.
-   */
-  public static String mapToNameOfRootOfResultSet(String harvesterPath) {
-    return rootOfResultSetByHarvesterPath.get(harvesterPath);
   }
 
   /**

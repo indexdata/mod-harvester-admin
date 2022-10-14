@@ -23,7 +23,6 @@ public class MainVerticle extends AbstractVerticle {
     new LegacyServiceConfig();
 
     HarvestAdminService harvestAdminService = new HarvestAdminService();
-    // routes for your stuff, tenant API and health
     RouterCreator[] routerCreators = {
         harvestAdminService,
         new Tenant2Api(harvestAdminService),
@@ -31,7 +30,6 @@ public class MainVerticle extends AbstractVerticle {
     };
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
-    // combine all routes and start server
     RouterCreator.mountAll(vertx, routerCreators)
         .compose(router ->
             vertx.createHttpServer(so)
