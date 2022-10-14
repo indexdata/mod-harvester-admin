@@ -6,6 +6,7 @@ import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRA
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TSAS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.harvesterPathByRequestPath;
 import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.mapToNameOfRootOfEntity;
+import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.typeToEmbeddedTypeMap;
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.folioToLegacyParameter;
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
@@ -342,9 +343,6 @@ public class LegacyHarvesterStorage {
       RoutingContext routingContext) {
     JsonObject transformationJson = routingContext.body().asJsonObject();
     logger.debug("About to POST-then-PUT " + transformationJson.encodePrettily());
-    Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();
-    typeToEmbeddedTypeMap.put("CustomTransformStep", "customTransformationStep");
-    typeToEmbeddedTypeMap.put("XmlTransformStep", "xmlTransformationStep");
     JsonArray stepsIdsJson =
         transformationJson.containsKey("stepAssociations") ? transformationJson.getJsonArray(
             "stepAssociations").copy() : new JsonArray();
@@ -443,21 +441,12 @@ public class LegacyHarvesterStorage {
   private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(
       RoutingContext routingContext) {
     JsonObject incomingTsa = routingContext.body().asJsonObject();
-    if (!incomingTsa.containsKey("id")) {
-      incomingTsa.put("id", getRandomInt());
-    }
-    if (!incomingTsa.containsKey("type")) {
-      incomingTsa.put("type","transformationStepAssociation");
-    }
-    if (! incomingTsa.getJsonObject("step").containsKey("entityType")) {
-      incomingTsa.getJsonObject("step").put("entityType", "xmlTransformationStep");
-    }
     String transformationId = incomingTsa.getString("transformation");
     String stepId = incomingTsa.getJsonObject("step").getString("id");
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
     getConfigRecordById(HARVESTER_TRANSFORMATIONS_PATH, transformationId).onComplete(
-        checkTransformation -> {
-          if (!checkTransformation.result().found()) {
+        theTransformation -> {
+          if (!theTransformation.result().found()) {
             promise.complete(
                 new ProcessedHarvesterResponsePost(
                     422,
@@ -465,8 +454,8 @@ public class LegacyHarvesterStorage {
                     + transformationId + " not found."));
           } else {
             getConfigRecordById(HARVESTER_STEPS_PATH, stepId).onComplete(
-                checkStep -> {
-                  if (!checkStep.result().found()) {
+                theStep -> {
+                  if (!theStep.result().found()) {
                     promise.complete(
                         new ProcessedHarvesterResponsePost(
                             422,
@@ -475,107 +464,82 @@ public class LegacyHarvesterStorage {
                         )
                     );
                   } else {
-                    doPostConfigRecord(routingContext.request().absoluteURI(), HARVESTER_TSAS_PATH, incomingTsa).onComplete(postedTsa -> {
-                      if (postedTsa.succeeded() && postedTsa.result() != null) {
-                        JsonObject transformationStepAssociation =
-                            postedTsa.result().jsonObject();
-                        logger.debug(
-                            "Posted TSA, got: "
-                                + transformationStepAssociation.encodePrettily());
-                        // Get the transformation
-                        getConfigRecordById(HARVESTER_TRANSFORMATIONS_PATH, transformationId)
-                            .onComplete(
-                              // going to return 422 if not found
-                              transformationById -> {
-                                if (transformationById.succeeded()
-                                    && transformationById.result()
-                                    .found()) {
-                                  // Insert the tsa in the transformation JSON
-                                  JsonObject transformation =
-                                      transformationById.result().jsonObject();
-                                  logger.debug(
-                                      "Got basic transformation "
-                                          + transformation.encodePrettily());
-                                  transformation.put("stepAssociations",
-                                      insertStepIntoPipeline(
-                                          transformation.getJsonArray("stepAssociations"),
-                                          transformationStepAssociation));
-                                  try {
-                                    // PUT the transformation
-                                    String xml =
-                                        JsonToHarvesterXml.convertToHarvesterRecord(
-                                            transformation,
-                                            EntityRootNames.TRANSFORMATION_ROOT_PROPERTY,
-                                            tenant);
-                                    harvesterPutRequest(
-                                        HARVESTER_TRANSFORMATIONS_PATH
-                                        + "/"
-                                        + transformationId).sendBuffer(Buffer.buffer(xml),
-                                          ar -> {
-                                            if (ar.succeeded()) {
-                                              if (ar.result().statusCode() == NO_CONTENT) {
-                                                promise.complete(
-                                                    postedTsa.result()
-                                                );
-                                              } else {
-                                                promise.complete(
-                                                    new ProcessedHarvesterResponsePost(
-                                                        ar.result().statusCode(),
-                                                        "There was a problem PUTting " + "to "
-                                                            + HARVESTER_TSAS_PATH
-                                                            + "/" + ": "
-                                                            + ar.result().statusMessage()
-                                                    )
-                                                );
-                                              }
-                                            } else {
-                                              promise.complete(
-                                                  new ProcessedHarvesterResponsePost(
-                                                      INTERNAL_SERVER_ERROR,
-                                                      "There was an error PUTting to "
-                                                          + HARVESTER_TRANSFORMATIONS_PATH + "/"
-                                                          + transformationId + ": "
-                                                          + ar.cause().getMessage()
-                                                  )
-                                              );
-                                            }
-                                          });
-                                    } catch
-                                    (TransformerException | ParserConfigurationException xe) {
-                                      logger.error("Error parsing json " + transformation);
+                    if (!incomingTsa.containsKey("id")) {
+                      incomingTsa.put("id", getRandomInt());
+                    }
+                    incomingTsa.put("type","transformationStepAssociation");
+                    JsonObject step = theStep.result().jsonObject();
+                    String entityType = typeToEmbeddedTypeMap.get(step.getString("type"));
+                    incomingTsa.getJsonObject("step").put("entityType", entityType);
+                    doPostConfigRecord(
+                        routingContext.request().absoluteURI(),
+                        HARVESTER_TSAS_PATH,
+                        incomingTsa).onComplete(postedTsa -> {
+                          if (postedTsa.succeeded() && postedTsa.result() != null) {
+                            JsonObject transformationStepAssociation
+                                = postedTsa.result().jsonObject();
+                            // Insert the tsa in the transformation JSON
+                            JsonObject transformation = theTransformation.result().jsonObject();
+                            transformation.put("stepAssociations",
+                                insertStepIntoPipeline(
+                                    transformation.getJsonArray("stepAssociations"),
+                                    transformationStepAssociation));
+                            try {
+                              // PUT the transformation
+                              String xml =
+                                  JsonToHarvesterXml.convertToHarvesterRecord(
+                                      transformation,
+                                      EntityRootNames.TRANSFORMATION_ROOT_PROPERTY,
+                                      tenant);
+                              harvesterPutRequest(
+                                  HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId)
+                                  .sendBuffer(Buffer.buffer(xml), ar -> {
+                                    if (ar.succeeded()) {
+                                      if (ar.result().statusCode() == NO_CONTENT) {
+                                        promise.complete(postedTsa.result());
+                                      } else {
+                                        promise.complete(
+                                            new ProcessedHarvesterResponsePost(
+                                                ar.result().statusCode(),
+                                                "There was a problem PUTting " + "to "
+                                                    + HARVESTER_TSAS_PATH
+                                                    + "/" + ": "
+                                                    + ar.result().statusMessage()
+                                            )
+                                        );
+                                      }
+                                    } else {
                                       promise.complete(
                                           new ProcessedHarvesterResponsePost(
                                               INTERNAL_SERVER_ERROR,
-                                              "Error parsing json " + transformation
+                                              "There was an error PUTting to "
+                                                  + HARVESTER_TRANSFORMATIONS_PATH + "/"
+                                                  + transformationId + ": "
+                                                  + ar.cause().getMessage()
                                           )
                                       );
                                     }
-                                  } else {
-                                    // If the transformation doesn't exist: respond with 422
-                                    promise.complete(
-                                        new ProcessedHarvesterResponsePost(
-                                            422,
-                                            "Problem POSTing "
-                                                + HARVESTER_TSAS_PATH + "/"
-                                                + ", could not retrieve referenced "
-                                                + "transformation with ID " + transformationId
-                                                + ": "
-                                                + transformationById.cause()
-                                        )
-                                    );
-                                  }
-                              });
-                      } else {
-                        promise.complete(
-                            new ProcessedHarvesterResponsePost(
-                                422,
-                                "Problem POSTing to "
-                                    + HARVESTER_TSAS_PATH
-                                    + "/"
-                            )
-                        );
-                      }
-                    });
+                                  });
+                            } catch (TransformerException | ParserConfigurationException xe) {
+                              logger.error("Error parsing json " + transformation);
+                              promise.complete(
+                                  new ProcessedHarvesterResponsePost(
+                                      INTERNAL_SERVER_ERROR,
+                                      "Error parsing json " + transformation
+                                  )
+                              );
+                            }
+                          } else {
+                            promise.complete(
+                                new ProcessedHarvesterResponsePost(
+                                    422,
+                                    "Problem POSTing to "
+                                        + HARVESTER_TSAS_PATH
+                                        + "/"
+                                )
+                            );
+                          }
+                        });
                   }
                 });
           }
@@ -593,7 +557,7 @@ public class LegacyHarvesterStorage {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
         if (idLookup.result().wasNotFound()) {
-          promise.fail("Could not find harvestable with ID " +id);
+          promise.fail("Could not find harvestable with ID " + id);
         } else if (idLookup.result().wasOK()) {
           harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/log")
               .send(ar -> promise.complete(ar.result()));

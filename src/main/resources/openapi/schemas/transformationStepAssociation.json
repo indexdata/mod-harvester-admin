@@ -6,10 +6,6 @@
       "type": "string",
       "description": "unique identifier for the association"
     },
-    "type": {
-      "type": "string",
-      "description": "type of entity, optional, always 'transformationStepAssociation'"
-    },
     "step": {
       "type": "object",
       "description": "contains id of step that is associated with a pipeline",
@@ -17,12 +13,10 @@
         "id": {
           "type": "string",
           "description": "id of the step associated with a pipeline"
-        },
-        "entityType": {
-          "type": "string",
-          "description": "entity type of the step, ie xmlTransformationStep (default)"
         }
-      }
+      },
+      "additionalProperties": true,
+      "required": ["id"]
     },
     "transformation": {
       "type": "string",
@@ -33,5 +27,6 @@
       "description": "the position of the step amongst other transformation steps in the pipeline"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "required": ["step","transformation","position"]
 }

@@ -25,6 +25,10 @@ public class LegacyServiceConfig {
   public static String basicAuthPassword;
   public static boolean filterByTenant = true;
   private static final Logger logger = LogManager.getLogger("harvester-admin");
+
+  /**
+   * Constructor.
+   */
   public LegacyServiceConfig() {
     setServiceConfig();
     if (! setHarvesterConfig()) {

@@ -51,4 +51,11 @@ public class EntityRootNames {
     return rootOfEntityByHarvesterPath.get(harvesterPath);
   }
 
+  public static Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();
+
+  static {
+    typeToEmbeddedTypeMap.put("CustomTransformStep", "customTransformationStep");
+    typeToEmbeddedTypeMap.put("XmlTransformStep", "xmlTransformationStep");
+  }
+
 }
