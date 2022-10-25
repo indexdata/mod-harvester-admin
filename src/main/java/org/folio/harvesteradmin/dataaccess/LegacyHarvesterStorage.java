@@ -533,9 +533,7 @@ public class LegacyHarvesterStorage {
                             promise.complete(
                                 new ProcessedHarvesterResponsePost(
                                     422,
-                                    "Problem POSTing to "
-                                        + HARVESTER_TSAS_PATH
-                                        + "/"
+                                    "Problem POSTing to " + HARVESTER_TSAS_PATH + "/"
                                 )
                             );
                           }

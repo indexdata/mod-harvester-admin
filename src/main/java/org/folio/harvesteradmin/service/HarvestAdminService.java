@@ -1,5 +1,6 @@
 package org.folio.harvesteradmin.service;
 
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
@@ -10,17 +11,14 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.RouterBuilder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
+import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.modulestorage.HarvestAdminStorage;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.util.TenantUtil;
 
 public class HarvestAdminService implements RouterCreator, TenantInitHooks {
-
-  protected static final Logger logger = LogManager.getLogger(HarvestAdminService.class);
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
@@ -48,6 +46,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     routerBuilder
         .operation("getJobLog")
             .handler(ctx -> getJobLog(vertx, ctx));
+
+    routerBuilder
+        .operation("storeJobLog")
+            .handler(ctx -> storeJobLog(vertx, ctx));
 
     routerBuilder
         .operation("getStorages")
@@ -254,6 +256,39 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .mapEmpty();
   }
 
+  /**
+   * Stores a job log.
+   */
+  public Future<Void> storeJobLog(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+    return legacyStorage.getJobLog(routingContext)
+        .onComplete(response -> {
+          if (response.succeeded()) {
+            legacyStorage.getConfigRecordById(
+                HARVESTER_HARVESTABLES_PATH,
+                routingContext.request().getParam("id"))
+                .onComplete(harvestableResult -> {
+                  JsonObject harvestable = harvestableResult.result().jsonObject();
+                  String log = response.result().bodyAsString();
+                  HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+                  HarvestJob harvestJob = new HarvestJob(harvestable);
+                  storage.storeHarvestJob(harvestJob).onComplete(harvestJobId -> {
+                    storage.storeLogStatements(harvestJobId.result(), log)
+                        .onComplete(done ->
+                            responseText(
+                                routingContext,
+                                response.result().statusCode())
+                                .end(log == null ? "No logs found for this job." : log));
+                  });
+                });
+          }
+        })
+        .onFailure(failure -> {
+          responseError(routingContext, 404, failure.getMessage());
+        })
+        .mapEmpty();
+  }
 
   /* Methods accessing modules local storage.
   private Future<Void> getBook(Vertx vertx, RoutingContext ctx) {
