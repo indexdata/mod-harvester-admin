@@ -7,10 +7,15 @@ import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.openapi.RouterBuilder;
+import io.vertx.ext.web.validation.RequestParameters;
+import io.vertx.ext.web.validation.ValidationHandler;
+import java.util.List;
+import java.util.UUID;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.modulestorage.HarvestAdminStorage;
@@ -50,6 +55,17 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     routerBuilder
         .operation("storeJobLog")
             .handler(ctx -> storeJobLog(vertx, ctx));
+
+    routerBuilder
+        .operation("getPreviousJobs")
+            .handler(ctx -> getPreviousJobs(vertx, ctx));
+    routerBuilder
+        .operation("getPreviousJob")
+            .handler(ctx -> getPreviousJobById(vertx, ctx));
+
+    routerBuilder
+        .operation("getPreviousJobLog")
+            .handler(ctx -> getPreviousJobLog(vertx, ctx));
 
     routerBuilder
         .operation("getStorages")
@@ -168,8 +184,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             .putHeader("Location", response.location)
             .end(response.jsonObject().encodePrettily());
       } else {
-        responseError(
-            routingContext, response.statusCode(), response.errorMessage());
+        responseError(routingContext, response.statusCode(), response.errorMessage());
       }
       return null;
     });
@@ -272,14 +287,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   JsonObject harvestable = harvestableResult.result().jsonObject();
                   String log = response.result().bodyAsString();
                   HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
-                  HarvestJob harvestJob = new HarvestJob(harvestable);
+                  HarvestJob harvestJob = HarvestJob.fromHarvestableJson(harvestable);
                   storage.storeHarvestJob(harvestJob).onComplete(harvestJobId -> {
                     storage.storeLogStatements(harvestJobId.result(), log)
                         .onComplete(done ->
                             responseText(
                                 routingContext,
                                 response.result().statusCode())
-                                .end(log == null ? "No logs found for this job." : log));
+                                .end(log == null ? "No logs found for this job."
+                                    : "Logs persisted in module storage."));
                   });
                 });
           }
@@ -288,6 +304,45 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           responseError(routingContext, 404, failure.getMessage());
         })
         .mapEmpty();
+  }
+
+  private Future<Void> getPreviousJobs(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    return storage.getPreviousJobs().onComplete(
+        jobsList -> {
+          JsonObject responseJson = new JsonObject();
+          JsonArray previousJobs = new JsonArray();
+          responseJson.put("previousJobs", previousJobs);
+          List<HarvestJob> jobs = jobsList.result();
+          for (HarvestJob job : jobs) {
+            previousJobs.add(job.asJson());
+          }
+          responseJson(routingContext,200).end(responseJson.encodePrettily());
+        }
+    ).mapEmpty();
+  }
+
+  private Future<Void> getPreviousJobById(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    UUID id = UUID.fromString(params.pathParameter("id").getString());
+    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    return storage.getPreviousJobById(id)
+        .onComplete(harvestJob -> {
+          responseJson(routingContext, 200).end(harvestJob.result().asJson().encodePrettily());
+        }).mapEmpty();
+  }
+
+  private Future<Void> getPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    UUID id = UUID.fromString(params.pathParameter("id").getString());
+    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    return storage.getPreviousJobLog(id)
+        .onComplete(jobLog -> {
+          responseJson(routingContext, 200).end(jobLog.result());
+        }).mapEmpty();
   }
 
   /* Methods accessing modules local storage.

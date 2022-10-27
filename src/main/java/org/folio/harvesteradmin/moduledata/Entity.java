@@ -6,11 +6,14 @@ import java.util.UUID;
 public abstract class Entity {
 
   JsonObject json;
-  UUID uuid;
+  protected UUID uuid;
 
   public Entity(JsonObject json) {
     this.json = json;
     uuid = UUID.randomUUID();
+  }
+
+  public Entity() {
   }
 
   public UUID getId() {

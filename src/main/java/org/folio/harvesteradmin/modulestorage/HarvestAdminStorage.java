@@ -5,11 +5,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
@@ -33,7 +35,10 @@ public class HarvestAdminStorage {
     harvestable_id,
     harvestable_name,
     started,
-    finished
+    finished,
+    amount_harvested,
+    message,
+    type
   }
 
   public enum LogStatementTable {
@@ -69,8 +74,11 @@ public class HarvestAdminStorage {
             + HarvestJobTable.id + " UUID PRIMARY KEY, "
             + HarvestJobTable.harvestable_id + " INTEGER, "
             + HarvestJobTable.harvestable_name + " TEXT, "
+            + HarvestJobTable.type + " TEXT, "
             + HarvestJobTable.started + " TIMESTAMP, "
-            + HarvestJobTable.finished + " TIMESTAMP"
+            + HarvestJobTable.finished + " TIMESTAMP, "
+            + HarvestJobTable.amount_harvested + " INTEGER, "
+            + HarvestJobTable.message + " TEXT"
             + ")").execute().mapEmpty());
 
     tables.add(pool.query(
@@ -106,18 +114,24 @@ public class HarvestAdminStorage {
   public Future<UUID> storeHarvestJob(HarvestJob harvestJob) {
     String insertStatement = "INSERT INTO " + schemaTable(Table.harvest_job)
         + " ("
-        + HarvestJobTable.id + ","
-        + HarvestJobTable.harvestable_id + ","
-        + HarvestJobTable.harvestable_name + ","
+        + HarvestJobTable.id + ", "
+        + HarvestJobTable.harvestable_id + ", "
+        + HarvestJobTable.harvestable_name + ", "
+        + HarvestJobTable.type + ", "
         + HarvestJobTable.started + ", "
-        + HarvestJobTable.finished
+        + HarvestJobTable.finished + ", "
+        + HarvestJobTable.amount_harvested + ", "
+        + HarvestJobTable.message
         + ")"
         + " VALUES ("
         + "#{" + HarvestJobTable.id + "}, "
         + "#{" + HarvestJobTable.harvestable_id + "}, "
         + "#{" + HarvestJobTable.harvestable_name + "}, "
+        + "#{" + HarvestJobTable.type + "}, "
         + "TO_TIMESTAMP(#{" + HarvestJobTable.started + "},'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
-        + "TO_TIMESTAMP(#{" + HarvestJobTable.finished + "}, 'YYYY-MM-DD''T''HH24:MI:SS''Z''')"
+        + "TO_TIMESTAMP(#{" + HarvestJobTable.finished + "}, 'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
+        + "#{" + HarvestJobTable.amount_harvested + "}, "
+        + "#{" + HarvestJobTable.message + "}"
         + ")";
     return SqlTemplate.forUpdate(pool.getPool(), insertStatement)
         .mapFrom(HarvestJob.tupleMapper())
@@ -135,40 +149,99 @@ public class HarvestAdminStorage {
    * Stores log statements.
    */
   public Future<Void> storeLogStatements(UUID harvestJobId, String log)  {
-    BufferedReader bufReader = new BufferedReader(new StringReader(log));
-    try {
-      List<LogLine> logLines = new ArrayList<>();
-      String line;
-      int sequence = 0;
-      while ((line = bufReader.readLine()) != null) {
-        sequence++;
-        logLines.add(new LogLine(harvestJobId, line, sequence));
-      }
-      return SqlTemplate.forUpdate(pool.getPool(),
-              "INSERT INTO " + schemaTable(Table.log_statement)
-                  + " ("
-                  + LogStatementTable.id + ", "
-                  + LogStatementTable.harvest_job_id + ", "
-                  + LogStatementTable.seq + ", "
-                  + LogStatementTable.statement
-                  + ")"
-                  + " VALUES ("
-                  + "#{" + LogStatementTable.id + "}, "
-                  + "#{" + LogStatementTable.harvest_job_id + "}, "
-                  + "#{" + LogStatementTable.seq + "}, "
-                  + "#{" + LogStatementTable.statement + "}"
-                  + ")")
-          .mapFrom(LogLine.tupleMapper())
-          .executeBatch(logLines)
-          .onFailure(res -> {
-            logger.error("Didn't save log lines: " + res.getMessage());
-          })
-          .mapEmpty();
+    if (log != null) {
+      BufferedReader bufReader = new BufferedReader(new StringReader(log));
+      try {
+        List<LogLine> logLines = new ArrayList<>();
+        String line;
+        int sequence = 0;
+        while ((line = bufReader.readLine()) != null) {
+          sequence++;
+          logLines.add(new LogLine(harvestJobId, line, sequence));
+        }
+        return SqlTemplate.forUpdate(pool.getPool(),
+                "INSERT INTO " + schemaTable(Table.log_statement)
+                    + " ("
+                    + LogStatementTable.id + ", "
+                    + LogStatementTable.harvest_job_id + ", "
+                    + LogStatementTable.seq + ", "
+                    + LogStatementTable.statement
+                    + ")"
+                    + " VALUES ("
+                    + "#{" + LogStatementTable.id + "}, "
+                    + "#{" + LogStatementTable.harvest_job_id + "}, "
+                    + "#{" + LogStatementTable.seq + "}, "
+                    + "#{" + LogStatementTable.statement + "}"
+                    + ")")
+            .mapFrom(LogLine.tupleMapper())
+            .executeBatch(logLines)
+            .onFailure(res -> {
+              logger.error("Didn't save log lines: " + res.getMessage());
+            })
+            .mapEmpty();
 
-    } catch (IOException ioe) {
-      // dummy
+      } catch (IOException ioe) {
+        return Future.succeededFuture();
+      }
+    } else {
+      logger.info("No logs found for harvest job " + harvestJobId);
+      return Future.succeededFuture();
     }
-    return Future.succeededFuture();
+  }
+
+  /**
+   * Gets previous jobs from module's storage.
+   */
+  public Future<List<HarvestJob>> getPreviousJobs() {
+    List<HarvestJob> previousJobs = new ArrayList<>();
+    return SqlTemplate.forQuery(pool.getPool(),
+            "SELECT * FROM " + schemaTable(Table.harvest_job))
+        .mapTo(HarvestJob.rowMapper())
+        .execute(null)
+        .onSuccess(rows -> {
+          rows.forEach(row -> {
+            previousJobs.add(row);
+          });
+        }).map(previousJobs);
+  }
+
+  /**
+   * Retrieves past harvest job.
+   */
+  public Future<HarvestJob> getPreviousJobById(UUID id) {
+    return SqlTemplate.forQuery(pool.getPool(),
+            "SELECT * "
+                + "FROM " + schemaTable(Table.harvest_job) + " "
+                + "WHERE id = #{id}")
+        .mapTo(HarvestJob.rowMapper())
+        .execute(Collections.singletonMap("id", id))
+        .map(rows -> {
+          RowIterator<HarvestJob> iterator = rows.iterator();
+          return iterator.hasNext() ? iterator.next() : null;
+        });
+  }
+
+  /**
+   * Retrieves log for past harvest job.
+   */
+  public Future<String> getPreviousJobLog(UUID id) {
+    Promise<String> promise = Promise.promise();
+    final StringBuilder log = new StringBuilder();
+    SqlTemplate.forQuery(pool.getPool(),
+            "SELECT statement "
+                + "FROM " + schemaTable(Table.log_statement) + " "
+                + "WHERE harvest_job_id = #{id} "
+                + "ORDER BY seq")
+        .execute(Collections.singletonMap("id", id))
+        .onComplete(rows -> {
+          if (rows.succeeded()) {
+            rows.result().forEach(row -> {
+              log.append(row.getString("statement")).append(System.lineSeparator());
+            });
+            promise.complete(log.toString());
+          }
+        });
+    return promise.future();
   }
 
   /* Template for getting record by ID:
