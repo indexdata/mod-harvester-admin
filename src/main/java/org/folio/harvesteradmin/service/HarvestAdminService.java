@@ -330,7 +330,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
     return storage.getPreviousJobById(id)
         .onComplete(harvestJob -> {
-          responseJson(routingContext, 200).end(harvestJob.result().asJson().encodePrettily());
+          if (harvestJob.result() == null) {
+            responseText(routingContext, 404).end("Found no job with id " + id);
+          } else {
+            responseJson(routingContext, 200).end(harvestJob.result().asJson().encodePrettily());
+          }
         }).mapEmpty();
   }
 
@@ -341,7 +345,23 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
     return storage.getPreviousJobLog(id)
         .onComplete(jobLog -> {
-          responseJson(routingContext, 200).end(jobLog.result());
+          if (jobLog.result().length() == 0) {
+            storage.getPreviousJobById(id).onComplete(harvestJob -> {
+              if (harvestJob.result() == null) {
+                responseText(routingContext, 404)
+                    .end("Found no previous job with ID " + id);
+              } else {
+                responseText(routingContext, 200)
+                    .end("Previous job with ID "
+                        + id
+                        + ", "
+                        + harvestJob.result().name()
+                        + ", has no logs.");
+              }
+            });
+          } else {
+            responseText(routingContext, 200).end(jobLog.result());
+          }
         }).mapEmpty();
   }
 

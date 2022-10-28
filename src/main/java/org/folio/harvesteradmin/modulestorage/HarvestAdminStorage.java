@@ -199,9 +199,7 @@ public class HarvestAdminStorage {
         .mapTo(HarvestJob.rowMapper())
         .execute(null)
         .onSuccess(rows -> {
-          rows.forEach(row -> {
-            previousJobs.add(row);
-          });
+          rows.forEach(previousJobs::add);
         }).map(previousJobs);
   }
 
@@ -244,17 +242,7 @@ public class HarvestAdminStorage {
     return promise.future();
   }
 
-  /* Template for getting record by ID:
-    public Future<Book> getBook(UUID id) {
-      return SqlTemplate.forQuery(pool.getPool(), "SELECT * FROM " + schemaTable(Table.harvest_job)
-              + " WHERE id=#{id}")
-          .mapTo(BookRowMapper.INSTANCE)
-          .execute(Collections.singletonMap("id", id))
-          .map(rowSet -> {
-            RowIterator<Book> iterator = rowSet.iterator();
-            return iterator.hasNext() ? iterator.next() : null;
-          });
-    }
+  /*
    Template for creating query:
       private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool) {
         RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
@@ -274,21 +262,6 @@ public class HarvestAdminStorage {
           sql = sql + " ORDER BY " + orderBy;
         }
         return sql;
-
-        return null;
-      }
-    Using query:
-      public Future<List<Book>> getBooks(RoutingContext ctx) {
-        String sql = createQueryMyTable(ctx, pool);
-        return SqlTemplate.forQuery(pool.getPool(), sql)
-            .mapTo(BookRowMapper.INSTANCE)
-            .execute(Collections.emptyMap())
-            .map(rowSet -> {
-              List<Book> books = new LinkedList<>();
-              rowSet.forEach(books::add);
-              return books;
-            });
-        return Future.succeededFuture(null);
       }
    */
 
