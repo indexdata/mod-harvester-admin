@@ -249,10 +249,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .mapEmpty();
   }
 
-  /**
-   * Gets the log for a job.
-   */
-  public Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.getJobLog(routingContext)
@@ -271,10 +268,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .mapEmpty();
   }
 
-  /**
-   * Stores a job log.
-   */
-  public Future<Void> storeJobLog(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> storeJobLog(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.getJobLog(routingContext)
@@ -352,11 +346,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                     .end("Found no previous job with ID " + id);
               } else {
                 responseText(routingContext, 200)
-                    .end("Previous job with ID "
-                        + id
-                        + ", "
-                        + harvestJob.result().name()
-                        + ", has no logs.");
+                    .end("Previous job with ID " + id + ", "
+                        + harvestJob.result().name() + ", has no logs.");
               }
             });
           } else {
@@ -364,33 +355,5 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           }
         }).mapEmpty();
   }
-
-  /* Methods accessing modules local storage.
-  private Future<Void> getBook(Vertx vertx, RoutingContext ctx) {
-    String tenant = TenantUtil.tenant(ctx);
-
-    RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
-    return storage.getBook(id).map(book -> {
-      if (book == null) {
-        responseError(ctx, 404, "Not found " + id);
-      } else {
-        responseJson(ctx, 200).end(JsonObject.mapFrom(book).encode());
-      }
-      return null;
-    });
-  }
-
-  private Future<Void> postBook(Vertx vertx, RoutingContext ctx) {
-    String tenant = TenantUtil.tenant(ctx);
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
-    Book book = ctx.body().asPojo(Book.class);
-    return storage.postBook(book).map(res -> {
-      ctx.response().setStatusCode(204).end();
-      return null;
-    });
-  }
-   */
 
 }
