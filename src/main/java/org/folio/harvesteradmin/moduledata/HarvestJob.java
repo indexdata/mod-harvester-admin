@@ -39,7 +39,9 @@ public class HarvestJob extends Entity {
     harvestJob.type = json.getString("type");
     harvestJob.started = json.getString("lastHarvestStarted");
     harvestJob.finished = json.getString("lastHarvestFinished");
-    harvestJob.amountHarvested = Integer.parseInt(json.getString("amountHarvested"));
+    if (json.getString("amountHarvester") != null) {
+      harvestJob.amountHarvested = Integer.parseInt(json.getString("amountHarvested"));
+    }
     harvestJob.message = json.getString("message");
     return harvestJob;
   }
@@ -73,9 +75,15 @@ public class HarvestJob extends Entity {
       harvestJob.name = row.getString(HarvestJobTable.harvestable_name.name());
       harvestJob.harvestableId = row.getInteger(HarvestJobTable.harvestable_id.name());
       harvestJob.type = row.getString(HarvestJobTable.type.name());
-      harvestJob.started = row.getLocalDateTime(HarvestJobTable.started.name()).toString();
-      harvestJob.finished = row.getLocalDateTime(HarvestJobTable.finished.name()).toString();
-      harvestJob.amountHarvested = row.getInteger(HarvestJobTable.amount_harvested.name());
+      if (row.getValue(HarvestJobTable.started.name()) != null) {
+        harvestJob.started = row.getLocalDateTime(HarvestJobTable.started.name()).toString();
+      }
+      if (row.getValue(HarvestJobTable.finished.name()) != null) {
+        harvestJob.finished = row.getLocalDateTime(HarvestJobTable.finished.name()).toString();
+      }
+      if (row.getValue(HarvestJobTable.amount_harvested.name()) != null) {
+        harvestJob.amountHarvested = row.getInteger(HarvestJobTable.amount_harvested.name());
+      }
       harvestJob.message = row.getString(HarvestJobTable.message.name());
       return harvestJob;
     };
@@ -102,10 +110,6 @@ public class HarvestJob extends Entity {
     return id;
   }
 
-  public int harvestableId() {
-    return harvestableId;
-  }
-
   public String type() {
     return type;
   }
@@ -114,19 +118,4 @@ public class HarvestJob extends Entity {
     return name;
   }
 
-  public String started() {
-    return started;
-  }
-
-  public String finished() {
-    return finished;
-  }
-
-  public int amountHarvested() {
-    return amountHarvested;
-  }
-
-  public String message() {
-    return message;
-  }
 }

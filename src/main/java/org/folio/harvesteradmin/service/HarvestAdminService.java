@@ -305,14 +305,19 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
     return storage.getPreviousJobs().onComplete(
         jobsList -> {
-          JsonObject responseJson = new JsonObject();
-          JsonArray previousJobs = new JsonArray();
-          responseJson.put("previousJobs", previousJobs);
-          List<HarvestJob> jobs = jobsList.result();
-          for (HarvestJob job : jobs) {
-            previousJobs.add(job.asJson());
+          if (jobsList.succeeded()) {
+            JsonObject responseJson = new JsonObject();
+            JsonArray previousJobs = new JsonArray();
+            responseJson.put("previousJobs", previousJobs);
+            List<HarvestJob> jobs = jobsList.result();
+            for (HarvestJob job : jobs) {
+              previousJobs.add(job.asJson());
+            }
+            responseJson(routingContext, 200).end(responseJson.encodePrettily());
+          } else {
+            responseText(routingContext, 500)
+                .end("Problem retrieving jobs: " + jobsList.cause().getMessage());
           }
-          responseJson(routingContext,200).end(responseJson.encodePrettily());
         }
     ).mapEmpty();
   }
