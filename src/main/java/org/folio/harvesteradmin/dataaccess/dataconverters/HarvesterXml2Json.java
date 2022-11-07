@@ -38,7 +38,7 @@ import org.xml.sax.SAXException;
  */
 public class HarvesterXml2Json {
 
-  private static final Logger logger = LogManager.getLogger("harvester-admin");
+  protected static final Logger logger = LogManager.getLogger("harvester-admin");
 
 
   /**
@@ -50,14 +50,18 @@ public class HarvesterXml2Json {
   public static JsonObject convertRecordToJson(String xml) {
     try {
       Document doc = xmlStringToXmlDocument(xml);
-      return convertRecordToJson(doc);
+      if (doc.getDocumentElement().getNodeName().equals("failed-record")) {
+        return HarvesterXml2JsonFailedRecords.convertRecordToJson(doc);
+      } else {
+        return convertRecordToJson(doc);
+      }
     } catch (IOException | ParserConfigurationException | SAXException e) {
       logger.error("Couldn't parse string [" + xml + "] as XML document: " + e.getMessage());
     }
     return new JsonObject();
   }
 
-  private static JsonObject convertRecordToJson(Document doc) {
+  protected static JsonObject convertRecordToJson(Document doc) {
     JsonObject outgoingJsonObject = null;
     if (doc != null) {
       stripWhiteSpaceNodes(doc);
@@ -107,7 +111,7 @@ public class HarvesterXml2Json {
     return jsonObject;
   }
 
-  private static Optional<Map.Entry<String, Object>> getRootObject(JsonObject json) {
+  protected static Optional<Map.Entry<String, Object>> getRootObject(JsonObject json) {
     return json.stream().filter(entry -> entry.getValue() instanceof JsonObject).findFirst();
   }
 
@@ -117,7 +121,7 @@ public class HarvesterXml2Json {
    * @param records An XML node with repeatable elements
    * @return XML elements as JSON array
    */
-  private static JsonArray xmlRecords2jsonArray(Node records) {
+  protected static JsonArray xmlRecords2jsonArray(Node records) {
     JsonArray jsonArray = new JsonArray();
     for (Node record : iterable(records)) {
       jsonArray.add(recurseIntoNode(record));
@@ -135,7 +139,7 @@ public class HarvesterXml2Json {
    * @param node XML element to create JsonObject for
    * @return XML element as JSON object
    */
-  private static JsonObject recurseIntoNode(Node node) {
+  protected static JsonObject recurseIntoNode(Node node) {
     JsonObject json = new JsonObject();
     boolean isChildEntity = false;
     if (node.hasAttributes() && node.getAttributes().getNamedItem("xsi:type") != null) {
@@ -170,7 +174,6 @@ public class HarvesterXml2Json {
           json.put(child.getNodeName(), child.getTextContent());
         }
       }
-
     }
     return json;
   }
@@ -181,7 +184,7 @@ public class HarvesterXml2Json {
    * @param node element to expect for child elements
    * @return true if the XML element contains other XML elements
    */
-  private static boolean hasChildElements(Node node) {
+  protected static boolean hasChildElements(Node node) {
     if (node.getNodeType() == Node.ELEMENT_NODE) {
       for (Node child : iterable(node)) {
         if (child.getNodeType() == Node.ELEMENT_NODE) {
@@ -197,7 +200,7 @@ public class HarvesterXml2Json {
    *
    * @param node XML node to strip between-elements whitespace from
    */
-  private static void stripWhiteSpaceNodes(Node node) {
+  protected static void stripWhiteSpaceNodes(Node node) {
     // Clean up whitespace text nodes between elements
     List<Node> whiteSpaceNodes = new ArrayList<>();
     findWhiteSpaceNodes(node, whiteSpaceNodes);
@@ -212,7 +215,7 @@ public class HarvesterXml2Json {
    * @param node            the element to find whitespace in (at arbitrary depth)
    * @param whiteSpaceNodes adds text nodes to the list as they are found
    */
-  private static void findWhiteSpaceNodes(Node node, List<Node> whiteSpaceNodes) {
+  protected static void findWhiteSpaceNodes(Node node, List<Node> whiteSpaceNodes) {
     for (Node child : iterable(node)) {
       if (child.getNodeType() == Node.ELEMENT_NODE) {
         findWhiteSpaceNodes(child, whiteSpaceNodes);
@@ -228,7 +231,7 @@ public class HarvesterXml2Json {
    * @param nodeList List of XML nodes to iterate over
    * @return Iterable over XML nodes
    */
-  private static Iterable<Node> iterable(final NodeList nodeList) {
+  protected static Iterable<Node> iterable(final NodeList nodeList) {
     return () -> new Iterator<>() {
       private int index = 0;
 
@@ -253,7 +256,7 @@ public class HarvesterXml2Json {
    * @param node The node whose children to iterate
    * @return Iterable over XML nodes
    */
-  private static Iterable<Node> iterable(Node node) {
+  protected static Iterable<Node> iterable(Node node) {
     return iterable(node.getChildNodes());
   }
 
@@ -263,7 +266,7 @@ public class HarvesterXml2Json {
    * @param xmlString String to build XML DOM from
    * @return XML as DOM or null if an exception occurred
    */
-  private static Document xmlStringToXmlDocument(String xmlString)
+  protected static Document xmlStringToXmlDocument(String xmlString)
       throws IOException, ParserConfigurationException, SAXException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder = factory.newDocumentBuilder();

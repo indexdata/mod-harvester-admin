@@ -53,6 +53,14 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             .handler(ctx -> getJobLog(vertx, ctx));
 
     routerBuilder
+        .operation("getFailedRecords")
+        .handler(ctx -> getFailedRecords(vertx, ctx));
+
+    routerBuilder
+        .operation("getFailedRecord")
+            .handler(ctx -> getFailedRecord(vertx, ctx));
+
+    routerBuilder
         .operation("storeJobLog")
             .handler(ctx -> storeJobLog(vertx, ctx));
 
@@ -263,9 +271,37 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           }
         })
         .onFailure(failure -> {
-          responseError(routingContext, 404, failure.getMessage());
+          responseError(routingContext, 500, failure.getMessage());
         })
         .mapEmpty();
+  }
+
+  private Future<Void> getFailedRecords(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+    return legacyStorage.getFailedRecordsListing(routingContext).onComplete(getResponse -> {
+      if (getResponse.result().wasOK()) {
+        responseJson(
+            routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
+      } else {
+        responseError(
+            routingContext, getResponse.result().statusCode(), getResponse.result().errorMessage());
+      }
+    }).mapEmpty();
+  }
+
+  private Future<Void> getFailedRecord(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+    return legacyStorage.getFailedRecord(routingContext).onComplete((getResponse -> {
+      if (getResponse.result().wasOK()) {
+        responseJson(
+            routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
+      } else {
+        responseError(
+            routingContext, getResponse.result().statusCode(), getResponse.cause().getMessage());
+      }
+    })).mapEmpty();
   }
 
   private Future<Void> storeJobLog(Vertx vertx, RoutingContext routingContext) {
