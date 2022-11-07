@@ -52,6 +52,30 @@
           "permissionsRequired": ["harvester-admin.harvestables.log.get"]
         }, {
           "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/log/store",
+          "permissionsRequired": ["harvester-admin.harvestables.log.store"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.harvestables.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/failed-records/{num}",
+          "permissionsRequired": ["harvester-admin.harvestables.failed-records.item.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs",
+          "permissionsRequired": ["harvester-admin.previous-jobs.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.item.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
+          "permissionsRequired": ["harvester-admin.previous-jobs.log.get"]
+        },{
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
           "permissionsRequired": ["harvester-admin.storages.collection.get"]
         }, {
@@ -206,6 +230,36 @@
       "permissionName": "harvester-admin.harvestables.log.get",
       "displayName": "harvester admin - view harvest job logs",
       "description": "get log statements for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.log.store",
+      "displayName": "harvester admin - stores a copy of the most recent legacy log for a job",
+      "description": "store copy of log statements for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.failed-records.collection.get",
+      "displayName": "harvester admin - view list of failed records for harvest job",
+      "description": "get list of failed records for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.failed-records.item.get",
+      "displayName": "harvester admin - view a failed record from a harvest job",
+      "description": "display a failed record from a harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.collection.get",
+      "displayName": "harvester admin - view info about finished harvest jobs",
+      "description": "view info about past harvest jobs"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.item.get",
+      "displayName": "harvester admin - view info about a finished harvest job ",
+      "description": "view info about a finished harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.log.get",
+      "displayName": "harvester admin - view past harvest job logs",
+      "description": "get log statements for past harvest jobs"
     },
     {
       "permissionName": "harvester-admin.storages.collection.get",
@@ -381,7 +435,13 @@
         "harvester-admin.transformations-steps.item.delete",
         "harvester-admin.run-jobs",
         "harvester-admin.stop-jobs",
-        "harvester-admin.harvestables.log.get"
+        "harvester-admin.harvestables.log.get",
+        "harvester-admin.harvestables.log.store",
+        "harvester-admin.harvestables.failed-records.collection.get",
+        "harvester-admin.harvestables.failed-records.item.get",
+        "harvester-admin.previous-jobs.collection.get",
+        "harvester-admin.previous-jobs.item.get",
+        "harvester-admin.previous-jobs.log.get"
       ]
     }
   ]

@@ -533,9 +533,7 @@ public class LegacyHarvesterStorage {
                             promise.complete(
                                 new ProcessedHarvesterResponsePost(
                                     422,
-                                    "Problem POSTing to "
-                                        + HARVESTER_TSAS_PATH
-                                        + "/"
+                                    "Problem POSTing to " + HARVESTER_TSAS_PATH + "/"
                                 )
                             );
                           }
@@ -561,6 +559,70 @@ public class LegacyHarvesterStorage {
         } else if (idLookup.result().wasOK()) {
           harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/log")
               .send(ar -> promise.complete(ar.result()));
+        } else {
+          promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
+              + HARVESTER_HARVESTABLES_PATH + "/" + id
+              + " to get logs: " + idLookUpResponse.errorMessage());
+        }
+      } else {
+        promise.fail("Could not look up harvest job " + HARVESTER_HARVESTABLES_PATH
+            + "/" + id + " to get logs : " + idLookup.cause().getMessage());
+      }
+    });
+    return promise.future();
+  }
+
+  /**
+   * Gets list of failed records.
+   */
+  public Future<ProcessedHarvesterResponseGet> getFailedRecordsListing(
+      RoutingContext routingContext) {
+    Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
+    String id = routingContext.request().getParam("id");
+    getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
+      if (idLookup.succeeded()) {
+        ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
+        if (idLookup.result().wasNotFound()) {
+          promise.fail("Could not find harvestable with ID " + id);
+        } else if (idLookup.result().wasOK()) {
+          harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records")
+              .send(ar -> promise.complete(
+                  new ProcessedHarvesterResponseGet(
+                      ar,
+                      HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records",
+                      "")));
+        } else {
+          promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
+              + HARVESTER_HARVESTABLES_PATH + "/" + id
+              + " to get logs: " + idLookUpResponse.errorMessage());
+        }
+      } else {
+        promise.fail("Could not look up harvest job " + HARVESTER_HARVESTABLES_PATH
+            + "/" + id + " to get logs : " + idLookup.cause().getMessage());
+      }
+    });
+    return promise.future();
+  }
+
+  /**
+   * Gets a failed record by harvestable ID and record number.
+   */
+  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(
+      RoutingContext routingContext) {
+    Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+    String id = routingContext.request().getParam("id");
+    String num = routingContext.request().getParam("num");
+    String failedRecordUri =
+        HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records/" + num + ".xml";
+    getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
+      if (idLookup.succeeded()) {
+        ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
+        if (idLookup.result().wasNotFound()) {
+          promise.fail("Could not find harvestable with ID " + id);
+        } else if (idLookup.result().wasOK()) {
+          harvesterGetRequest(failedRecordUri)
+              .send(ar ->  promise.complete(
+                  new ProcessedHarvesterResponseGetById(ar,failedRecordUri,id,"")));
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
               + HARVESTER_HARVESTABLES_PATH + "/" + id

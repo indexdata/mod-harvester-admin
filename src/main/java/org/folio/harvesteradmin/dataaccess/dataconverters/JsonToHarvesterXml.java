@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -17,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 public class JsonToHarvesterXml {
 
@@ -136,6 +138,20 @@ public class JsonToHarvesterXml {
     transformer = tf.newTransformer();
     StringWriter writer = new StringWriter();
     transformer.transform(new DOMSource(xmlDocument), new StreamResult(writer));
+    return writer.getBuffer().toString();
+  }
+
+  /**
+   * Create XML String from document node.
+   */
+  public static String writeXmlNodeToString(Node node) throws TransformerException {
+    TransformerFactory tf = TransformerFactory.newInstance();
+    Transformer transformer;
+    transformer = tf.newTransformer();
+    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+    StringWriter writer = new StringWriter();
+    transformer.transform(new DOMSource(node), new StreamResult(writer));
     return writer.getBuffer().toString();
   }
 

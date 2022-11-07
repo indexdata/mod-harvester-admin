@@ -99,10 +99,172 @@ paths:
           type: string
     get:
       operationId: getJobLog
-      description: Get harvest configuration
+      description: Get log statements for a harvest job
       responses:
         "200":
-          description: Harvest configuration returned
+          description: Harvest log statements returned
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/failed-records:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: string
+    get:
+      operationId: getFailedRecords
+      description: Get failed records for a harvest job
+      responses:
+        "200":
+          description: Harvest failed records list returned
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/failed-records/{num}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: string
+      - in: path
+        name: num
+        required: true
+        description: number of a failed record
+        schema:
+          type: string
+
+    get:
+      operationId: getFailedRecord
+      description: Get a failed record for a harvest job
+      responses:
+        "200":
+          description: failed record
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/log/store:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: string
+    get:
+      operationId: storeJobLog
+      description: Stores a copy of the most recent log for a harvest job
+      responses:
+        "200":
+          description: Harvest log statements stored in module storage
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    get:
+      operationId: getPreviousJobs
+      description: Retrieves list of previous harvest jobs
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of previous harvest jobs
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest job identifier
+        schema:
+          type: string
+    get:
+      operationId: getPreviousJob
+      description: Retrieves details of a previous harvest job
+      responses:
+        "200":
+          description: A previous harvest job
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/{id}/log:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest job identifier
+        schema:
+          type: string
+    get:
+      operationId: getPreviousJobLog
+      description: Retrieves the log of a previous harvest job
+      responses:
+        "200":
+          description: Logs for a previous harvest job
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
