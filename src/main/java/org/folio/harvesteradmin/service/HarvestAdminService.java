@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
-import org.folio.harvesteradmin.modulestorage.HarvestAdminStorage;
+import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.util.TenantUtil;
@@ -146,7 +146,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   @Override
   public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    Storage storage = new Storage(vertx, tenant);
     return storage.init(tenantAttributes);
   }
 
@@ -235,12 +235,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.getScript(routingContext)
-        .onComplete(response -> {
-          responseText(routingContext, 200).end(response.result());
-        })
-        .onFailure(response -> {
-          responseError(routingContext, 500, response.getMessage());
-        })
+        .onComplete(response -> responseText(routingContext, 200).end(response.result()))
+        .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
         .mapEmpty();
   }
 
@@ -248,12 +244,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.putScript(routingContext)
-        .onComplete(response -> {
-          responseText(routingContext, 204).end();
-        })
-        .onFailure(response -> {
-          responseError(routingContext, 500, response.getMessage());
-        })
+        .onComplete(response -> responseText(routingContext, 204).end())
+        .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
         .mapEmpty();
   }
 
@@ -270,9 +262,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .end(log == null ? "No logs found for this job." : log);
           }
         })
-        .onFailure(failure -> {
-          responseError(routingContext, 500, failure.getMessage());
-        })
+        .onFailure(failure -> responseError(routingContext, 500, failure.getMessage()))
         .mapEmpty();
   }
 
@@ -316,29 +306,27 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onComplete(harvestableResult -> {
                   JsonObject harvestable = harvestableResult.result().jsonObject();
                   String log = response.result().bodyAsString();
-                  HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+                  Storage storage = new Storage(vertx, tenant);
                   HarvestJob harvestJob = HarvestJob.fromHarvestableJson(harvestable);
-                  storage.storeHarvestJob(harvestJob).onComplete(harvestJobId -> {
-                    storage.storeLogStatements(harvestJobId.result(), log)
-                        .onComplete(done ->
-                            responseText(
-                                routingContext,
-                                response.result().statusCode())
-                                .end(log == null ? "No logs found for this job."
-                                    : "Logs persisted in module storage."));
-                  });
+                  storage.storeHarvestJob(harvestJob)
+                      .onComplete(
+                          harvestJobId -> storage.storeLogStatements(harvestJobId.result(), log)
+                              .onComplete(
+                                  done -> responseText(
+                                      routingContext,
+                                      response.result().statusCode())
+                                      .end(log == null ? "No logs found for this job." :
+                                          "Logs persisted in module storage.")));
                 });
           }
         })
-        .onFailure(failure -> {
-          responseError(routingContext, 404, failure.getMessage());
-        })
+        .onFailure(failure -> responseError(routingContext, 404, failure.getMessage()))
         .mapEmpty();
   }
 
   private Future<Void> getPreviousJobs(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    Storage storage = new Storage(vertx, tenant);
     return storage.getPreviousJobs().onComplete(
         jobsList -> {
           if (jobsList.succeeded()) {
@@ -362,7 +350,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     UUID id = UUID.fromString(params.pathParameter("id").getString());
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    Storage storage = new Storage(vertx, tenant);
     return storage.getPreviousJobById(id)
         .onComplete(harvestJob -> {
           if (harvestJob.result() == null) {
@@ -377,7 +365,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     UUID id = UUID.fromString(params.pathParameter("id").getString());
-    HarvestAdminStorage storage = new HarvestAdminStorage(vertx, tenant);
+    Storage storage = new Storage(vertx, tenant);
     return storage.getPreviousJobLog(id)
         .onComplete(jobLog -> {
           if (jobLog.result().length() == 0) {
