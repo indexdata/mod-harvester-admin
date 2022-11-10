@@ -63,7 +63,10 @@ public class HarvestJob {
       harvestJob.recordLimit = Integer.parseInt(harvestableJson.getString("recordLimit"));
     }
     harvestJob.started = harvestableJson.getString("lastHarvestStarted");
-    harvestJob.finished = harvestableJson.getString("lastHarvestFinished");
+    if (harvestableJson.getString("lastHarvestStarted")
+        .compareTo(harvestableJson.getString("lastHarvestFinished")) < 0) {
+      harvestJob.finished = harvestableJson.getString("lastHarvestFinished");
+    }
     if (harvestableJson.getString("amountHarvested") != null) {
       harvestJob.amountHarvested = Integer.parseInt(harvestableJson.getString("amountHarvested"));
     }
