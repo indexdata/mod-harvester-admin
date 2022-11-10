@@ -15,9 +15,11 @@ public class HarvestJob extends Entity {
   private int harvestableId;
   private String name;
   private String type;
+  private Boolean allowErrors;
   private String started;
   private String finished;
-  private int amountHarvested;
+  private Integer recordLimit;
+  private Integer amountHarvested;
   private String message;
 
   public HarvestJob(JsonObject json) {
@@ -29,7 +31,7 @@ public class HarvestJob extends Entity {
   }
 
   /**
-   * Creates HarvestJob from harvestable JSON.
+   * Maps harvestable JSON to HarvestJob Java Object.
    */
   public static HarvestJob fromHarvestableJson(JsonObject json) {
     HarvestJob harvestJob = new HarvestJob(json);
@@ -37,9 +39,13 @@ public class HarvestJob extends Entity {
     harvestJob.harvestableId = Integer.parseInt(json.getString("id"));
     harvestJob.name = json.getString("name");
     harvestJob.type = json.getString("type");
+    harvestJob.allowErrors = Boolean.valueOf(json.getString("allowErrors"));
+    if (json.getString("recordLimit") != null) {
+      harvestJob.recordLimit = Integer.parseInt(json.getString("recordLimit"));
+    }
     harvestJob.started = json.getString("lastHarvestStarted");
     harvestJob.finished = json.getString("lastHarvestFinished");
-    if (json.getString("amountHarvester") != null) {
+    if (json.getString("amountHarvested") != null) {
       harvestJob.amountHarvested = Integer.parseInt(json.getString("amountHarvested"));
     }
     harvestJob.message = json.getString("message");
@@ -47,7 +53,7 @@ public class HarvestJob extends Entity {
   }
 
   /**
-   * Creates a TupleMapper.
+   * Creates a TupleMapper for input mapping.
    */
   public static TupleMapper<HarvestJob> tupleMapper() {
     return TupleMapper.mapper(
@@ -57,16 +63,22 @@ public class HarvestJob extends Entity {
           parameters.put(HarvestJobTable.harvestable_id.name(), harvestJob.harvestableId);
           parameters.put(HarvestJobTable.harvestable_name.name(), harvestJob.name);
           parameters.put(HarvestJobTable.type.name(), harvestJob.type);
+          parameters.put(HarvestJobTable.allow_errors.name(), harvestJob.allowErrors);
+          if (harvestJob.recordLimit != null) {
+            parameters.put(HarvestJobTable.record_limit.name(), harvestJob.recordLimit);
+          }
           parameters.put(HarvestJobTable.started.name(), harvestJob.started);
           parameters.put(HarvestJobTable.finished.name(), harvestJob.finished);
-          parameters.put(HarvestJobTable.amount_harvested.name(), harvestJob.amountHarvested);
+          if (harvestJob.amountHarvested != null) {
+            parameters.put(HarvestJobTable.amount_harvested.name(), harvestJob.amountHarvested);
+          }
           parameters.put(HarvestJobTable.message.name(), harvestJob.message);
           return parameters;
         });
   }
 
   /**
-   * Creates a RowMapper.
+   * Creates a RowMapper for output mapping.
    */
   public static RowMapper<HarvestJob> rowMapper() {
     return row -> {
@@ -75,6 +87,10 @@ public class HarvestJob extends Entity {
       harvestJob.name = row.getString(HarvestJobTable.harvestable_name.name());
       harvestJob.harvestableId = row.getInteger(HarvestJobTable.harvestable_id.name());
       harvestJob.type = row.getString(HarvestJobTable.type.name());
+      harvestJob.allowErrors = row.getBoolean(HarvestJobTable.allow_errors.name());
+      if (row.getValue(HarvestJobTable.record_limit.name()) != null) {
+        harvestJob.recordLimit = row.getInteger(HarvestJobTable.record_limit.name());
+      }
       if (row.getValue(HarvestJobTable.started.name()) != null) {
         harvestJob.started = row.getLocalDateTime(HarvestJobTable.started.name()).toString();
       }
@@ -90,7 +106,7 @@ public class HarvestJob extends Entity {
   }
 
   /**
-   * Gets HarvestJob as JSON.
+   * Maps HarvestJob Java Object to JSON.
    */
   public JsonObject asJson() {
     JsonObject json = new JsonObject();
@@ -98,9 +114,15 @@ public class HarvestJob extends Entity {
     json.put("name", name);
     json.put("harvestableId", harvestableId);
     json.put("type", type);
+    json.put("allowErrors", allowErrors);
+    if (recordLimit != null) {
+      json.put("recordLimit", recordLimit);
+    }
     json.put("started", started);
     json.put("finished", finished);
-    json.put("amountHarvested", amountHarvested);
+    if (amountHarvested != null) {
+      json.put("amountHarvested", amountHarvested);
+    }
     json.put("message", message);
     return json;
   }

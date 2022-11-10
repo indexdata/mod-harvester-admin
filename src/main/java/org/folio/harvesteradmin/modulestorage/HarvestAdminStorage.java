@@ -34,6 +34,8 @@ public class HarvestAdminStorage {
     id,
     harvestable_id,
     harvestable_name,
+    allow_errors,
+    record_limit,
     started,
     finished,
     amount_harvested,
@@ -75,6 +77,8 @@ public class HarvestAdminStorage {
             + HarvestJobTable.harvestable_id + " INTEGER, "
             + HarvestJobTable.harvestable_name + " TEXT, "
             + HarvestJobTable.type + " TEXT, "
+            + HarvestJobTable.allow_errors + " BOOLEAN, "
+            + HarvestJobTable.record_limit + " INTEGER, "
             + HarvestJobTable.started + " TIMESTAMP, "
             + HarvestJobTable.finished + " TIMESTAMP, "
             + HarvestJobTable.amount_harvested + " INTEGER, "
@@ -118,6 +122,8 @@ public class HarvestAdminStorage {
         + HarvestJobTable.harvestable_id + ", "
         + HarvestJobTable.harvestable_name + ", "
         + HarvestJobTable.type + ", "
+        + HarvestJobTable.allow_errors + ", "
+        + HarvestJobTable.record_limit + ", "
         + HarvestJobTable.started + ", "
         + HarvestJobTable.finished + ", "
         + HarvestJobTable.amount_harvested + ", "
@@ -128,6 +134,8 @@ public class HarvestAdminStorage {
         + "#{" + HarvestJobTable.harvestable_id + "}, "
         + "#{" + HarvestJobTable.harvestable_name + "}, "
         + "#{" + HarvestJobTable.type + "}, "
+        + "#{" + HarvestJobTable.allow_errors + "}, "
+        + "#{" + HarvestJobTable.record_limit + "}, "
         + "TO_TIMESTAMP(#{" + HarvestJobTable.started + "},'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
         + "TO_TIMESTAMP(#{" + HarvestJobTable.finished + "}, 'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
         + "#{" + HarvestJobTable.amount_harvested + "}, "
