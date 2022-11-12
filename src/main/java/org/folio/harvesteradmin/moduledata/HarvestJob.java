@@ -14,12 +14,19 @@ public class HarvestJob {
   private int harvestableId;
   private String name;
   private String type;
+  private String url;
   private Boolean allowErrors;
+  private Integer recordLimit;
+  private Integer batchSize;
+  private String transformation;
+  private String storage;
+  private String status;
   private String started;
   private String finished;
-  private Integer recordLimit;
   private Integer amountHarvested;
   private String message;
+
+  private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS";
 
   public HarvestJob() {
     super();
@@ -40,8 +47,13 @@ public class HarvestJob {
     id,
     harvestable_id,
     harvestable_name,
+    url,
     allow_errors,
     record_limit,
+    batch_size,
+    transformation,
+    storage,
+    status,
     started,
     finished,
     amount_harvested,
@@ -58,10 +70,17 @@ public class HarvestJob {
     harvestJob.harvestableId = Integer.parseInt(harvestableJson.getString("id"));
     harvestJob.name = harvestableJson.getString("name");
     harvestJob.type = harvestableJson.getString("type");
+    harvestJob.url = harvestableJson.getString("url");
     harvestJob.allowErrors = Boolean.valueOf(harvestableJson.getString("allowErrors"));
     if (harvestableJson.getString("recordLimit") != null) {
       harvestJob.recordLimit = Integer.parseInt(harvestableJson.getString("recordLimit"));
     }
+    if (harvestableJson.getString("storageBatchLimit") != null) {
+      harvestJob.batchSize = Integer.parseInt(harvestableJson.getString("storageBatchLimit"));
+    }
+    harvestJob.transformation = harvestableJson.getJsonObject("transformation").getString("name");
+    harvestJob.storage = harvestableJson.getJsonObject("storage").getString("name");
+    harvestJob.status = harvestableJson.getString("currentStatus");
     harvestJob.started = harvestableJson.getString("lastHarvestStarted");
     if (harvestableJson.getString("lastHarvestStarted")
         .compareTo(harvestableJson.getString("lastHarvestFinished")) < 0) {
@@ -83,10 +102,17 @@ public class HarvestJob {
     json.put("name", name);
     json.put("harvestableId", harvestableId);
     json.put("type", type);
+    json.put("url", url);
     json.put("allowErrors", allowErrors);
     if (recordLimit != null) {
       json.put("recordLimit", recordLimit);
     }
+    if (batchSize != null) {
+      json.put("batchSize", batchSize);
+    }
+    json.put("transformation", transformation);
+    json.put("storage", storage);
+    json.put("status", status);
     json.put("started", started);
     json.put("finished", finished);
     if (amountHarvested != null) {
@@ -106,8 +132,13 @@ public class HarvestJob {
         + Column.harvestable_id + " INTEGER NOT NULL, "
         + Column.harvestable_name + " TEXT NOT NULL, "
         + Column.type + " TEXT NOT NULL, "
+        + Column.url + " TEXT NOT NULL, "
         + Column.allow_errors + " BOOLEAN NOT NULL, "
         + Column.record_limit + " INTEGER, "
+        + Column.batch_size + " INTEGER, "
+        + Column.transformation + " TEXT NOT NULL, "
+        + Column.storage + " TEXT NOT NULL, "
+        + Column.status + " TEXT NOT NULL, "
         + Column.started + " TIMESTAMP NOT NULL, "
         + Column.finished + " TIMESTAMP, "
         + Column.amount_harvested + " INTEGER, "
@@ -125,8 +156,13 @@ public class HarvestJob {
         + Column.harvestable_id + ", "
         + Column.harvestable_name + ", "
         + Column.type + ", "
+        + Column.url + ", "
         + Column.allow_errors + ", "
         + Column.record_limit + ", "
+        + Column.batch_size + ", "
+        + Column.transformation + ", "
+        + Column.storage + ", "
+        + Column.status + ", "
         + Column.started + ", "
         + Column.finished + ", "
         + Column.amount_harvested + ", "
@@ -137,10 +173,15 @@ public class HarvestJob {
         + "#{" + Column.harvestable_id + "}, "
         + "#{" + Column.harvestable_name + "}, "
         + "#{" + Column.type + "}, "
+        + "#{" + Column.url + "}, "
         + "#{" + Column.allow_errors + "}, "
         + "#{" + Column.record_limit + "}, "
-        + "TO_TIMESTAMP(#{" + Column.started + "},'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
-        + "TO_TIMESTAMP(#{" + Column.finished + "}, 'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
+        + "#{" + Column.batch_size + "}, "
+        + "#{" + Column.transformation + "}, "
+        + "#{" + Column.storage + "}, "
+        + "#{" + Column.status + "}, "
+        + "TO_TIMESTAMP(#{" + Column.started + "},'" + DATE_FORMAT + "'), "
+        + "TO_TIMESTAMP(#{" + Column.finished + "}, '" + DATE_FORMAT + "'), "
         + "#{" + Column.amount_harvested + "}, "
         + "#{" + Column.message + "}"
         + ")";
@@ -157,10 +198,17 @@ public class HarvestJob {
           parameters.put(Column.harvestable_id.name(), harvestJob.harvestableId);
           parameters.put(Column.harvestable_name.name(), harvestJob.name);
           parameters.put(Column.type.name(), harvestJob.type);
+          parameters.put(Column.url.name(), harvestJob.url);
           parameters.put(Column.allow_errors.name(), harvestJob.allowErrors);
           if (harvestJob.recordLimit != null) {
             parameters.put(Column.record_limit.name(), harvestJob.recordLimit);
           }
+          if (harvestJob.batchSize != null) {
+            parameters.put(Column.batch_size.name(), harvestJob.batchSize);
+          }
+          parameters.put(Column.transformation.name(), harvestJob.transformation);
+          parameters.put(Column.storage.name(), harvestJob.storage);
+          parameters.put(Column.status.name(), harvestJob.status);
           parameters.put(Column.started.name(), harvestJob.started);
           parameters.put(Column.finished.name(), harvestJob.finished);
           if (harvestJob.amountHarvested != null) {
@@ -181,10 +229,14 @@ public class HarvestJob {
       harvestJob.name = row.getString(Column.harvestable_name.name());
       harvestJob.harvestableId = row.getInteger(Column.harvestable_id.name());
       harvestJob.type = row.getString(Column.type.name());
+      harvestJob.url = row.getString(Column.url.name());
       harvestJob.allowErrors = row.getBoolean(Column.allow_errors.name());
       if (row.getValue(Column.record_limit.name()) != null) {
         harvestJob.recordLimit = row.getInteger(Column.record_limit.name());
       }
+      harvestJob.transformation = row.getString(Column.transformation.name());
+      harvestJob.storage = row.getString(Column.storage.name());
+      harvestJob.status = row.getString(Column.status.name());
       if (row.getValue(Column.started.name()) != null) {
         harvestJob.started = row.getLocalDateTime(Column.started.name()).toString();
       }
