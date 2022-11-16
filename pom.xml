@@ -10,7 +10,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.0.0-SNAPSHOT</okapi.version>
-        <vertx.version>4.3.3</vertx.version>
+        <vertx.version>4.3.4</vertx.version>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
         <maven.test.skip>true</maven.test.skip>
