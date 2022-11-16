@@ -262,7 +262,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .end(log == null ? "No logs found for this job." : log);
           }
         })
-        .onFailure(failure -> responseError(routingContext, 500, failure.getMessage()))
+        .onFailure(failure -> {
+          int code = failure.getMessage().startsWith("Could not find") ? 404 : 500;
+          responseError(routingContext, code, failure.getMessage());
+        })
         .mapEmpty();
   }
 
