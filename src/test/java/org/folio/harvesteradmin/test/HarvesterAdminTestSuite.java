@@ -24,10 +24,13 @@ import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_ID;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.http.Header;
+import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -37,28 +40,36 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.harvesteradmin.MainVerticle;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 @SuppressWarnings("JUnitMalformedDeclaration")
 @RunWith( VertxUnitRunner.class )
 public class HarvesterAdminTestSuite {
   private final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
 
+  static final String TENANT = "mha_test";
   Vertx vertx;
   private static final int PORT_HARVESTER_ADMIN = 9031;
   public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
   public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
-  public static final Header OKAPI_TENANT = new Header ("X-Okapi-Tenant", "diku");
+  public static final Header OKAPI_TENANT = new Header ("X-Okapi-Tenant", TENANT);
 
 
   public HarvesterAdminTestSuite() {}
+
+  @ClassRule
+  public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
 
   @Rule
   public final TestName name = new TestName();
@@ -112,7 +123,9 @@ public class HarvesterAdminTestSuite {
     Response response =
         getConfigRecords(THIS_TRANSFORMATIONS_STEPS_PATH, "step.id=" +SAMPLES_ID_PREFIX + "*",200);
     JsonObject transformationStepAssociations = new JsonObject(response.body().asString());
-    logger.info("TSAs to delete: ");
+    if (transformationStepAssociations.getJsonArray("transformationStepAssociations").size() > 0) {
+      logger.info("TSAs to delete: ");
+    }
     for (Object o : transformationStepAssociations.getJsonArray("transformationStepAssociations")) {
       logger.info(((JsonObject) o).encodePrettily());
     }
@@ -446,6 +459,25 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
+  public void canGetPreviousJob () {
+    tenantAction(TENANT, new JsonObject()
+            .put("module_to", "mod-harvester-admin-0.2.0-SNAPSHOT"));
+
+    RestAssured
+        .given()
+        .header(OKAPI_TENANT)
+        .get("harvester-admin/previous-jobs")
+        .then()
+        .log().ifValidationFails().statusCode(200).extract().response();
+
+    tenantAction(TENANT, new JsonObject()
+        .put("module_from", "mod-harvester-admin-0.2.0-SNAPSHOT")
+        .put("purge", true));
+
+
+  }
+
+  @Test
   public void deletingNonExistingConfigWillReturnNotFound() {
     deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, "bad-id", 404);
     deleteConfigRecord(THIS_HARVESTABLES_PATH, "bad-id", 404);
@@ -460,6 +492,36 @@ public class HarvesterAdminTestSuite {
   @Test
   public void putByIdWithInvalidCharactersReturn400() {
     putConfigRecord(THIS_STORAGES_PATH, "æøå", BASE_STORAGE_JSON, 400);
+  }
+
+  void tenantAction(String tenant, JsonObject tenantAttributes) {
+    ExtractableResponse<Response> response = RestAssured.given()
+        .header(XOkapiHeaders.TENANT, tenant)
+        .header("Content-Type", "application/json")
+        .body(tenantAttributes.encode())
+        .post("/_/tenant")
+        .then()
+        .extract();
+
+    if (response.statusCode() == 204) {
+      return;
+    }
+    assertThat(response.statusCode(), is(201));
+    String location = response.header("Location");
+    JsonObject tenantJob = new JsonObject(response.asString());
+    assertThat(location, is("/_/tenant/" + tenantJob.getString("id")));
+
+    RestAssured.given()
+        .header(XOkapiHeaders.TENANT, tenant)
+        .get(location + "?wait=10000")
+        .then().statusCode(200)
+        .body("complete", is(true))
+        .body("error", is((String) null));
+
+    RestAssured.given()
+        .header(XOkapiHeaders.TENANT, tenant)
+        .delete(location)
+        .then().statusCode(204);
   }
 
 }

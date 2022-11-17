@@ -24,12 +24,10 @@ public class Storage {
   TenantPgPool pool;
   private static final Logger logger = LogManager.getLogger(Storage.class);
 
-
   public enum Table {
     harvest_job,
     log_statement
   }
-
 
   public Storage(Vertx vertx, String tenant) {
     pool = TenantPgPool.pool(vertx, tenant);
@@ -166,7 +164,7 @@ public class Storage {
 
   /*
    Template for creating query:
-      private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool) {
+      private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool)
         RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
         PgCqlQuery pgCqlQuery = PgCqlQuery.query();
         RequestParameter query = params.queryParameter("query");
@@ -184,7 +182,6 @@ public class Storage {
           sql = sql + " ORDER BY " + orderBy;
         }
         return sql;
-      }
    */
 
 }
