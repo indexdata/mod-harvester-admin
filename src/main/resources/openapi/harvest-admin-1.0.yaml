@@ -86,6 +86,61 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/jobs/run/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: string
+    put:
+      operationId: startJob
+      description: Starts a harvest job immediately if possible
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schemas/jobStarted.json
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/jobs/stop/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: string
+    put:
+      operationId: stopJob
+      description: Stops a harvest job
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: schemas/jobStopped.json
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
   /harvester-admin/harvestables/{id}/log:
     parameters:
       - $ref: headers/okapi-tenant.yaml
