@@ -6,91 +6,95 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.folio.harvesteradmin.modulestorage.HarvestAdminStorage.HarvestJobTable;
+import org.folio.harvesteradmin.modulestorage.Storage;
 
-
-public class HarvestJob extends Entity {
+public class HarvestJob {
 
   private UUID id;
   private int harvestableId;
   private String name;
   private String type;
+  private String url;
+  private Boolean allowErrors;
+  private Integer recordLimit;
+  private Integer batchSize;
+  private String transformation;
+  private String storage;
+  private String status;
   private String started;
   private String finished;
-  private int amountHarvested;
+  private Integer amountHarvested;
   private String message;
 
-  public HarvestJob(JsonObject json) {
-    super(json);
-  }
+  private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS";
 
   public HarvestJob() {
     super();
   }
 
+  public UUID id() {
+    return id;
+  }
+
+  public String name() {
+    return name;
+  }
+
   /**
-   * Creates HarvestJob from harvestable JSON.
+   * HARVEST_JOB columns.
    */
-  public static HarvestJob fromHarvestableJson(JsonObject json) {
-    HarvestJob harvestJob = new HarvestJob(json);
-    harvestJob.id = harvestJob.uuid;
-    harvestJob.harvestableId = Integer.parseInt(json.getString("id"));
-    harvestJob.name = json.getString("name");
-    harvestJob.type = json.getString("type");
-    harvestJob.started = json.getString("lastHarvestStarted");
-    harvestJob.finished = json.getString("lastHarvestFinished");
-    if (json.getString("amountHarvester") != null) {
-      harvestJob.amountHarvested = Integer.parseInt(json.getString("amountHarvested"));
+  public enum Column {
+    id,
+    harvestable_id,
+    harvestable_name,
+    url,
+    allow_errors,
+    record_limit,
+    batch_size,
+    transformation,
+    storage,
+    status,
+    started,
+    finished,
+    amount_harvested,
+    message,
+    type
+  }
+
+  /**
+   * Maps legacy harvestable JSON to HarvestJob Java Object.
+   */
+  public static HarvestJob fromHarvestableJson(JsonObject harvestableJson) {
+    HarvestJob harvestJob = new HarvestJob();
+    harvestJob.id = UUID.randomUUID();
+    harvestJob.harvestableId = Integer.parseInt(harvestableJson.getString("id"));
+    harvestJob.name = harvestableJson.getString("name");
+    harvestJob.type = harvestableJson.getString("type");
+    harvestJob.url = harvestableJson.getString("url");
+    harvestJob.allowErrors = Boolean.valueOf(harvestableJson.getString("allowErrors"));
+    if (harvestableJson.getString("recordLimit") != null) {
+      harvestJob.recordLimit = Integer.parseInt(harvestableJson.getString("recordLimit"));
     }
-    harvestJob.message = json.getString("message");
+    if (harvestableJson.getString("storageBatchLimit") != null) {
+      harvestJob.batchSize = Integer.parseInt(harvestableJson.getString("storageBatchLimit"));
+    }
+    harvestJob.transformation = harvestableJson.getJsonObject("transformation").getString("name");
+    harvestJob.storage = harvestableJson.getJsonObject("storage").getString("name");
+    harvestJob.status = harvestableJson.getString("currentStatus");
+    harvestJob.started = harvestableJson.getString("lastHarvestStarted");
+    if (harvestableJson.getString("lastHarvestStarted")
+        .compareTo(harvestableJson.getString("lastHarvestFinished")) < 0) {
+      harvestJob.finished = harvestableJson.getString("lastHarvestFinished");
+    }
+    if (harvestableJson.getString("amountHarvested") != null) {
+      harvestJob.amountHarvested = Integer.parseInt(harvestableJson.getString("amountHarvested"));
+    }
+    harvestJob.message = harvestableJson.getString("message");
     return harvestJob;
   }
 
   /**
-   * Creates a TupleMapper.
-   */
-  public static TupleMapper<HarvestJob> tupleMapper() {
-    return TupleMapper.mapper(
-        harvestJob -> {
-          Map<String, Object> parameters = new HashMap<>();
-          parameters.put(HarvestJobTable.id.name(), harvestJob.id);
-          parameters.put(HarvestJobTable.harvestable_id.name(), harvestJob.harvestableId);
-          parameters.put(HarvestJobTable.harvestable_name.name(), harvestJob.name);
-          parameters.put(HarvestJobTable.type.name(), harvestJob.type);
-          parameters.put(HarvestJobTable.started.name(), harvestJob.started);
-          parameters.put(HarvestJobTable.finished.name(), harvestJob.finished);
-          parameters.put(HarvestJobTable.amount_harvested.name(), harvestJob.amountHarvested);
-          parameters.put(HarvestJobTable.message.name(), harvestJob.message);
-          return parameters;
-        });
-  }
-
-  /**
-   * Creates a RowMapper.
-   */
-  public static RowMapper<HarvestJob> rowMapper() {
-    return row -> {
-      HarvestJob harvestJob = new HarvestJob();
-      harvestJob.id = row.getUUID(HarvestJobTable.id.name());
-      harvestJob.name = row.getString(HarvestJobTable.harvestable_name.name());
-      harvestJob.harvestableId = row.getInteger(HarvestJobTable.harvestable_id.name());
-      harvestJob.type = row.getString(HarvestJobTable.type.name());
-      if (row.getValue(HarvestJobTable.started.name()) != null) {
-        harvestJob.started = row.getLocalDateTime(HarvestJobTable.started.name()).toString();
-      }
-      if (row.getValue(HarvestJobTable.finished.name()) != null) {
-        harvestJob.finished = row.getLocalDateTime(HarvestJobTable.finished.name()).toString();
-      }
-      if (row.getValue(HarvestJobTable.amount_harvested.name()) != null) {
-        harvestJob.amountHarvested = row.getInteger(HarvestJobTable.amount_harvested.name());
-      }
-      harvestJob.message = row.getString(HarvestJobTable.message.name());
-      return harvestJob;
-    };
-  }
-
-  /**
-   * Gets HarvestJob as JSON.
+   * HarvestJob to JSON mapping.
    */
   public JsonObject asJson() {
     JsonObject json = new JsonObject();
@@ -98,24 +102,154 @@ public class HarvestJob extends Entity {
     json.put("name", name);
     json.put("harvestableId", harvestableId);
     json.put("type", type);
+    json.put("url", url);
+    json.put("allowErrors", allowErrors);
+    if (recordLimit != null) {
+      json.put("recordLimit", recordLimit);
+    }
+    if (batchSize != null) {
+      json.put("batchSize", batchSize);
+    }
+    json.put("transformation", transformation);
+    json.put("storage", storage);
+    json.put("status", status);
     json.put("started", started);
     json.put("finished", finished);
-    json.put("amountHarvested", amountHarvested);
+    if (amountHarvested != null) {
+      json.put("amountHarvested", amountHarvested);
+    }
     json.put("message", message);
     return json;
   }
 
-
-  public UUID id() {
-    return id;
+  /**
+   * CREATE TABLE statement.
+   */
+  public static String getCreateTableSql(String schema) {
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.harvest_job
+        + "("
+        + Column.id + " UUID PRIMARY KEY, "
+        + Column.harvestable_id + " INTEGER NOT NULL, "
+        + Column.harvestable_name + " TEXT NOT NULL, "
+        + Column.type + " TEXT NOT NULL, "
+        + Column.url + " TEXT NOT NULL, "
+        + Column.allow_errors + " BOOLEAN NOT NULL, "
+        + Column.record_limit + " INTEGER, "
+        + Column.batch_size + " INTEGER, "
+        + Column.transformation + " TEXT NOT NULL, "
+        + Column.storage + " TEXT NOT NULL, "
+        + Column.status + " TEXT NOT NULL, "
+        + Column.started + " TIMESTAMP NOT NULL, "
+        + Column.finished + " TIMESTAMP, "
+        + Column.amount_harvested + " INTEGER, "
+        + Column.message + " TEXT"
+        + ")";
   }
 
-  public String type() {
-    return type;
+  /**
+   * INSERT INTO statement.
+   */
+  public static String getInsertTemplate(String schema) {
+    return "INSERT INTO " + schema + "." + Storage.Table.harvest_job
+        + " ("
+        + Column.id + ", "
+        + Column.harvestable_id + ", "
+        + Column.harvestable_name + ", "
+        + Column.type + ", "
+        + Column.url + ", "
+        + Column.allow_errors + ", "
+        + Column.record_limit + ", "
+        + Column.batch_size + ", "
+        + Column.transformation + ", "
+        + Column.storage + ", "
+        + Column.status + ", "
+        + Column.started + ", "
+        + Column.finished + ", "
+        + Column.amount_harvested + ", "
+        + Column.message
+        + ")"
+        + " VALUES ("
+        + "#{" + Column.id + "}, "
+        + "#{" + Column.harvestable_id + "}, "
+        + "#{" + Column.harvestable_name + "}, "
+        + "#{" + Column.type + "}, "
+        + "#{" + Column.url + "}, "
+        + "#{" + Column.allow_errors + "}, "
+        + "#{" + Column.record_limit + "}, "
+        + "#{" + Column.batch_size + "}, "
+        + "#{" + Column.transformation + "}, "
+        + "#{" + Column.storage + "}, "
+        + "#{" + Column.status + "}, "
+        + "TO_TIMESTAMP(#{" + Column.started + "},'" + DATE_FORMAT + "'), "
+        + "TO_TIMESTAMP(#{" + Column.finished + "}, '" + DATE_FORMAT + "'), "
+        + "#{" + Column.amount_harvested + "}, "
+        + "#{" + Column.message + "}"
+        + ")";
   }
 
-  public String name() {
-    return name;
+  /**
+   * Table input mapping.
+   */
+  public static TupleMapper<HarvestJob> getInsertValuesMapper() {
+    return TupleMapper.mapper(
+        harvestJob -> {
+          Map<String, Object> parameters = new HashMap<>();
+          parameters.put(Column.id.name(), harvestJob.id);
+          parameters.put(Column.harvestable_id.name(), harvestJob.harvestableId);
+          parameters.put(Column.harvestable_name.name(), harvestJob.name);
+          parameters.put(Column.type.name(), harvestJob.type);
+          parameters.put(Column.url.name(), harvestJob.url);
+          parameters.put(Column.allow_errors.name(), harvestJob.allowErrors);
+          if (harvestJob.recordLimit != null) {
+            parameters.put(Column.record_limit.name(), harvestJob.recordLimit);
+          }
+          if (harvestJob.batchSize != null) {
+            parameters.put(Column.batch_size.name(), harvestJob.batchSize);
+          }
+          parameters.put(Column.transformation.name(), harvestJob.transformation);
+          parameters.put(Column.storage.name(), harvestJob.storage);
+          parameters.put(Column.status.name(), harvestJob.status);
+          parameters.put(Column.started.name(), harvestJob.started);
+          parameters.put(Column.finished.name(), harvestJob.finished);
+          if (harvestJob.amountHarvested != null) {
+            parameters.put(Column.amount_harvested.name(), harvestJob.amountHarvested);
+          }
+          parameters.put(Column.message.name(), harvestJob.message);
+          return parameters;
+        });
   }
+
+  /**
+   * Table output mapping.
+   */
+  public static RowMapper<HarvestJob> getSelectListMapper() {
+    return row -> {
+      HarvestJob harvestJob = new HarvestJob();
+      harvestJob.id = row.getUUID(Column.id.name());
+      harvestJob.name = row.getString(Column.harvestable_name.name());
+      harvestJob.harvestableId = row.getInteger(Column.harvestable_id.name());
+      harvestJob.type = row.getString(Column.type.name());
+      harvestJob.url = row.getString(Column.url.name());
+      harvestJob.allowErrors = row.getBoolean(Column.allow_errors.name());
+      if (row.getValue(Column.record_limit.name()) != null) {
+        harvestJob.recordLimit = row.getInteger(Column.record_limit.name());
+      }
+      harvestJob.transformation = row.getString(Column.transformation.name());
+      harvestJob.storage = row.getString(Column.storage.name());
+      harvestJob.status = row.getString(Column.status.name());
+      if (row.getValue(Column.started.name()) != null) {
+        harvestJob.started = row.getLocalDateTime(Column.started.name()).toString();
+      }
+      if (row.getValue(Column.finished.name()) != null) {
+        harvestJob.finished = row.getLocalDateTime(Column.finished.name()).toString();
+      }
+      if (row.getValue(Column.amount_harvested.name()) != null) {
+        harvestJob.amountHarvested = row.getInteger(Column.amount_harvested.name());
+      }
+      harvestJob.message = row.getString(Column.message.name());
+      return harvestJob;
+    };
+  }
+
 
 }

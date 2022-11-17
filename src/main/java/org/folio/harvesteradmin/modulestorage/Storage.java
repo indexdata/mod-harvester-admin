@@ -20,9 +20,9 @@ import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.tlib.postgres.TenantPgPool;
 
-public class HarvestAdminStorage {
+public class Storage {
   TenantPgPool pool;
-  private static final Logger logger = LogManager.getLogger(HarvestAdminStorage.class);
+  private static final Logger logger = LogManager.getLogger(Storage.class);
 
 
   public enum Table {
@@ -30,29 +30,12 @@ public class HarvestAdminStorage {
     log_statement
   }
 
-  public enum HarvestJobTable {
-    id,
-    harvestable_id,
-    harvestable_name,
-    started,
-    finished,
-    amount_harvested,
-    message,
-    type
-  }
 
-  public enum LogStatementTable {
-    id,
-    harvest_job_id,
-    seq,
-    statement
-  }
-
-  public HarvestAdminStorage(Vertx vertx, String tenant) {
+  public Storage(Vertx vertx, String tenant) {
     pool = TenantPgPool.pool(vertx, tenant);
   }
 
-  private String schemaTable(Table table) {
+  public String schemaTable(Table table) {
     return pool.getSchema() + "." + table.name();
   }
 
@@ -67,82 +50,37 @@ public class HarvestAdminStorage {
       return Future.succeededFuture(); // doing nothing for disable
     }
     Promise<Void> promise = Promise.promise();
-    List<Future> tables = new ArrayList<>();
-    tables.add(pool.query(
-        "CREATE TABLE IF NOT EXISTS " + schemaTable(Table.harvest_job)
-            + "("
-            + HarvestJobTable.id + " UUID PRIMARY KEY, "
-            + HarvestJobTable.harvestable_id + " INTEGER, "
-            + HarvestJobTable.harvestable_name + " TEXT, "
-            + HarvestJobTable.type + " TEXT, "
-            + HarvestJobTable.started + " TIMESTAMP, "
-            + HarvestJobTable.finished + " TIMESTAMP, "
-            + HarvestJobTable.amount_harvested + " INTEGER, "
-            + HarvestJobTable.message + " TEXT"
-            + ")").execute().mapEmpty());
-
-    tables.add(pool.query(
-        "CREATE TABLE IF NOT EXISTS " + schemaTable(Table.log_statement)
-            + "("
-            + LogStatementTable.id + " UUID PRIMARY KEY, "
-            + LogStatementTable.harvest_job_id + " UUID "
-            + " REFERENCES " + schemaTable(Table.harvest_job) + "( " + HarvestJobTable.id + "), "
-            + LogStatementTable.seq + " INTEGER, "
-            + LogStatementTable.statement + " TEXT"
-            + ")").execute().mapEmpty());
-
+    @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
+    tables.add(pool.query(HarvestJob.getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    tables.add(pool.query(LogLine.getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     CompositeFuture.all(tables).onComplete(creates -> promise.complete());
-
-    /* Template for processing parameters if needed at a later point.
-    JsonArray parameters = tenantAttributes.getJsonArray("parameters");
-    if (parameters != null) {
-      for (int i = 0; i < parameters.size(); i++) {
-        JsonObject parameter = parameters.getJsonObject(i);
-        if ("loadSample".equals(parameter.getString("key"))
-            && "true".equals(parameter.getString("value"))) {
-        }
-      }
-    }
-    */
     return promise.future();
   }
+
+  /* Template for processing parameters in init.
+  JsonArray parameters = tenantAttributes.getJsonArray("parameters");
+  if (parameters != null) {
+    for (int i = 0; i < parameters.size(); i++) {
+      JsonObject parameter = parameters.getJsonObject(i);
+      if ("loadSample".equals(parameter.getString("key"))
+          && "true".equals(parameter.getString("value"))) {
+      }
+    }
+  }
+  */
 
 
   /**
    * Stores a harvest job.
    */
   public Future<UUID> storeHarvestJob(HarvestJob harvestJob) {
-    String insertStatement = "INSERT INTO " + schemaTable(Table.harvest_job)
-        + " ("
-        + HarvestJobTable.id + ", "
-        + HarvestJobTable.harvestable_id + ", "
-        + HarvestJobTable.harvestable_name + ", "
-        + HarvestJobTable.type + ", "
-        + HarvestJobTable.started + ", "
-        + HarvestJobTable.finished + ", "
-        + HarvestJobTable.amount_harvested + ", "
-        + HarvestJobTable.message
-        + ")"
-        + " VALUES ("
-        + "#{" + HarvestJobTable.id + "}, "
-        + "#{" + HarvestJobTable.harvestable_id + "}, "
-        + "#{" + HarvestJobTable.harvestable_name + "}, "
-        + "#{" + HarvestJobTable.type + "}, "
-        + "TO_TIMESTAMP(#{" + HarvestJobTable.started + "},'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
-        + "TO_TIMESTAMP(#{" + HarvestJobTable.finished + "}, 'YYYY-MM-DD''T''HH24:MI:SS''Z'''), "
-        + "#{" + HarvestJobTable.amount_harvested + "}, "
-        + "#{" + HarvestJobTable.message + "}"
-        + ")";
-    return SqlTemplate.forUpdate(pool.getPool(), insertStatement)
-        .mapFrom(HarvestJob.tupleMapper())
+    return SqlTemplate.forUpdate(pool.getPool(),
+            HarvestJob.getInsertTemplate(pool.getSchema()))
+        .mapFrom(HarvestJob.getInsertValuesMapper())
         .execute(harvestJob)
-        .onSuccess(res -> {
-          logger.info("Saved harvest job");
-        })
-        .onFailure(res -> {
-          logger.error("Didn't save harvest job: " + res.getMessage());
-        })
-        .map(harvestJob.getId());
+        .onSuccess(res -> logger.info("Saved harvest job"))
+        .onFailure(res -> logger.error("Couldn't save harvest job: " + res.getMessage()))
+        .map(harvestJob.id());
   }
 
   /**
@@ -160,24 +98,10 @@ public class HarvestAdminStorage {
           logLines.add(new LogLine(harvestJobId, line, sequence));
         }
         return SqlTemplate.forUpdate(pool.getPool(),
-                "INSERT INTO " + schemaTable(Table.log_statement)
-                    + " ("
-                    + LogStatementTable.id + ", "
-                    + LogStatementTable.harvest_job_id + ", "
-                    + LogStatementTable.seq + ", "
-                    + LogStatementTable.statement
-                    + ")"
-                    + " VALUES ("
-                    + "#{" + LogStatementTable.id + "}, "
-                    + "#{" + LogStatementTable.harvest_job_id + "}, "
-                    + "#{" + LogStatementTable.seq + "}, "
-                    + "#{" + LogStatementTable.statement + "}"
-                    + ")")
-            .mapFrom(LogLine.tupleMapper())
+            LogLine.getInsertTemplate(pool.getSchema()))
+            .mapFrom(LogLine.getInsertValuesMapper())
             .executeBatch(logLines)
-            .onFailure(res -> {
-              logger.error("Didn't save log lines: " + res.getMessage());
-            })
+            .onFailure(res -> logger.error("Didn't save log lines: " + res.getMessage()))
             .mapEmpty();
 
       } catch (IOException ioe) {
@@ -195,12 +119,11 @@ public class HarvestAdminStorage {
   public Future<List<HarvestJob>> getPreviousJobs() {
     List<HarvestJob> previousJobs = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * FROM " + schemaTable(Table.harvest_job))
-        .mapTo(HarvestJob.rowMapper())
+            "SELECT * "
+                + "FROM " + schemaTable(Table.harvest_job))
+        .mapTo(HarvestJob.getSelectListMapper())
         .execute(null)
-        .onSuccess(rows -> {
-          rows.forEach(previousJobs::add);
-        }).map(previousJobs);
+        .onSuccess(rows -> rows.forEach(previousJobs::add)).map(previousJobs);
   }
 
   /**
@@ -211,7 +134,7 @@ public class HarvestAdminStorage {
             "SELECT * "
                 + "FROM " + schemaTable(Table.harvest_job) + " "
                 + "WHERE id = #{id}")
-        .mapTo(HarvestJob.rowMapper())
+        .mapTo(HarvestJob.getSelectListMapper())
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
           RowIterator<HarvestJob> iterator = rows.iterator();
@@ -233,9 +156,8 @@ public class HarvestAdminStorage {
         .execute(Collections.singletonMap("id", id))
         .onComplete(rows -> {
           if (rows.succeeded()) {
-            rows.result().forEach(row -> {
-              log.append(row.getString("statement")).append(System.lineSeparator());
-            });
+            rows.result().forEach(row -> log.append(row.getString(LogLine.Column.statement.name()))
+                .append(System.lineSeparator()));
             promise.complete(log.toString());
           }
         });
