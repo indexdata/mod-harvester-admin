@@ -16,6 +16,7 @@ import io.vertx.ext.web.validation.RequestParameters;
 import io.vertx.ext.web.validation.ValidationHandler;
 import java.util.List;
 import java.util.UUID;
+import org.folio.harvesteradmin.dataaccess.JobLauncher;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.modulestorage.Storage;
@@ -142,6 +143,14 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     routerBuilder
         .operation("deleteTsa")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
+
+    routerBuilder
+        .operation("startJob")
+        .handler(ctx -> startJob(vertx, ctx));
+    routerBuilder
+        .operation("stopJob")
+        .handler(ctx -> stopJob(vertx, ctx));
+
   }
 
   @Override
@@ -247,6 +256,18 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .onComplete(response -> responseText(routingContext, 204).end())
         .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
         .mapEmpty();
+  }
+
+  private void startJob(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    JobLauncher launcher = new JobLauncher(vertx, tenant);
+    launcher.startJob(routingContext);
+  }
+
+  private void stopJob(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    JobLauncher launcher = new JobLauncher(vertx, tenant);
+    launcher.stopJob(routingContext);
   }
 
   private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
