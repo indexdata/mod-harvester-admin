@@ -605,24 +605,45 @@ public class LegacyHarvesterStorage {
   }
 
   /**
-   * Gets a failed record by harvestable ID and record number.
+   * Gets failed records.
    */
-  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(
-      RoutingContext routingContext) {
-    Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+  public Future<ProcessedHarvesterResponseGet> getFailedRecords(RoutingContext routingContext) {
+    Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
-    String num = routingContext.request().getParam("num");
-    String failedRecordUri =
-        HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records/" + num + ".xml";
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
         if (idLookup.result().wasNotFound()) {
-          promise.fail("Could not find harvestable with ID " + id);
+          promise.complete(
+              new ProcessedHarvesterResponseGet(
+                  new JsonObject(), 404, "No harvestable found with ID " + id));
         } else if (idLookup.result().wasOK()) {
-          harvesterGetRequest(failedRecordUri)
-              .send(ar ->  promise.complete(
-                  new ProcessedHarvesterResponseGetById(ar,failedRecordUri,id,"")));
+          harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records")
+              .send(ar -> {
+                ProcessedHarvesterResponseGet listResponse =
+                    new ProcessedHarvesterResponseGet(ar,
+                        HARVESTER_HARVESTABLES_PATH + "/" + id + "/failed-records",null);
+                JsonObject fileList = listResponse.jsonObject();
+                JsonArray fileArray = fileList.getJsonArray("failed-records");
+                List<Future> failedRecordFutures = new ArrayList<>();
+                for (Object o : fileArray) {
+                  JsonObject entry = (JsonObject) o;
+                  failedRecordFutures.add(getFailedRecord(entry.getString("url")));
+                }
+                CompositeFuture.all(failedRecordFutures).onComplete(results -> {
+                  JsonObject response = new JsonObject();
+                  JsonArray failedRecords = new JsonArray();
+                  response.put("failed-records", failedRecords);
+                  for (int i = 0; i < results.result().list().size(); i++) {
+                    JsonObject record = ((ProcessedHarvesterResponseGetById) results
+                        .result().resultAt(i)).jsonObject();
+                    record.getJsonObject("failed-record").put("harvestableId",id);
+                    failedRecords.add(record.getJsonObject("failed-record"));
+                  }
+                  response.put("totalRecords", failedRecords.size());
+                  promise.complete(new ProcessedHarvesterResponseGet(response, 200, null));
+                });
+              });
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
               + HARVESTER_HARVESTABLES_PATH + "/" + id
@@ -633,6 +654,53 @@ public class LegacyHarvesterStorage {
             + "/" + id + " to get logs : " + idLookup.cause().getMessage());
       }
     });
+    return promise.future();
+  }
+
+  /**
+   * Gets a failed record by harvestable ID and record number.
+   */
+  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(
+      RoutingContext routingContext) {
+    String id = routingContext.request().getParam("id");
+    String num = routingContext.request().getParam("num");
+    return getFailedRecord(id, num);
+  }
+
+  /**
+   * Gets a failed record by harvestable ID and record number.
+   */
+  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(
+      String harvestableId, String recordNum) {
+    Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+    String failedRecordUri =
+        HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records/" + recordNum + ".xml";
+    getConfigRecordById(HARVESTER_HARVESTABLES_PATH, harvestableId).onComplete(idLookup -> {
+      if (idLookup.succeeded()) {
+        ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
+        if (idLookup.result().wasNotFound()) {
+          promise.fail("Could not find harvestable with ID " + harvestableId);
+        } else if (idLookup.result().wasOK()) {
+          harvesterGetRequest(failedRecordUri)
+              .send(ar ->  promise.complete(
+                  new ProcessedHarvesterResponseGetById(ar,failedRecordUri,harvestableId,"")));
+        } else {
+          promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
+              + HARVESTER_HARVESTABLES_PATH + "/" + harvestableId
+              + " to get logs: " + idLookUpResponse.errorMessage());
+        }
+      } else {
+        promise.fail("Could not look up harvest job " + HARVESTER_HARVESTABLES_PATH
+            + "/" + harvestableId + " to get logs : " + idLookup.cause().getMessage());
+      }
+    });
+    return promise.future();
+  }
+
+  private Future<ProcessedHarvesterResponseGetById> getFailedRecord(String uri) {
+    Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+    harvesterGetRequest(uri)
+        .send(ar ->  promise.complete(new ProcessedHarvesterResponseGetById(ar,uri,"","")));
     return promise.future();
   }
 
