@@ -293,7 +293,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> getFailedRecords(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getFailedRecordsListing(routingContext).onComplete(getResponse -> {
+    return legacyStorage.getFailedRecords(routingContext).onComplete(getResponse -> {
       if (getResponse.result().wasOK()) {
         responseJson(
             routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());

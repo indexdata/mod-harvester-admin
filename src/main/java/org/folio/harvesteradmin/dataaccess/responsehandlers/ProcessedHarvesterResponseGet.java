@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
 
 public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
-  private int totalRecords;
   private static final Pattern exceptionDescriptionPattern =
       Pattern.compile("(Exception Description:.*?[\\n\\r]+.*?[\\n\\r]+)", Pattern.DOTALL);
 
@@ -25,7 +24,6 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
       statusCode = harvesterStatusCode;
       if (harvesterStatusCode == 200) {
         jsonObject = HarvesterXml2Json.convertRecordSetToJson(bodyAsString);
-        totalRecords = Integer.parseInt(jsonObject.getString("totalRecords"));
       } else if (harvesterStatusCode == 500
           && bodyAsString.contains(
               "An exception occurred while creating a query in EntityManager")) {
@@ -48,6 +46,17 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
       errorMessage = "GET request to " + harvesterPath + " failed"
           + (query != null ? " for query " + query : "") + ". Cause: "
           + response.cause().getMessage();
+    }
+  }
+
+  /**
+   * Constructor.
+   */
+  public ProcessedHarvesterResponseGet(JsonObject json, int statusCode, String errorMessage) {
+    this.jsonObject = json;
+    this.statusCode = statusCode;
+    if (errorMessage != null && ! errorMessage.isEmpty()) {
+      this.errorMessage = errorMessage;
     }
   }
 
