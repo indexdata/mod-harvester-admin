@@ -18,6 +18,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
+import org.folio.harvesteradmin.moduledata.RecordFailure;
+import org.folio.harvesteradmin.moduledata.StoredEntity;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Storage {
@@ -26,7 +28,8 @@ public class Storage {
 
   public enum Table {
     harvest_job,
-    log_statement
+    log_statement,
+    record_failure
   }
 
   public Storage(Vertx vertx, String tenant) {
@@ -47,10 +50,14 @@ public class Storage {
     if (!tenantAttributes.containsKey("module_to")) {
       return Future.succeededFuture(); // doing nothing for disable
     }
-    Promise<Void> promise = Promise.promise();
+    final Promise<Void> promise = Promise.promise();
     @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
-    tables.add(pool.query(HarvestJob.getCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    tables.add(pool.query(LogLine.getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    tables.add(
+        pool.query(HarvestJob.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    tables.add(
+        pool.query(LogLine.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    tables.add(
+        pool.query(RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     CompositeFuture.all(tables).onComplete(creates -> promise.complete());
     return promise.future();
   }
@@ -73,8 +80,8 @@ public class Storage {
    */
   public Future<UUID> storeHarvestJob(HarvestJob harvestJob) {
     return SqlTemplate.forUpdate(pool.getPool(),
-            HarvestJob.getInsertTemplate(pool.getSchema()))
-        .mapFrom(HarvestJob.getInsertValuesMapper())
+            harvestJob.getInsertTemplate(pool.getSchema()))
+        .mapFrom(harvestJob.getInsertValuesMapper())
         .execute(harvestJob)
         .onSuccess(res -> logger.info("Saved harvest job"))
         .onFailure(res -> logger.error("Couldn't save harvest job: " + res.getMessage()))
@@ -88,7 +95,7 @@ public class Storage {
     if (log != null) {
       BufferedReader bufReader = new BufferedReader(new StringReader(log));
       try {
-        List<LogLine> logLines = new ArrayList<>();
+        List<StoredEntity> logLines = new ArrayList<>();
         String line;
         int sequence = 0;
         while ((line = bufReader.readLine()) != null) {
@@ -96,8 +103,8 @@ public class Storage {
           logLines.add(new LogLine(harvestJobId, line, sequence));
         }
         return SqlTemplate.forUpdate(pool.getPool(),
-            LogLine.getInsertTemplate(pool.getSchema()))
-            .mapFrom(LogLine.getInsertValuesMapper())
+            LogLine.entity().getInsertTemplate(pool.getSchema()))
+            .mapFrom(LogLine.entity().getInsertValuesMapper())
             .executeBatch(logLines)
             .onFailure(res -> logger.error("Didn't save log lines: " + res.getMessage()))
             .mapEmpty();
@@ -119,9 +126,13 @@ public class Storage {
     return SqlTemplate.forQuery(pool.getPool(),
             "SELECT * "
                 + "FROM " + schemaTable(Table.harvest_job))
-        .mapTo(HarvestJob.getSelectListMapper())
+        .mapTo(HarvestJob.entity().getSelectListMapper())
         .execute(null)
-        .onSuccess(rows -> rows.forEach(previousJobs::add)).map(previousJobs);
+        .onSuccess(rows -> {
+          for (StoredEntity entity : rows) {
+            previousJobs.add((HarvestJob) entity);
+          }
+        }).map(previousJobs);
   }
 
   /**
@@ -132,11 +143,11 @@ public class Storage {
             "SELECT * "
                 + "FROM " + schemaTable(Table.harvest_job) + " "
                 + "WHERE id = #{id}")
-        .mapTo(HarvestJob.getSelectListMapper())
+        .mapTo(HarvestJob.entity().getSelectListMapper())
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
-          RowIterator<HarvestJob> iterator = rows.iterator();
-          return iterator.hasNext() ? iterator.next() : null;
+          RowIterator<StoredEntity> iterator = rows.iterator();
+          return iterator.hasNext() ? (HarvestJob) iterator.next() : null;
         });
   }
 

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.folio.harvesteradmin.modulestorage.Storage;
 
-public class HarvestJob {
+public class HarvestJob extends StoredEntity {
 
   private UUID id;
   private int harvestableId;
@@ -30,6 +30,10 @@ public class HarvestJob {
 
   public HarvestJob() {
     super();
+  }
+
+  public static HarvestJob entity() {
+    return new HarvestJob();
   }
 
   public UUID id() {
@@ -125,7 +129,7 @@ public class HarvestJob {
   /**
    * CREATE TABLE statement.
    */
-  public static String getCreateTableSql(String schema) {
+  public String getCreateTableSql(String schema) {
     return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.harvest_job
         + "("
         + Column.id + " UUID PRIMARY KEY, "
@@ -149,7 +153,7 @@ public class HarvestJob {
   /**
    * INSERT INTO statement.
    */
-  public static String getInsertTemplate(String schema) {
+  public String getInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Storage.Table.harvest_job
         + " ("
         + Column.id + ", "
@@ -190,31 +194,32 @@ public class HarvestJob {
   /**
    * Table input mapping.
    */
-  public static TupleMapper<HarvestJob> getInsertValuesMapper() {
+  public TupleMapper<StoredEntity> getInsertValuesMapper() {
     return TupleMapper.mapper(
         harvestJob -> {
+          HarvestJob entity = (HarvestJob) harvestJob;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(Column.id.name(), harvestJob.id);
-          parameters.put(Column.harvestable_id.name(), harvestJob.harvestableId);
-          parameters.put(Column.harvestable_name.name(), harvestJob.name);
-          parameters.put(Column.type.name(), harvestJob.type);
-          parameters.put(Column.url.name(), harvestJob.url);
-          parameters.put(Column.allow_errors.name(), harvestJob.allowErrors);
-          if (harvestJob.recordLimit != null) {
-            parameters.put(Column.record_limit.name(), harvestJob.recordLimit);
+          parameters.put(Column.id.name(), entity.id);
+          parameters.put(Column.harvestable_id.name(), entity.harvestableId);
+          parameters.put(Column.harvestable_name.name(), entity.name);
+          parameters.put(Column.type.name(), entity.type);
+          parameters.put(Column.url.name(), entity.url);
+          parameters.put(Column.allow_errors.name(), entity.allowErrors);
+          if (entity.recordLimit != null) {
+            parameters.put(Column.record_limit.name(), entity.recordLimit);
           }
-          if (harvestJob.batchSize != null) {
-            parameters.put(Column.batch_size.name(), harvestJob.batchSize);
+          if (entity.batchSize != null) {
+            parameters.put(Column.batch_size.name(), entity.batchSize);
           }
-          parameters.put(Column.transformation.name(), harvestJob.transformation);
-          parameters.put(Column.storage.name(), harvestJob.storage);
-          parameters.put(Column.status.name(), harvestJob.status);
-          parameters.put(Column.started.name(), harvestJob.started);
-          parameters.put(Column.finished.name(), harvestJob.finished);
-          if (harvestJob.amountHarvested != null) {
-            parameters.put(Column.amount_harvested.name(), harvestJob.amountHarvested);
+          parameters.put(Column.transformation.name(), entity.transformation);
+          parameters.put(Column.storage.name(), entity.storage);
+          parameters.put(Column.status.name(), entity.status);
+          parameters.put(Column.started.name(), entity.started);
+          parameters.put(Column.finished.name(), entity.finished);
+          if (entity.amountHarvested != null) {
+            parameters.put(Column.amount_harvested.name(), entity.amountHarvested);
           }
-          parameters.put(Column.message.name(), harvestJob.message);
+          parameters.put(Column.message.name(), entity.message);
           return parameters;
         });
   }
@@ -222,7 +227,7 @@ public class HarvestJob {
   /**
    * Table output mapping.
    */
-  public static RowMapper<HarvestJob> getSelectListMapper() {
+  public RowMapper<StoredEntity> getSelectListMapper() {
     return row -> {
       HarvestJob harvestJob = new HarvestJob();
       harvestJob.id = row.getUUID(Column.id.name());
