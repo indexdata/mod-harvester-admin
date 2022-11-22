@@ -4,6 +4,7 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.templates.SqlTemplate;
@@ -53,11 +54,14 @@ public class Storage {
     final Promise<Void> promise = Promise.promise();
     @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
     tables.add(
-        pool.query(HarvestJob.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+        pool.query(
+            HarvestJob.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     tables.add(
-        pool.query(LogLine.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+        pool.query(
+            LogLine.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     tables.add(
-        pool.query(RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+        pool.query(
+            RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     CompositeFuture.all(tables).onComplete(creates -> promise.complete());
     return promise.future();
   }
@@ -119,6 +123,30 @@ public class Storage {
   }
 
   /**
+   * Stores failed records.
+   */
+  public Future<Void> storeFailedRecords(UUID harvestJobId, JsonArray failedRecords) {
+    if (failedRecords != null && ! failedRecords.isEmpty()) {
+      List<StoredEntity> list = new ArrayList<>();
+      for (Object rec : failedRecords) {
+        JsonObject failedRecord = (JsonObject) rec;
+        logger.info("Adding failed record " + failedRecord.encodePrettily());
+        list.add(RecordFailure.fromLegacyHarvesterJson(harvestJobId, failedRecord));
+      }
+      return SqlTemplate.forUpdate(pool.getPool(),
+          RecordFailure.entity().getInsertTemplate(pool.getSchema()))
+          .mapFrom(RecordFailure.entity().getInsertValuesMapper())
+          .executeBatch(list)
+          .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
+          .mapEmpty();
+
+    } else {
+      logger.info("No failure records to store for harvest job " + harvestJobId);
+      return Future.succeededFuture();
+    }
+  }
+
+  /**
    * Gets previous jobs from module's storage.
    */
   public Future<List<HarvestJob>> getPreviousJobs() {
@@ -171,6 +199,24 @@ public class Storage {
           }
         });
     return promise.future();
+  }
+
+  /**
+   * Retrieves failed records for past harvest job.
+   */
+  public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(UUID id) {
+    List<RecordFailure> recordFailures = new ArrayList<>();
+    return SqlTemplate.forQuery(pool.getPool(),
+            "SELECT * "
+                + "FROM " + schemaTable(Table.record_failure) + " "
+                + "WHERE harvest_job_id = #{id} ")
+        .mapTo(RecordFailure.entity().getSelectListMapper())
+        .execute(Collections.singletonMap("id", id))
+        .onSuccess(rows -> {
+          for (StoredEntity entity : rows) {
+            recordFailures.add((RecordFailure) entity);
+          }
+        }).map(recordFailures);
   }
 
   /*

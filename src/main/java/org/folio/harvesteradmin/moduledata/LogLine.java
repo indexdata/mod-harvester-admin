@@ -59,8 +59,8 @@ public class LogLine extends StoredEntity {
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID REFERENCES "
         +         schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Column.id + "), "
-        + Column.seq + " INTEGER, "
-        + Column.statement + " TEXT"
+        + Column.seq + " INTEGER NOT NULL, "
+        + Column.statement + " TEXT NOT NULL"
         + ")";
   }
 
