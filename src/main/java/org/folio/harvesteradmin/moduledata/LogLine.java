@@ -14,12 +14,12 @@ public class LogLine extends StoredEntity {
   /**
    * Entity properties.
    */
-  private final UUID id;
-  private final UUID harvestJobId;
-  private final String timeStamp;
-  private final String logLevel;
-  private final String jobLabel;
-  private final String line;
+  private UUID id;
+  private UUID harvestJobId;
+  private String timeStamp;
+  private String logLevel;
+  private String jobLabel;
+  private String line;
   private int sequenceNumber;
 
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS,MS";
@@ -99,7 +99,16 @@ public class LogLine extends StoredEntity {
 
   @Override
   public RowMapper<StoredEntity> getSelectListMapper() {
-    return null;
+    return row -> {
+      LogLine logLine = new LogLine();
+      logLine.id = row.getUUID(LogLine.Column.id.name());
+      logLine.harvestJobId = row.getUUID(Column.harvest_job_id.name());
+      logLine.timeStamp = row.getLocalDateTime(Column.time_stamp.name()).toString();
+      logLine.logLevel = row.getString(Column.log_level.name());
+      logLine.jobLabel = row.getString(Column.job_label.name());
+      logLine.line = row.getString(Column.statement.name());
+      return logLine;
+    };
   }
 
   /**
@@ -144,6 +153,10 @@ public class LogLine extends StoredEntity {
           parameters.put(Column.statement.name(), logLine.line);
           return parameters;
         });
+  }
+
+  public String toString() {
+    return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);
   }
 
 }

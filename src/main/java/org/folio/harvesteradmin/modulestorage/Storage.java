@@ -203,17 +203,17 @@ public class Storage {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
     SqlTemplate.forQuery(pool.getPool(),
-            "SELECT statement "
+            "SELECT * "
                 + "FROM " + schemaTable(Table.log_statement) + " "
                 + "WHERE harvest_job_id = #{id} "
                 + "ORDER BY seq")
+        .mapTo(LogLine.entity().getSelectListMapper())
         .execute(Collections.singletonMap("id", id))
-        .onComplete(rows -> {
-          if (rows.succeeded()) {
-            rows.result().forEach(row -> log.append(row.getString(LogLine.Column.statement.name()))
-                .append(System.lineSeparator()));
-            promise.complete(log.toString());
+        .onSuccess(rows -> {
+          for (StoredEntity entity : rows) {
+            log.append(entity).append(System.lineSeparator());
           }
+          promise.complete(log.toString());
         });
     return promise.future();
   }
