@@ -335,8 +335,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           if (harvestable.result().wasNotFound()) {
             responseText(routingContext, 404).end("No job found with ID " + harvestableId);
           } else if (harvestable.result().wasOK()) {
+            String harvestStartedDate =
+                harvestable.result().jsonObject().getString("lastHarvestStarted");
             CompositeFuture.all(
-                    legacyStorage.getJobLog(harvestableId),
+                    legacyStorage.getJobLog(harvestableId, harvestStartedDate),
                     legacyStorage.getFailedRecords(harvestableId))
                 .onComplete(logResults -> {
                   HttpResponseImpl<Buffer> logsResponse = logResults.result().resultAt(0);

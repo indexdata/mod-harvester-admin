@@ -551,13 +551,17 @@ public class LegacyHarvesterStorage {
   public Future<HttpResponse<Buffer>> getJobLog(RoutingContext routingContext) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
+    String fromParameter = routingContext.request().getParam("from");
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
         if (idLookup.result().wasNotFound()) {
           promise.fail("Could not find harvestable with ID " + id);
         } else if (idLookup.result().wasOK()) {
-          getJobLog(id).onComplete(ar -> promise.complete(ar.result()));
+          String from = fromParameter != null && !fromParameter.isEmpty()
+              ? fromParameter
+              : idLookup.result().jsonObject().getString("lastHarvestStarted");
+          getJobLog(id, from).onComplete(ar -> promise.complete(ar.result()));
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
               + HARVESTER_HARVESTABLES_PATH + "/" + id
@@ -574,9 +578,10 @@ public class LegacyHarvesterStorage {
   /**
    * Gets a job log.
    */
-  public Future<HttpResponse<Buffer>> getJobLog(String harvestableId) {
+  public Future<HttpResponse<Buffer>> getJobLog(String harvestableId, String fromDate) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
-    harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log")
+    harvesterGetRequest(
+        HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from=" + fromDate)
         .send(ar -> promise.complete(ar.result()));
     return promise.future();
   }
