@@ -414,7 +414,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     UUID id = UUID.fromString(params.pathParameter("id").getString());
     Storage storage = new Storage(vertx, tenant);
-    return storage.getPreviousJobLog(id)
+    return storage.getLogsForPreviousJob(id)
         .onComplete(jobLog -> {
           if (jobLog.result().length() == 0) {
             storage.getPreviousJobById(id).onComplete(harvestJob -> {

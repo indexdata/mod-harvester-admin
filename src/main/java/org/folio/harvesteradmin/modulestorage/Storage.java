@@ -6,6 +6,10 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.validation.RequestParameter;
+import io.vertx.ext.web.validation.RequestParameters;
+import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
@@ -21,6 +25,9 @@ import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.StoredEntity;
+import org.folio.tlib.postgres.PgCqlDefinition;
+import org.folio.tlib.postgres.PgCqlField;
+import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Storage {
@@ -64,20 +71,19 @@ public class Storage {
             RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
     CompositeFuture.all(tables).onComplete(creates -> promise.complete());
     return promise.future();
-  }
 
-  /* Template for processing parameters in init.
-  JsonArray parameters = tenantAttributes.getJsonArray("parameters");
-  if (parameters != null) {
-    for (int i = 0; i < parameters.size(); i++) {
-      JsonObject parameter = parameters.getJsonObject(i);
-      if ("loadSample".equals(parameter.getString("key"))
-          && "true".equals(parameter.getString("value"))) {
+    /* Template for processing parameters in init.
+      JsonArray parameters = tenantAttributes.getJsonArray("parameters");
+      if (parameters != null) {
+        for (int i = 0; i < parameters.size(); i++) {
+          JsonObject parameter = parameters.getJsonObject(i);
+          if ("loadSample".equals(parameter.getString("key"))
+              && "true".equals(parameter.getString("value"))) {
+          }
+        }
       }
-    }
+    */
   }
-  */
-
 
   /**
    * Stores a harvest job.
@@ -102,10 +108,22 @@ public class Storage {
         List<StoredEntity> logLines = new ArrayList<>();
         String line;
         int sequence = 0;
+        int nonMatches = 0;
+        long startParse = System.currentTimeMillis();
         while ((line = bufReader.readLine()) != null) {
-          sequence++;
-          logLines.add(new LogLine(harvestJobId, line, sequence));
+          if (line.length() > 100) {
+            LogLine logLine = new LogLine(harvestJobId, line, ++sequence);
+            if (logLine.getId() != null) {
+              logLines.add(new LogLine(harvestJobId, line, sequence));
+            } else {
+              nonMatches++;
+            }
+          }
         }
+        logger.info("Parsed " + sequence + " log lines in "
+            + (System.currentTimeMillis() - startParse) / 1000 + " seconds."
+            + (nonMatches > 0
+            ? "There were " + nonMatches + " log statements that could not be parsed!" : ""));
         return SqlTemplate.forUpdate(pool.getPool(),
             LogLine.entity().getInsertTemplate(pool.getSchema()))
             .mapFrom(LogLine.entity().getInsertValuesMapper())
@@ -130,7 +148,6 @@ public class Storage {
       List<StoredEntity> list = new ArrayList<>();
       for (Object rec : failedRecords) {
         JsonObject failedRecord = (JsonObject) rec;
-        logger.info("Adding failed record " + failedRecord.encodePrettily());
         list.add(RecordFailure.fromLegacyHarvesterJson(harvestJobId, failedRecord));
       }
       return SqlTemplate.forUpdate(pool.getPool(),
@@ -182,7 +199,7 @@ public class Storage {
   /**
    * Retrieves log for past harvest job.
    */
-  public Future<String> getPreviousJobLog(UUID id) {
+  public Future<String> getLogsForPreviousJob(UUID id) {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
     SqlTemplate.forQuery(pool.getPool(),
@@ -199,6 +216,10 @@ public class Storage {
           }
         });
     return promise.future();
+  }
+
+  public Future<String> getLogsForPreviousJobs(String query) {
+    return null;
   }
 
   /**
@@ -219,26 +240,25 @@ public class Storage {
         }).map(recordFailures);
   }
 
-  /*
-   Template for creating query:
-      private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool)
-        RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-        PgCqlQuery pgCqlQuery = PgCqlQuery.query();
-        RequestParameter query = params.queryParameter("query");
-        pgCqlQuery.parse(query == null ? null : query.getString());
-        pgCqlQuery.addField(new PgCqlField("cql.allRecords", PgCqlField.Type.ALWAYS_MATCHES));
-        pgCqlQuery.addField(new PgCqlField("id", PgCqlField.Type.UUID));
-        pgCqlQuery.addField(new PgCqlField("title", PgCqlField.Type.FULLTEXT));
-        String sql = "SELECT * FROM " + getMyTable(pool);
-        String where = pgCqlQuery.getWhereClause();
-        if (where != null) {
-          sql = sql + " WHERE " + where;
-        }
-        String orderBy = pgCqlQuery.getOrderByClause();
-        if (orderBy != null) {
-          sql = sql + " ORDER BY " + orderBy;
-        }
-        return sql;
-   */
+  private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool) {
+    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
+    pgCqlDefinition.addField(new PgCqlField("cql.allRecords", PgCqlField.Type.ALWAYS_MATCHES));
+    pgCqlDefinition.addField(new PgCqlField("id", PgCqlField.Type.UUID));
+    pgCqlDefinition.addField(new PgCqlField("title", PgCqlField.Type.FULLTEXT));
+
+    RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    RequestParameter query = params.queryParameter("query");
+    PgCqlQuery pgCqlQuery = pgCqlDefinition.parse(query == null ? null : query.getString());
+    String sql = "SELECT * FROM " + "getMyTable(pool)";
+    String where = pgCqlQuery.getWhereClause();
+    if (where != null) {
+      sql = sql + " WHERE " + where;
+    }
+    String orderBy = pgCqlQuery.getOrderByClause();
+    if (orderBy != null) {
+      sql = sql + " ORDER BY " + orderBy;
+    }
+    return sql;
+  }
 
 }
