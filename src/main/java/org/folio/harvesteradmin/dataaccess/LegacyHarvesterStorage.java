@@ -560,7 +560,7 @@ public class LegacyHarvesterStorage {
         } else if (idLookup.result().wasOK()) {
           String from = fromParameter != null && !fromParameter.isEmpty()
               ? fromParameter
-              : idLookup.result().jsonObject().getString("lastHarvestStarted");
+              : idLookup.result().jsonObject().getString("lastHarvestStarted").substring(0,19);
           getJobLog(id, from).onComplete(ar -> promise.complete(ar.result()));
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
@@ -581,7 +581,8 @@ public class LegacyHarvesterStorage {
   public Future<HttpResponse<Buffer>> getJobLog(String harvestableId, String fromDate) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
     harvesterGetRequest(
-        HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from=" + fromDate)
+        HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log"
+            + "?from=" + fromDate.substring(0,19))
         .send(ar -> promise.complete(ar.result()));
     return promise.future();
   }

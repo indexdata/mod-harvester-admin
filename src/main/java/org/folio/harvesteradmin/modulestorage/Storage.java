@@ -6,11 +6,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.validation.RequestParameter;
-import io.vertx.ext.web.validation.RequestParameters;
-import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,9 +22,6 @@ import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.StoredEntity;
-import org.folio.tlib.postgres.PgCqlDefinition;
-import org.folio.tlib.postgres.PgCqlField;
-import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class Storage {
@@ -46,6 +40,10 @@ public class Storage {
 
   public String schemaTable(Table table) {
     return pool.getSchema() + "." + table.name();
+  }
+
+  public String schema() {
+    return pool.getSchema();
   }
 
   /**
@@ -95,7 +93,7 @@ public class Storage {
         .execute(harvestJob)
         .onSuccess(res -> logger.info("Saved harvest job"))
         .onFailure(res -> logger.error("Couldn't save harvest job: " + res.getMessage()))
-        .map(harvestJob.id());
+        .map(harvestJob.getId());
   }
 
   /**
@@ -116,6 +114,7 @@ public class Storage {
             if (logLine.getId() != null) {
               logLines.add(new LogLine(harvestJobId, line, sequence));
             } else {
+              logger.error("Could not parse " + line);
               nonMatches++;
             }
           }
@@ -166,11 +165,9 @@ public class Storage {
   /**
    * Gets previous jobs from module's storage.
    */
-  public Future<List<HarvestJob>> getPreviousJobs() {
+  public Future<List<HarvestJob>> getPreviousJobs(String query) {
     List<HarvestJob> previousJobs = new ArrayList<>();
-    return SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * "
-                + "FROM " + schemaTable(Table.harvest_job))
+    return SqlTemplate.forQuery(pool.getPool(), query)
         .mapTo(HarvestJob.entity().getSelectListMapper())
         .execute(null)
         .onSuccess(rows -> {
@@ -218,7 +215,7 @@ public class Storage {
     return promise.future();
   }
 
-  public Future<String> getLogsForPreviousJobs(String query) {
+  public Future<String> getLogsForPreviousJobs(String query, String from, String until) {
     return null;
   }
 
@@ -240,25 +237,21 @@ public class Storage {
         }).map(recordFailures);
   }
 
-  private String createQueryMyTable(RoutingContext ctx, TenantPgPool pool) {
-    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
-    pgCqlDefinition.addField(new PgCqlField("cql.allRecords", PgCqlField.Type.ALWAYS_MATCHES));
-    pgCqlDefinition.addField(new PgCqlField("id", PgCqlField.Type.UUID));
-    pgCqlDefinition.addField(new PgCqlField("title", PgCqlField.Type.FULLTEXT));
-
-    RequestParameters params = ctx.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    RequestParameter query = params.queryParameter("query");
-    PgCqlQuery pgCqlQuery = pgCqlDefinition.parse(query == null ? null : query.getString());
-    String sql = "SELECT * FROM " + "getMyTable(pool)";
-    String where = pgCqlQuery.getWhereClause();
-    if (where != null) {
-      sql = sql + " WHERE " + where;
-    }
-    String orderBy = pgCqlQuery.getOrderByClause();
-    if (orderBy != null) {
-      sql = sql + " ORDER BY " + orderBy;
-    }
-    return sql;
+  /**
+   * Gets record count.
+   */
+  public Future<Integer> getCount(String sql) {
+    Promise<Integer> promise = Promise.promise();
+    SqlTemplate.forQuery(pool.getPool(), sql)
+        .mapTo(countingMapper())
+        .execute(null)
+        .onComplete(rows -> {
+          promise.complete(rows.result().iterator().next());
+        });
+    return promise.future();
   }
 
+  private RowMapper<Integer> countingMapper() {
+    return row -> row.getInteger("total_records");
+  }
 }

@@ -268,7 +268,31 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL
+          description: CQL, supporting harvestable id, name, type and status in query terms
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: date range parameter on start-date
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: date range parameter on start-date
           schema:
             type: string
       responses:

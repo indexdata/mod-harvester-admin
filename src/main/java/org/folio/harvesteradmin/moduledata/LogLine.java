@@ -1,13 +1,21 @@
 package org.folio.harvesteradmin.moduledata;
 
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.folio.harvesteradmin.modulestorage.Storage;
+import org.folio.tlib.postgres.PgCqlDefinition;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
 
 public class LogLine extends StoredEntity {
 
@@ -26,18 +34,38 @@ public class LogLine extends StoredEntity {
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
 
+  public enum Field {
+    ID("id", "id"),
+    HARVEST_JOB_ID("harvestJobId", "harvest_job_id"),
+    SEQUENCE_NUMBER("sequenceNumber", "seq"),
+    TIME_STAMP("timeStamp", "time_stamp"),
+    LOG_LEVEL("logLevel", "log_level", new PgCqlFieldText()),
+    JOB_LABEL("jobLabel", "job_label"),
+    LOG_STATEMENT("line", "statement")
+    ;
 
-  /**
-   * LOG_STATEMENT table columns.
-   */
-  public enum Column {
-    id,
-    harvest_job_id,
-    seq,
-    time_stamp,
-    log_level,
-    job_label,
-    statement
+    public final String column;
+    public final String property;
+
+    public final PgCqlFieldBase pgCqlFieldDefinition;
+
+    Field(String propertyName, String columnName) {
+      this.column = columnName;
+      this.property = propertyName;
+      this.pgCqlFieldDefinition = null;
+    }
+
+    Field(String jsonPropertyName, String tableColumnName, PgCqlFieldBase pgCqlField) {
+      this.column = tableColumnName;
+      this.property = jsonPropertyName;
+      this.pgCqlFieldDefinition = pgCqlField;
+    }
+  }
+
+  @Override
+  public Map<String, String> getPropertyColumnMap() {
+    return Arrays.stream(
+        LogLine.Field.values()).collect(Collectors.toMap(f -> f.property, f -> f.column));
   }
 
   /**
@@ -86,14 +114,14 @@ public class LogLine extends StoredEntity {
   public String getCreateTableSql(String schema) {
     return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.log_statement
         + "("
-        + Column.id + " UUID PRIMARY KEY, "
-        + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        +         schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Column.id + "), "
-        + Column.seq + " INTEGER NOT NULL, "
-        + Column.time_stamp + " TIMESTAMP NOT NULL, "
-        + Column.log_level + " TEXT NOT NULL, "
-        + Column.job_label + " TEXT NOT NULL, "
-        + Column.statement + " TEXT NOT NULL"
+        + Field.ID.column + " UUID PRIMARY KEY, "
+        + Field.HARVEST_JOB_ID.column + " UUID NOT NULL REFERENCES "
+        +     schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Field.ID.column + "), "
+        + Field.SEQUENCE_NUMBER.column + " INTEGER NOT NULL, "
+        + Field.TIME_STAMP.column + " TIMESTAMP NOT NULL, "
+        + Field.LOG_LEVEL.column + " TEXT NOT NULL, "
+        + Field.JOB_LABEL.column + " TEXT NOT NULL, "
+        + Field.LOG_STATEMENT.column + " TEXT NOT NULL"
         + ")";
   }
 
@@ -101,12 +129,12 @@ public class LogLine extends StoredEntity {
   public RowMapper<StoredEntity> getSelectListMapper() {
     return row -> {
       LogLine logLine = new LogLine();
-      logLine.id = row.getUUID(LogLine.Column.id.name());
-      logLine.harvestJobId = row.getUUID(Column.harvest_job_id.name());
-      logLine.timeStamp = row.getLocalDateTime(Column.time_stamp.name()).toString();
-      logLine.logLevel = row.getString(Column.log_level.name());
-      logLine.jobLabel = row.getString(Column.job_label.name());
-      logLine.line = row.getString(Column.statement.name());
+      logLine.id = row.getUUID(Field.ID.column);
+      logLine.harvestJobId = row.getUUID(Field.HARVEST_JOB_ID.column);
+      logLine.timeStamp = row.getLocalDateTime(Field.TIME_STAMP.column).toString();
+      logLine.logLevel = row.getString(Field.LOG_LEVEL.column);
+      logLine.jobLabel = row.getString(Field.JOB_LABEL.column);
+      logLine.line = row.getString(Field.LOG_STATEMENT.column);
       return logLine;
     };
   }
@@ -117,23 +145,49 @@ public class LogLine extends StoredEntity {
   public String getInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Storage.Table.log_statement
         + " ("
-        + Column.id + ", "
-        + Column.harvest_job_id + ", "
-        + Column.seq + ", "
-        + Column.time_stamp + ", "
-        + Column.log_level + ", "
-        + Column.job_label + ", "
-        + Column.statement
+        + Field.ID.column + ", "
+        + Field.HARVEST_JOB_ID.column + ", "
+        + Field.SEQUENCE_NUMBER.column + ", "
+        + Field.TIME_STAMP.column + ", "
+        + Field.LOG_LEVEL.column + ", "
+        + Field.JOB_LABEL.column + ", "
+        + Field.LOG_STATEMENT.column
         + ")"
         + " VALUES ("
-        + "#{" + Column.id + "}, "
-        + "#{" + Column.harvest_job_id + "}, "
-        + "#{" + Column.seq + "}, "
-        + "TO_TIMESTAMP(#{" + Column.time_stamp + "},'" + DATE_FORMAT + "'), "
-        + "#{" + Column.log_level + "}, "
-        + "#{" + Column.job_label + "}, "
-        + "#{" + Column.statement + "}"
+        + "#{" + Field.ID.column + "}, "
+        + "#{" + Field.HARVEST_JOB_ID.column + "}, "
+        + "#{" + Field.SEQUENCE_NUMBER.column + "}, "
+        + "TO_TIMESTAMP(#{" + Field.TIME_STAMP.column + "},'" + DATE_FORMAT + "'), "
+        + "#{" + Field.LOG_LEVEL.column + "}, "
+        + "#{" + Field.JOB_LABEL.column + "}, "
+        + "#{" + Field.LOG_STATEMENT.column + "}"
         + ")";
+  }
+
+  @Override
+  public PgCqlDefinition getQueryableFields() {
+    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
+    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
+    for (HarvestJob.Field field : HarvestJob.Field.values()) {
+      if (field.pgCqlFieldDefinition != null) {
+        pgCqlDefinition.addField(field.property, field.pgCqlFieldDefinition);
+      }
+    }
+    return pgCqlDefinition;
+  }
+
+  @Override
+  public SqlQuery getSqlQueryFromRequest(RoutingContext routingContext, String schema) {
+
+    String offset = routingContext.request().getParam("offset");
+    String limit = routingContext.request().getParam("limit");
+
+    String select = "SELECT * ";
+    String from = "FROM " + schema + "." + Storage.Table.log_statement;
+    String where = "";
+    String orderBy = "";
+
+    return new SqlQuery(select, from, where, orderBy, offset, limit);
   }
 
   /**
@@ -144,13 +198,13 @@ public class LogLine extends StoredEntity {
         entity -> {
           LogLine logLine = (LogLine) entity;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(Column.id.name(), logLine.id);
-          parameters.put(Column.harvest_job_id.name(), logLine.harvestJobId);
-          parameters.put(Column.seq.name(), logLine.sequenceNumber);
-          parameters.put(Column.time_stamp.name(), logLine.timeStamp);
-          parameters.put(Column.log_level.name(), logLine.logLevel);
-          parameters.put(Column.job_label.name(), logLine.jobLabel);
-          parameters.put(Column.statement.name(), logLine.line);
+          parameters.put(Field.ID.column, logLine.id);
+          parameters.put(Field.HARVEST_JOB_ID.column, logLine.harvestJobId);
+          parameters.put(Field.SEQUENCE_NUMBER.column, logLine.sequenceNumber);
+          parameters.put(Field.TIME_STAMP.column, logLine.timeStamp);
+          parameters.put(Field.LOG_LEVEL.column, logLine.logLevel);
+          parameters.put(Field.JOB_LABEL.column, logLine.jobLabel);
+          parameters.put(Field.LOG_STATEMENT.column, logLine.line);
           return parameters;
         });
   }

@@ -2,12 +2,14 @@ package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.folio.harvesteradmin.modulestorage.Storage;
+import org.folio.tlib.postgres.PgCqlDefinition;
 
 public class RecordFailure extends StoredEntity {
 
@@ -50,7 +52,7 @@ public class RecordFailure extends StoredEntity {
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        +         schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Column.id + "), "
+        +       schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Field.ID.column + "), "
         + Column.record_errors + " JSONB NOT NULL, "
         + Column.original_record + " TEXT NOT NULL, "
         + Column.transformed_record + " JSONB NOT NULL"
@@ -102,6 +104,21 @@ public class RecordFailure extends StoredEntity {
         + "#{" + Column.original_record + "}, "
         + "#{" + Column.transformed_record + "}"
         + ")";
+  }
+
+  @Override
+  public PgCqlDefinition getQueryableFields() {
+    return null;
+  }
+
+  @Override
+  public Map<String, String> getPropertyColumnMap() {
+    return null;
+  }
+
+  @Override
+  public SqlQuery getSqlQueryFromRequest(RoutingContext routingContext, String schema) {
+    return null;
   }
 
   /**

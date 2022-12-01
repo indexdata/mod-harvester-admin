@@ -19,17 +19,23 @@ import io.vertx.ext.web.validation.RequestParameters;
 import io.vertx.ext.web.validation.ValidationHandler;
 import java.util.List;
 import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.JobLauncher;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGet;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
+import org.folio.harvesteradmin.moduledata.SqlQuery;
 import org.folio.harvesteradmin.modulestorage.Storage;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.util.TenantUtil;
 
 public class HarvestAdminService implements RouterCreator, TenantInitHooks {
+
+  private final Logger logger = LogManager.getLogger(HarvestAdminService.class);
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
@@ -72,7 +78,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     routerBuilder
         .operation("getPreviousJobs")
-            .handler(ctx -> getPreviousJobs(vertx, ctx));
+            .handler(ctx -> getPreviousJobs(vertx, ctx)
+                .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage())));
     routerBuilder
         .operation("getPreviousJob")
             .handler(ctx -> getPreviousJobById(vertx, ctx));
@@ -349,8 +356,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   storage.storeHarvestJob(job)
                           .onComplete(jobStored -> {
                             CompositeFuture.all(
-                                storage.storeLogStatements(job.id(),logsResponse.bodyAsString()),
-                                storage.storeFailedRecords(job.id(),
+                                storage.storeLogStatements(job.getId(),logsResponse.bodyAsString()),
+                                storage.storeFailedRecords(job.getId(),
                                     failuresResponse.jsonObject().getJsonArray("failed-records"))
                             ).onComplete(
                                 result -> {
@@ -377,7 +384,14 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> getPreviousJobs(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     Storage storage = new Storage(vertx, tenant);
-    return storage.getPreviousJobs().onComplete(
+    SqlQuery query;
+    try {
+      query = HarvestJob.entity()
+          .getSqlQueryFromRequest(routingContext, storage.schemaTable(Storage.Table.harvest_job));
+    } catch (Exception e) {
+      return Future.failedFuture(e.getMessage());
+    }
+    return storage.getPreviousJobs(query.getQueryWithLimits()).onComplete(
         jobsList -> {
           if (jobsList.succeeded()) {
             JsonObject responseJson = new JsonObject();
@@ -387,7 +401,12 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             for (HarvestJob job : jobs) {
               previousJobs.add(job.asJson());
             }
-            responseJson(routingContext, 200).end(responseJson.encodePrettily());
+            storage.getCount(query.getCountingSql()).onComplete(
+                count -> {
+                  responseJson.put("totalRecords", count.result());
+                  responseJson(routingContext, 200).end(responseJson.encodePrettily());
+                }
+            );
           } else {
             responseText(routingContext, 500)
                 .end("Problem retrieving jobs: " + jobsList.cause().getMessage());
@@ -427,7 +446,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 } else {
                   responseText(routingContext, 200)
                       .end("Previous job with ID " + id + ", "
-                          + harvestJob.result().name() + ", has no logs.");
+                          + harvestJob.result().getName() + ", has no logs.");
                 }
               });
             } else {
