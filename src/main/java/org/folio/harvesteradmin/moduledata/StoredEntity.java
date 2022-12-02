@@ -7,10 +7,12 @@ import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Map;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldUuid;
 
 public abstract class StoredEntity {
 
@@ -24,7 +26,7 @@ public abstract class StoredEntity {
 
   public abstract PgCqlDefinition getQueryableFields();
 
-  public abstract Map<String,String> getPropertyColumnMap();
+  public abstract Map<String,PgColumn> getFieldMap();
 
   /**
    * Gets a SQL query string.
@@ -48,9 +50,9 @@ public abstract class StoredEntity {
       PgCqlQuery pgCqlQuery = definition.parse(query.getString());
       String whereClause = pgCqlQuery.getWhereClause();
       if (whereClause != null) {
-        Map<String,String> prop2col = getPropertyColumnMap();
+        Map<String,PgColumn> prop2col = getFieldMap();
         for (String property  : prop2col.keySet()) {
-          whereClause = whereClause.replaceAll(property.toLowerCase(), prop2col.get(property));
+          whereClause = whereClause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
         }
         where = " WHERE " + whereClause;
       }
@@ -66,6 +68,39 @@ public abstract class StoredEntity {
       }
     }
     return new SqlQuery(select, from, where, orderBy, offset, limit);
+  }
+
+  /**
+   * Instantiates PG column definition.
+   */
+  public static PgColumn getColumnDefinition(
+      String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
+    return getColumnDefinition(columnName, type, nullable, queryable, false);
+  }
+
+  /**
+   * Instantiates PG column definition.
+   */
+  public static PgColumn getColumnDefinition(
+      String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
+      Boolean primaryKey) {
+    PgCqlFieldBase cqlField = null;
+    if (queryable) {
+      switch (type) {
+        case TEXT:
+          cqlField = new PgCqlFieldText();
+          break;
+        case INTEGER:
+          cqlField = new PgCqlFieldNumber();
+          break;
+        case UUID:
+          cqlField = new PgCqlFieldUuid();
+          break;
+        default:
+          cqlField = new PgCqlFieldText();
+      }
+    }
+    return new PgColumn(columnName, type, nullable, cqlField, primaryKey);
   }
 
 }

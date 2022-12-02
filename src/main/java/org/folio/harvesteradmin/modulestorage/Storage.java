@@ -67,7 +67,14 @@ public class Storage {
     tables.add(
         pool.query(
             RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    CompositeFuture.all(tables).onComplete(creates -> promise.complete());
+    CompositeFuture.all(tables).onComplete(
+        creates -> {
+          if (creates.succeeded()) {
+            promise.complete();
+          } else {
+            promise.fail(creates.cause().getMessage());
+          }
+        });
     return promise.future();
 
     /* Template for processing parameters in init.

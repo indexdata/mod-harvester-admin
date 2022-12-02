@@ -9,15 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.stream.Stream;
 import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldUuid;
 
 
 public class HarvestJob extends StoredEntity {
@@ -34,42 +29,52 @@ public class HarvestJob extends StoredEntity {
   }
 
   public enum Field {
-    ID("id", "id", new PgCqlFieldUuid()),
-    HARVESTABLE_ID("harvestableId", "harvestable_id", new PgCqlFieldNumber()),
-    HARVESTABLE_NAME("name", "harvestable_name", new PgCqlFieldText()),
-    HARVESTABLE_TYPE("type", "type", new PgCqlFieldText()),
-    URL("url", "url"),
-    ALLOW_ERRORS("allowErrors", "allow_errors"),
-    RECORD_LIMIT("recordLimit", "record_limit"),
-    BATCH_SIZE("batchSize", "batch_size"),
-    TRANSFORMATION("transformation", "transformation"),
-    STORAGE("storage", "storage"),
-    STATUS("status", "status", new PgCqlFieldText()),
-    STARTED("started", "started"),
-    FINISHED("finished", "finished"),
-    AMOUNT_HARVESTED("amountHarvested", "amount_harvested"),
-    MESSAGE("message", "message");
+    ID("id", "id", PgColumn.Type.UUID, false, true, true),
+    HARVESTABLE_ID("harvestableId","harvestable_id", PgColumn.Type.INTEGER, false, true),
+    HARVESTABLE_NAME("name","harvestable_name", PgColumn.Type.TEXT, false, true),
+    HARVESTABLE_TYPE("type","type", PgColumn.Type.TEXT, false, true),
+    URL("url", "url", PgColumn.Type.TEXT, false, false),
+    ALLOW_ERRORS("allowErrors", "allow_errors", PgColumn.Type.BOOLEAN, false, false),
+    RECORD_LIMIT("recordLimit", "record_limit", PgColumn.Type.INTEGER, true, false),
+    BATCH_SIZE("batchSize", "batch_size", PgColumn.Type.INTEGER, true, false),
+    TRANSFORMATION("transformation", "transformation", PgColumn.Type.TEXT, false, false),
+    STORAGE("storage", "storage", PgColumn.Type.TEXT, false, false),
+    STATUS("status", "status", PgColumn.Type.TEXT, false, true),
+    STARTED("started", "started", PgColumn.Type.TIMESTAMP, false, false),
+    FINISHED("finished", "finished", PgColumn.Type.TIMESTAMP, true, false),
+    AMOUNT_HARVESTED("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, false),
+    MESSAGE("message", "message", PgColumn.Type.TEXT, true, false);
 
-    public final String column;
-    public final String property;
-    public final PgCqlFieldBase pgCqlFieldDefinition;
+    public final JsonProperty property;
+    public final PgColumn column;
+    public final Boolean queryable;
 
-    Field(String jsonPropertyName, String tableColumnName) {
-      this.column = tableColumnName;
-      this.property = jsonPropertyName;
-      this.pgCqlFieldDefinition = null;
+    Field(JsonProperty property, PgColumn column, Boolean queryable) {
+      this.column = column;
+      this.property = property;
+      this.queryable = queryable;
     }
 
-    Field(String jsonPropertyName, String tableColumnName, PgCqlFieldBase pgCqlField) {
-      this.column = tableColumnName;
-      this.property = jsonPropertyName;
-      this.pgCqlFieldDefinition = pgCqlField;
+    Field(String jsonPropertyName,
+          String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
+      this(jsonPropertyName, columnName, type, nullable, queryable, false);
+    }
+
+    Field(String jsonPropertyName,
+          String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
+          Boolean primaryKey) {
+      this.property = new JsonProperty(jsonPropertyName);
+      this.queryable = queryable;
+      this.column = getColumnDefinition(columnName, type, nullable, queryable, primaryKey);
     }
   }
 
-  public Map<String,String> getPropertyColumnMap() {
+  /**
+   * Gets map of JSON property names to PG column definitions, built from the Field enum.
+   */
+  public Map<String,PgColumn> getFieldMap() {
     return Arrays.stream(
-        HarvestJob.Field.values()).collect(Collectors.toMap(f -> f.property, f -> f.column));
+        HarvestJob.Field.values()).collect(Collectors.toMap(f -> f.property.name, f -> f.column));
   }
 
   /**
@@ -109,25 +114,17 @@ public class HarvestJob extends StoredEntity {
    * CREATE TABLE statement.
    */
   public String getCreateTableSql(String schema) {
+    StringBuilder columnsDdl = new StringBuilder();
+    Stream.of(Field.values())
+        .forEach(field -> columnsDdl.append(field.column.getColumnDdl()).append(","));
+    columnsDdl.deleteCharAt(columnsDdl.length() - 1); // remove ending comma
+
     return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.harvest_job
         + "("
-        + Field.ID.column + " UUID PRIMARY KEY, "
-        + Field.HARVESTABLE_ID.column + " INTEGER NOT NULL, "
-        + Field.HARVESTABLE_NAME.column + " TEXT NOT NULL, "
-        + Field.HARVESTABLE_TYPE.column + " TEXT NOT NULL, "
-        + Field.URL.column + " TEXT NOT NULL, "
-        + Field.ALLOW_ERRORS.column + " BOOLEAN NOT NULL, "
-        + Field.RECORD_LIMIT.column + " INTEGER, "
-        + Field.BATCH_SIZE.column + " INTEGER, "
-        + Field.TRANSFORMATION.column + " TEXT NOT NULL, "
-        + Field.STORAGE.column + " TEXT NOT NULL, "
-        + Field.STATUS.column + " TEXT NOT NULL, "
-        + Field.STARTED.column + " TIMESTAMP NOT NULL, "
-        + Field.FINISHED.column + " TIMESTAMP, "
-        + Field.AMOUNT_HARVESTED.column + " INTEGER, "
-        + Field.MESSAGE.column + " TEXT"
+        + columnsDdl
         + ")";
   }
+
 
   /**
    * INSERT INTO statement.
@@ -136,37 +133,37 @@ public class HarvestJob extends StoredEntity {
     return "INSERT INTO " + schema + "." + Storage.Table.harvest_job
         + " ("
         + Field.ID + ", "
-        + Field.HARVESTABLE_ID.column + ", "
-        + Field.HARVESTABLE_NAME.column + ", "
-        + Field.HARVESTABLE_TYPE.column + ", "
-        + Field.URL.column + ", "
-        + Field.ALLOW_ERRORS.column + ", "
-        + Field.RECORD_LIMIT.column + ", "
-        + Field.BATCH_SIZE.column + ", "
-        + Field.TRANSFORMATION.column + ", "
-        + Field.STORAGE.column + ", "
-        + Field.STATUS.column + ", "
-        + Field.STARTED.column + ", "
-        + Field.FINISHED.column + ", "
-        + Field.AMOUNT_HARVESTED.column + ", "
-        + Field.MESSAGE.column
+        + Field.HARVESTABLE_ID.column.name + ", "
+        + Field.HARVESTABLE_NAME.column.name + ", "
+        + Field.HARVESTABLE_TYPE.column.name + ", "
+        + Field.URL.column.name + ", "
+        + Field.ALLOW_ERRORS.column.name + ", "
+        + Field.RECORD_LIMIT.column.name + ", "
+        + Field.BATCH_SIZE.column.name + ", "
+        + Field.TRANSFORMATION.column.name + ", "
+        + Field.STORAGE.column.name + ", "
+        + Field.STATUS.column.name + ", "
+        + Field.STARTED.column.name + ", "
+        + Field.FINISHED.column.name + ", "
+        + Field.AMOUNT_HARVESTED.column.name + ", "
+        + Field.MESSAGE.column.name
         + ")"
         + " VALUES ("
-        + "#{" + Field.ID.column + "}, "
-        + "#{" + Field.HARVESTABLE_ID.column + "}, "
-        + "#{" + Field.HARVESTABLE_NAME.column + "}, "
-        + "#{" + Field.HARVESTABLE_TYPE.column + "}, "
-        + "#{" + Field.URL.column + "}, "
-        + "#{" + Field.ALLOW_ERRORS.column + "}, "
-        + "#{" + Field.RECORD_LIMIT.column + "}, "
-        + "#{" + Field.BATCH_SIZE.column + "}, "
-        + "#{" + Field.TRANSFORMATION.column + "}, "
-        + "#{" + Field.STORAGE.column + "}, "
-        + "#{" + Field.STATUS.column + "}, "
-        + "TO_TIMESTAMP(#{" + Field.STARTED.column + "},'" + DATE_FORMAT + "'), "
-        + "TO_TIMESTAMP(#{" + Field.FINISHED.column + "}, '" + DATE_FORMAT + "'), "
-        + "#{" + Field.AMOUNT_HARVESTED.column + "}, "
-        + "#{" + Field.MESSAGE.column + "}"
+        + "#{" + Field.ID.column.name + "}, "
+        + "#{" + Field.HARVESTABLE_ID.column.name + "}, "
+        + "#{" + Field.HARVESTABLE_NAME.column.name + "}, "
+        + "#{" + Field.HARVESTABLE_TYPE.column.name + "}, "
+        + "#{" + Field.URL.column.name + "}, "
+        + "#{" + Field.ALLOW_ERRORS.column.name + "}, "
+        + "#{" + Field.RECORD_LIMIT.column.name + "}, "
+        + "#{" + Field.BATCH_SIZE.column.name + "}, "
+        + "#{" + Field.TRANSFORMATION.column.name + "}, "
+        + "#{" + Field.STORAGE.column.name + "}, "
+        + "#{" + Field.STATUS.column.name + "}, "
+        + "TO_TIMESTAMP(#{" + Field.STARTED.column.name + "},'" + DATE_FORMAT + "'), "
+        + "TO_TIMESTAMP(#{" + Field.FINISHED.column.name + "}, '" + DATE_FORMAT + "'), "
+        + "#{" + Field.AMOUNT_HARVESTED.column.name + "}, "
+        + "#{" + Field.MESSAGE.column.name + "}"
         + ")";
   }
 
@@ -175,8 +172,8 @@ public class HarvestJob extends StoredEntity {
     PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
     pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
     for (Field field : Field.values()) {
-      if (field.pgCqlFieldDefinition != null) {
-        pgCqlDefinition.addField(field.property, field.pgCqlFieldDefinition);
+      if (field.queryable) {
+        pgCqlDefinition.addField(field.property.name, field.column.pgCqlFieldObject);
       }
     }
     return pgCqlDefinition;
@@ -190,27 +187,27 @@ public class HarvestJob extends StoredEntity {
         harvestJob -> {
           HarvestJob entity = (HarvestJob) harvestJob;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(Field.ID.column, entity.getId());
-          parameters.put(Field.HARVESTABLE_ID.column, entity.getHarvestableId());
-          parameters.put(Field.HARVESTABLE_NAME.column, entity.getName());
-          parameters.put(Field.HARVESTABLE_TYPE.column, entity.getType());
-          parameters.put(Field.URL.column, entity.getUrl());
-          parameters.put(Field.ALLOW_ERRORS.column, entity.getAllowErrors());
+          parameters.put(Field.ID.column.name, entity.getId());
+          parameters.put(Field.HARVESTABLE_ID.column.name, entity.getHarvestableId());
+          parameters.put(Field.HARVESTABLE_NAME.column.name, entity.getName());
+          parameters.put(Field.HARVESTABLE_TYPE.column.name, entity.getType());
+          parameters.put(Field.URL.column.name, entity.getUrl());
+          parameters.put(Field.ALLOW_ERRORS.column.name, entity.getAllowErrors());
           if (entity.getRecordLimit() != null) {
-            parameters.put(Field.RECORD_LIMIT.column, entity.getRecordLimit());
+            parameters.put(Field.RECORD_LIMIT.column.name, entity.getRecordLimit());
           }
           if (entity.getBatchSize() != null) {
-            parameters.put(Field.BATCH_SIZE.column, entity.getBatchSize());
+            parameters.put(Field.BATCH_SIZE.column.name, entity.getBatchSize());
           }
-          parameters.put(Field.TRANSFORMATION.column, entity.getTransformation());
-          parameters.put(Field.STORAGE.column, entity.getStorage());
-          parameters.put(Field.STATUS.column, entity.getStatus());
-          parameters.put(Field.STARTED.column, entity.getStarted());
-          parameters.put(Field.FINISHED.column, entity.getFinished());
+          parameters.put(Field.TRANSFORMATION.column.name, entity.getTransformation());
+          parameters.put(Field.STORAGE.column.name, entity.getStorage());
+          parameters.put(Field.STATUS.column.name, entity.getStatus());
+          parameters.put(Field.STARTED.column.name, entity.getStarted());
+          parameters.put(Field.FINISHED.column.name, entity.getFinished());
           if (entity.getAmountHarvested() != null) {
-            parameters.put(Field.AMOUNT_HARVESTED.column, entity.getAmountHarvested());
+            parameters.put(Field.AMOUNT_HARVESTED.column.name, entity.getAmountHarvested());
           }
-          parameters.put(Field.MESSAGE.column, entity.getMessage());
+          parameters.put(Field.MESSAGE.column.name, entity.getMessage());
           return parameters;
         });
   }
@@ -222,46 +219,47 @@ public class HarvestJob extends StoredEntity {
     return row -> {
       HarvestJob harvestJob = new HarvestJob();
       JsonObject j = new JsonObject();
-      j.put(Field.ID.property, row.getUUID(Field.ID.column));
-      harvestJob.setId(row.getUUID(Field.ID.column));
-      j.put(Field.HARVESTABLE_NAME.property, row.getString(Field.HARVESTABLE_NAME.column));
-      harvestJob.setName(row.getString(Field.HARVESTABLE_NAME.column));
-      harvestJob.setHarvestableId(row.getInteger(Field.HARVESTABLE_ID.column));
-      harvestJob.setType(row.getString(Field.HARVESTABLE_TYPE.column));
-      harvestJob.setUrl(row.getString(Field.URL.column));
-      harvestJob.setAllowErrors(row.getBoolean(Field.ALLOW_ERRORS.column));
-      if (row.getValue(Field.RECORD_LIMIT.column) != null) {
-        harvestJob.setRecordLimit(row.getInteger(Field.RECORD_LIMIT.column));
+      j.put(Field.ID.property.name, row.getUUID(Field.ID.column.name));
+      j.put(
+          Field.HARVESTABLE_NAME.property.name, row.getString(Field.HARVESTABLE_NAME.column.name));
+      harvestJob.setId(row.getUUID(Field.ID.column.name));
+      harvestJob.setName(row.getString(Field.HARVESTABLE_NAME.column.name));
+      harvestJob.setHarvestableId(row.getInteger(Field.HARVESTABLE_ID.column.name));
+      harvestJob.setType(row.getString(Field.HARVESTABLE_TYPE.column.name));
+      harvestJob.setUrl(row.getString(Field.URL.column.name));
+      harvestJob.setAllowErrors(row.getBoolean(Field.ALLOW_ERRORS.column.name));
+      if (row.getValue(Field.RECORD_LIMIT.column.name) != null) {
+        harvestJob.setRecordLimit(row.getInteger(Field.RECORD_LIMIT.column.name));
       }
-      harvestJob.setTransformation(row.getString(Field.TRANSFORMATION.column));
-      harvestJob.setStorage(row.getString(Field.STORAGE.column));
-      harvestJob.setStatus(row.getString(Field.STATUS.column));
-      harvestJob.setStarted(row.getLocalDateTime(Field.STARTED.column));
-      if (row.getValue(Field.FINISHED.column) != null) {
-        harvestJob.setFinished(row.getLocalDateTime(Field.FINISHED.column));
+      harvestJob.setTransformation(row.getString(Field.TRANSFORMATION.column.name));
+      harvestJob.setStorage(row.getString(Field.STORAGE.column.name));
+      harvestJob.setStatus(row.getString(Field.STATUS.column.name));
+      harvestJob.setStarted(row.getLocalDateTime(Field.STARTED.column.name));
+      if (row.getValue(Field.FINISHED.column.name) != null) {
+        harvestJob.setFinished(row.getLocalDateTime(Field.FINISHED.column.name));
       }
-      if (row.getValue(Field.AMOUNT_HARVESTED.column) != null) {
-        harvestJob.setAmountHarvested(row.getInteger(Field.AMOUNT_HARVESTED.column));
+      if (row.getValue(Field.AMOUNT_HARVESTED.column.name) != null) {
+        harvestJob.setAmountHarvested(row.getInteger(Field.AMOUNT_HARVESTED.column.name));
       }
-      harvestJob.setMessage(row.getString(Field.MESSAGE.column));
+      harvestJob.setMessage(row.getString(Field.MESSAGE.column.name));
       return harvestJob;
     };
   }
 
   public UUID getId() {
-    return UUID.fromString(json.getString(Field.ID.name()));
+    return UUID.fromString(json.getString(Field.ID.property.name));
   }
 
   public void setId(UUID id) {
-    json.put(Field.ID.name(), id);
+    json.put(Field.ID.property.name, id);
   }
 
   public int getHarvestableId() {
-    return json.getInteger(Field.HARVESTABLE_ID.property);
+    return json.getInteger(Field.HARVESTABLE_ID.property.name);
   }
 
   public void setHarvestableId(int harvestableId) {
-    json.put(Field.HARVESTABLE_ID.property, harvestableId);
+    json.put(Field.HARVESTABLE_ID.property.name, harvestableId);
   }
 
   public void setHarvestableId(String harvestableId) {
@@ -269,35 +267,35 @@ public class HarvestJob extends StoredEntity {
   }
 
   public String getName() {
-    return json.getString(Field.HARVESTABLE_NAME.property);
+    return json.getString(Field.HARVESTABLE_NAME.property.name);
   }
 
   public void setName(String name) {
-    json.put(Field.HARVESTABLE_NAME.property, name);
+    json.put(Field.HARVESTABLE_NAME.property.name, name);
   }
 
   public String getType() {
-    return json.getString(Field.HARVESTABLE_TYPE.property);
+    return json.getString(Field.HARVESTABLE_TYPE.property.name);
   }
 
   public void setType(String type) {
-    json.put(Field.HARVESTABLE_TYPE.property, type);
+    json.put(Field.HARVESTABLE_TYPE.property.name, type);
   }
 
   public String getUrl() {
-    return json.getString(Field.URL.property);
+    return json.getString(Field.URL.property.name);
   }
 
   public void setUrl(String url) {
-    json.put(Field.URL.property, url);
+    json.put(Field.URL.property.name, url);
   }
 
   public Boolean getAllowErrors() {
-    return json.getBoolean(Field.ALLOW_ERRORS.property);
+    return json.getBoolean(Field.ALLOW_ERRORS.property.name);
   }
 
   public void setAllowErrors(Boolean allowErrors) {
-    json.put(Field.ALLOW_ERRORS.property, allowErrors);
+    json.put(Field.ALLOW_ERRORS.property.name, allowErrors);
   }
 
   public void setAllowErrors(String allowErrors) {
@@ -305,11 +303,11 @@ public class HarvestJob extends StoredEntity {
   }
 
   public Integer getRecordLimit() {
-    return json.getInteger(Field.RECORD_LIMIT.property);
+    return json.getInteger(Field.RECORD_LIMIT.property.name);
   }
 
   public void setRecordLimit(Integer recordLimit) {
-    json.put(Field.RECORD_LIMIT.property, recordLimit);
+    json.put(Field.RECORD_LIMIT.property.name, recordLimit);
   }
 
   /**
@@ -322,7 +320,7 @@ public class HarvestJob extends StoredEntity {
   }
 
   public Integer getBatchSize() {
-    return json.getInteger(Field.BATCH_SIZE.property);
+    return json.getInteger(Field.BATCH_SIZE.property.name);
   }
 
   /**
@@ -330,48 +328,48 @@ public class HarvestJob extends StoredEntity {
    */
   public void setBatchSize(String batchSize) {
     if (batchSize != null) {
-      json.put(Field.BATCH_SIZE.property, Integer.parseInt(batchSize));
+      json.put(Field.BATCH_SIZE.property.name, Integer.parseInt(batchSize));
     }
   }
 
   public String getTransformation() {
-    return json.getString(Field.TRANSFORMATION.property);
+    return json.getString(Field.TRANSFORMATION.property.name);
   }
 
   public void setTransformation(String transformation) {
-    json.put(Field.TRANSFORMATION.property, transformation);
+    json.put(Field.TRANSFORMATION.property.name, transformation);
   }
 
   public String getStorage() {
-    return json.getString(Field.STORAGE.property);
+    return json.getString(Field.STORAGE.property.name);
   }
 
   public void setStorage(String storage) {
-    json.put(Field.STORAGE.property, storage);
+    json.put(Field.STORAGE.property.name, storage);
   }
 
   public String getStatus() {
-    return json.getString(Field.STATUS.property);
+    return json.getString(Field.STATUS.property.name);
   }
 
   public void setStatus(String status) {
-    json.put(Field.STATUS.property, status);
+    json.put(Field.STATUS.property.name, status);
   }
 
   public String getStarted() {
-    return json.getString(Field.STARTED.property);
+    return json.getString(Field.STARTED.property.name);
   }
 
   public String getFinished() {
-    return json.getString(Field.FINISHED.property);
+    return json.getString(Field.FINISHED.property.name);
   }
 
   public void setStarted(LocalDateTime started) {
-    json.put(Field.STARTED.property, started.toString());
+    json.put(Field.STARTED.property.name, started.toString());
   }
 
   public void setFinished(LocalDateTime finished) {
-    json.put(Field.FINISHED.property, finished.toString());
+    json.put(Field.FINISHED.property.name, finished.toString());
   }
 
   /**
@@ -379,19 +377,19 @@ public class HarvestJob extends StoredEntity {
    */
   public void setStartedAndFinished(String started, String finished) {
     if (started != null && finished != null) {
-      json.put(Field.STARTED.property, started);
+      json.put(Field.STARTED.property.name, started);
       if (started.compareTo(finished) < 0) { // or else it's the finish time of an earlier job
-        json.put(Field.FINISHED.property, finished);
+        json.put(Field.FINISHED.property.name, finished);
       }
     }
   }
 
   public Integer getAmountHarvested() {
-    return json.getInteger(Field.AMOUNT_HARVESTED.property);
+    return json.getInteger(Field.AMOUNT_HARVESTED.property.name);
   }
 
   public void setAmountHarvested(Integer amountHarvested) {
-    json.put(Field.AMOUNT_HARVESTED.property, amountHarvested);
+    json.put(Field.AMOUNT_HARVESTED.property.name, amountHarvested);
   }
 
   /**
@@ -404,11 +402,11 @@ public class HarvestJob extends StoredEntity {
   }
 
   public String getMessage() {
-    return json.getString(Field.MESSAGE.property);
+    return json.getString(Field.MESSAGE.property.name);
   }
 
   public void setMessage(String message) {
-    json.put(Field.MESSAGE.property, message);
+    json.put(Field.MESSAGE.property.name, message);
   }
 
 
