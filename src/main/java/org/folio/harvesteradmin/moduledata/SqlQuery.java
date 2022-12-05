@@ -43,13 +43,17 @@ public class SqlQuery {
   }
 
   /**
-   * Gets query without limits.
+   * Adds ANDed where clause to query.
    */
-  public String getBaseQuery() {
-    return select
-        + from
-        + where
-        + orderBy;
+  public SqlQuery withExtraQueryParameters(String clause) {
+    if (clause != null && !clause.isEmpty()) {
+      if (where.isEmpty()) {
+        where = " where (" + clause + ")";
+      } else {
+        where += " AND " + "(" + clause + ") ";
+      }
+    }
+    return this;
   }
 
   /**

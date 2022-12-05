@@ -341,6 +341,13 @@ paths:
     get:
       operationId: getPreviousJobLog
       description: Retrieves the log of a previous harvest job
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL, supporting logLevel and timestamp in query terms
+          schema:
+            type: string
       responses:
         "200":
           description: Logs for a previous harvest job

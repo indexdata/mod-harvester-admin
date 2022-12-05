@@ -25,6 +25,7 @@ import org.folio.harvesteradmin.dataaccess.JobLauncher;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGet;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
+import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.SqlQuery;
 import org.folio.harvesteradmin.modulestorage.Storage;
@@ -384,10 +385,23 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> getPreviousJobs(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     Storage storage = new Storage(vertx, tenant);
+
+    String fromDateTime = routingContext.request().getParam("from");
+    String untilDateTime = routingContext.request().getParam("until");
+    String timeRange = null;
+    if (fromDateTime != null && untilDateTime != null) {
+      timeRange = " (started >= '" + fromDateTime + "'  AND started <= '" + untilDateTime + "') ";
+    } else if (fromDateTime != null) {
+      timeRange = " started >= '" + fromDateTime + "' ";
+    } else if (untilDateTime != null) {
+      timeRange = " started <= '" + untilDateTime + "' ";
+    }
+
     SqlQuery query;
     try {
       query = HarvestJob.entity()
-          .getSqlQueryFromRequest(routingContext, storage.schemaTable(Storage.Table.harvest_job));
+          .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.harvest_job))
+          .withExtraQueryParameters(timeRange);
     } catch (Exception e) {
       return Future.failedFuture(e.getMessage());
     }
@@ -434,8 +448,23 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     UUID id = UUID.fromString(params.pathParameter("id").getString());
+    String fromDateTime = routingContext.request().getParam("from");
+    String untilDateTime = routingContext.request().getParam("until");
+    String timeRange = null;
+    if (fromDateTime != null && untilDateTime != null) {
+      timeRange = "time_stamp >= '" + fromDateTime + "' AND time_stamp <= '" + untilDateTime + "'";
+    } else if (fromDateTime != null) {
+      timeRange = "time_stamp >= '" + fromDateTime + "'";
+    } else if (untilDateTime != null) {
+      timeRange = "time_stamp <= '" + untilDateTime + "'";
+    }
+
     Storage storage = new Storage(vertx, tenant);
-    return storage.getLogsForPreviousJob(id)
+    SqlQuery queryFromCql = LogLine.entity()
+        .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.log_statement))
+        .withExtraQueryParameters(timeRange);
+    logger.info("getPreviousJobLog, query: " + queryFromCql.toString());
+    return storage.getLogsForPreviousJob(id, queryFromCql)
         .onComplete(jobLog -> {
           if (jobLog.succeeded()) {
             if (jobLog.result().length() == 0) {

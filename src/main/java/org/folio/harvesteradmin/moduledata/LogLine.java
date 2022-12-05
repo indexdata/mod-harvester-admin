@@ -1,6 +1,5 @@
 package org.folio.harvesteradmin.moduledata;
 
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
@@ -31,8 +30,8 @@ public class LogLine extends StoredEntity {
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
 
-  public enum Field {
-    ID("id", "id", PgColumn.Type.UUID, false, false),
+  public enum LogLineField implements Field {
+    ID("id", "id", PgColumn.Type.UUID, false, false, true),
     HARVEST_JOB_ID("harvestJobId", "harvest_job_id", PgColumn.Type.UUID, false, true),
     SEQUENCE_NUMBER("sequenceNumber", "seq", PgColumn.Type.INTEGER, false, false),
     TIME_STAMP("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, false),
@@ -41,30 +40,48 @@ public class LogLine extends StoredEntity {
     LOG_STATEMENT("line", "statement", PgColumn.Type.TEXT, false, false)
     ;
 
-    public final JsonProperty property;
-    public final PgColumn column;
+    private final String propertyName;
+    private final PgColumn column;
 
-    public final Boolean queryable;
+    private final Boolean queryable;
 
-
-    Field(JsonProperty property, PgColumn column, Boolean queryable) {
-      this.column = column;
-      this.property = property;
-      this.queryable = queryable;
+    public String columnName() {
+      return column.name;
     }
 
-    Field(String jsonPropertyName,
-          String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
-      this.property = new JsonProperty(jsonPropertyName);
+    @Override
+    public String propertyName() {
+      return propertyName;
+    }
+
+    @Override
+    public PgColumn pgColumn() {
+      return column;
+    }
+
+    @Override
+    public boolean isQueryable() {
+      return false;
+    }
+
+    LogLineField(String propertyName,
+                 String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
+      this(propertyName, columnName, type, nullable, queryable, false);
+    }
+
+    LogLineField(String propertyName,
+                 String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
+                 Boolean primaryKey) {
+      this.propertyName = propertyName;
       this.queryable = queryable;
-      this.column = getColumnDefinition(columnName, type, nullable, queryable);
+      this.column = new PgColumn(columnName, type, nullable, primaryKey);
     }
   }
 
   @Override
   public Map<String, PgColumn> getFieldMap() {
     return Arrays.stream(
-        LogLine.Field.values()).collect(Collectors.toMap(f -> f.property.name, f -> f.column));
+        LogLineField.values()).collect(Collectors.toMap(f -> f.propertyName, f -> f.column));
   }
 
   /**
@@ -110,56 +127,56 @@ public class LogLine extends StoredEntity {
   /**
    * CREATE TABLE SQL template.
    */
-  public String getCreateTableSql(String schema) {
+  public String makeCreateTableSql(String schema) {
     return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.log_statement
         + "("
-        + Field.ID.column.name + " UUID PRIMARY KEY, "
-        + Field.HARVEST_JOB_ID.column.name + " UUID NOT NULL REFERENCES "
-        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Field.ID.column.name + "), "
-        + Field.SEQUENCE_NUMBER.column.name + " INTEGER NOT NULL, "
-        + Field.TIME_STAMP.column.name + " TIMESTAMP NOT NULL, "
-        + Field.LOG_LEVEL.column.name + " TEXT NOT NULL, "
-        + Field.JOB_LABEL.column.name + " TEXT NOT NULL, "
-        + Field.LOG_STATEMENT.column.name + " TEXT NOT NULL"
+        + LogLineField.ID.columnName() + " UUID PRIMARY KEY, "
+        + LogLineField.HARVEST_JOB_ID.columnName() + " UUID NOT NULL REFERENCES "
+        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
+        + LogLineField.SEQUENCE_NUMBER.columnName() + " INTEGER NOT NULL, "
+        + LogLineField.TIME_STAMP.columnName() + " TIMESTAMP NOT NULL, "
+        + LogLineField.LOG_LEVEL.columnName() + " TEXT NOT NULL, "
+        + LogLineField.JOB_LABEL.columnName() + " TEXT NOT NULL, "
+        + LogLineField.LOG_STATEMENT.columnName() + " TEXT NOT NULL"
         + ")";
   }
 
   @Override
-  public RowMapper<StoredEntity> getSelectListMapper() {
+  public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       LogLine logLine = new LogLine();
-      logLine.id = row.getUUID(Field.ID.column.name);
-      logLine.harvestJobId = row.getUUID(Field.HARVEST_JOB_ID.column.name);
-      logLine.timeStamp = row.getLocalDateTime(Field.TIME_STAMP.column.name).toString();
-      logLine.logLevel = row.getString(Field.LOG_LEVEL.column.name);
-      logLine.jobLabel = row.getString(Field.JOB_LABEL.column.name);
-      logLine.line = row.getString(Field.LOG_STATEMENT.column.name);
+      logLine.id = row.getUUID(LogLineField.ID.columnName());
+      logLine.harvestJobId = row.getUUID(LogLineField.HARVEST_JOB_ID.columnName());
+      logLine.timeStamp = row.getLocalDateTime(LogLineField.TIME_STAMP.columnName()).toString();
+      logLine.logLevel = row.getString(LogLineField.LOG_LEVEL.columnName());
+      logLine.jobLabel = row.getString(LogLineField.JOB_LABEL.columnName());
+      logLine.line = row.getString(LogLineField.LOG_STATEMENT.columnName());
       return logLine;
     };
   }
 
   /**
-   * INSERT INTO SQL template.
+   * INSERT INTO statement.
    */
-  public String getInsertTemplate(String schema) {
+  public String makeInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Storage.Table.log_statement
         + " ("
-        + Field.ID.column.name + ", "
-        + Field.HARVEST_JOB_ID.column.name + ", "
-        + Field.SEQUENCE_NUMBER.column.name + ", "
-        + Field.TIME_STAMP.column.name + ", "
-        + Field.LOG_LEVEL.column.name + ", "
-        + Field.JOB_LABEL.column.name + ", "
-        + Field.LOG_STATEMENT.column.name
+        + LogLineField.ID.columnName() + ", "
+        + LogLineField.HARVEST_JOB_ID.columnName() + ", "
+        + LogLineField.SEQUENCE_NUMBER.columnName() + ", "
+        + LogLineField.TIME_STAMP.columnName() + ", "
+        + LogLineField.LOG_LEVEL.columnName() + ", "
+        + LogLineField.JOB_LABEL.columnName() + ", "
+        + LogLineField.LOG_STATEMENT.columnName()
         + ")"
         + " VALUES ("
-        + "#{" + Field.ID.column.name + "}, "
-        + "#{" + Field.HARVEST_JOB_ID.column.name + "}, "
-        + "#{" + Field.SEQUENCE_NUMBER.column.name + "}, "
-        + "TO_TIMESTAMP(#{" + Field.TIME_STAMP.column.name + "},'" + DATE_FORMAT + "'), "
-        + "#{" + Field.LOG_LEVEL.column.name + "}, "
-        + "#{" + Field.JOB_LABEL.column.name + "}, "
-        + "#{" + Field.LOG_STATEMENT.column.name + "}"
+        + "#{" + LogLineField.ID.columnName() + "}, "
+        + "#{" + LogLineField.HARVEST_JOB_ID.columnName() + "}, "
+        + "#{" + LogLineField.SEQUENCE_NUMBER.columnName() + "}, "
+        + "TO_TIMESTAMP(#{" + LogLineField.TIME_STAMP.columnName() + "},'" + DATE_FORMAT + "'), "
+        + "#{" + LogLineField.LOG_LEVEL.columnName() + "}, "
+        + "#{" + LogLineField.JOB_LABEL.columnName() + "}, "
+        + "#{" + LogLineField.LOG_STATEMENT.columnName() + "}"
         + ")";
   }
 
@@ -167,43 +184,29 @@ public class LogLine extends StoredEntity {
   public PgCqlDefinition getQueryableFields() {
     PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
     pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
-    for (LogLine.Field field : LogLine.Field.values()) {
+    for (LogLineField field : LogLineField.values()) {
       if (field.queryable) {
-        pgCqlDefinition.addField(field.property.name, field.column.pgCqlFieldObject);
+        pgCqlDefinition.addField(field.propertyName(), field.pgColumn().pgCqlField());
       }
     }
     return pgCqlDefinition;
   }
 
-  @Override
-  public SqlQuery getSqlQueryFromRequest(RoutingContext routingContext, String schema) {
-
-    String offset = routingContext.request().getParam("offset");
-    String limit = routingContext.request().getParam("limit");
-
-    String select = "SELECT * ";
-    String from = "FROM " + schema + "." + Storage.Table.log_statement;
-    String where = "";
-    String orderBy = "";
-
-    return new SqlQuery(select, from, where, orderBy, offset, limit);
-  }
-
   /**
    * Creates a TupleMapper for input mapping.
    */
-  public TupleMapper<StoredEntity> getInsertValuesMapper() {
+  public TupleMapper<StoredEntity> getTupleMapper() {
     return TupleMapper.mapper(
         entity -> {
           LogLine logLine = (LogLine) entity;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(Field.ID.column.name, logLine.id);
-          parameters.put(Field.HARVEST_JOB_ID.column.name, logLine.harvestJobId);
-          parameters.put(Field.SEQUENCE_NUMBER.column.name, logLine.sequenceNumber);
-          parameters.put(Field.TIME_STAMP.column.name, logLine.timeStamp);
-          parameters.put(Field.LOG_LEVEL.column.name, logLine.logLevel);
-          parameters.put(Field.JOB_LABEL.column.name, logLine.jobLabel);
-          parameters.put(Field.LOG_STATEMENT.column.name, logLine.line);
+          parameters.put(LogLineField.ID.columnName(), logLine.id);
+          parameters.put(LogLineField.HARVEST_JOB_ID.columnName(), logLine.harvestJobId);
+          parameters.put(LogLineField.SEQUENCE_NUMBER.columnName(), logLine.sequenceNumber);
+          parameters.put(LogLineField.TIME_STAMP.columnName(), logLine.timeStamp);
+          parameters.put(LogLineField.LOG_LEVEL.columnName(), logLine.logLevel);
+          parameters.put(LogLineField.JOB_LABEL.columnName(), logLine.jobLabel);
+          parameters.put(LogLineField.LOG_STATEMENT.columnName(), logLine.line);
           return parameters;
         });
   }

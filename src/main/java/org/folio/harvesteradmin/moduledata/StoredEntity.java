@@ -7,43 +7,59 @@ import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldUuid;
 
 public abstract class StoredEntity {
 
-  public abstract String getCreateTableSql(String schema);
+  Logger logger = LogManager.getLogger(StoredEntity.class);
 
-  public abstract RowMapper<StoredEntity> getSelectListMapper();
+  /**
+   * Builds the Postgres DDL SQL for creating a table.
+   */
+  public abstract String makeCreateTableSql(String schema);
 
-  public abstract TupleMapper<StoredEntity> getInsertValuesMapper();
+  /**
+   * Gets vert.x row mapper: Postgres select list results mapped to i.e. JSON or text strings.
+   */
+  public abstract RowMapper<StoredEntity> getRowMapper();
 
-  public abstract String getInsertTemplate(String schema);
+  /**
+   * Gets vert.x tuple mapper - Postgres insert values list, ie from JSON.
+   */
+  public abstract TupleMapper<StoredEntity> getTupleMapper();
 
+  /**
+   * Vert.x / Postgres template for table insert.
+   */
+  public abstract String makeInsertTemplate(String schema);
+
+  /**
+   * Gets Postgres/CQL definition, containing listing of queryable fields.
+   */
   public abstract PgCqlDefinition getQueryableFields();
 
+  /**
+   * Map of JSON property names to Postgres table column definitions (PgColumns).
+   */
   public abstract Map<String,PgColumn> getFieldMap();
 
   /**
    * Gets a SQL query string.
    */
-  public SqlQuery getSqlQueryFromRequest(RoutingContext routingContext, String schemaTable) {
+  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
 
     PgCqlDefinition definition = getQueryableFields();
 
-    String fromDateTime = routingContext.request().getParam("from");
-    String untilDateTime = routingContext.request().getParam("until");
     String offset = routingContext.request().getParam("offset");
     String limit = routingContext.request().getParam("limit");
 
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     RequestParameter query = params.queryParameter("query");
     String select = "SELECT * ";
-    String from = "FROM " + schemaTable;
+    String from = "FROM " + schemaDotTable;
     String where = "";
     String orderBy = "";
     if (query != null && !query.isEmpty()) {
@@ -56,12 +72,6 @@ public abstract class StoredEntity {
         }
         where = " WHERE " + whereClause;
       }
-      if (fromDateTime != null) {
-        where += " AND started >= '" + fromDateTime + "'";   // not generic
-      }
-      if (untilDateTime != null) {
-        where += " AND started <= '" + untilDateTime + "'";  // not generic
-      }
       String orderByClause = pgCqlQuery.getOrderByClause();
       if (orderByClause != null) {
         orderBy = " ORDER BY " + orderBy;
@@ -70,37 +80,5 @@ public abstract class StoredEntity {
     return new SqlQuery(select, from, where, orderBy, offset, limit);
   }
 
-  /**
-   * Instantiates PG column definition.
-   */
-  public static PgColumn getColumnDefinition(
-      String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
-    return getColumnDefinition(columnName, type, nullable, queryable, false);
-  }
-
-  /**
-   * Instantiates PG column definition.
-   */
-  public static PgColumn getColumnDefinition(
-      String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
-      Boolean primaryKey) {
-    PgCqlFieldBase cqlField = null;
-    if (queryable) {
-      switch (type) {
-        case TEXT:
-          cqlField = new PgCqlFieldText();
-          break;
-        case INTEGER:
-          cqlField = new PgCqlFieldNumber();
-          break;
-        case UUID:
-          cqlField = new PgCqlFieldUuid();
-          break;
-        default:
-          cqlField = new PgCqlFieldText();
-      }
-    }
-    return new PgColumn(columnName, type, nullable, cqlField, primaryKey);
-  }
 
 }

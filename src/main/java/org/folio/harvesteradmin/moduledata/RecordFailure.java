@@ -8,8 +8,6 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.tlib.postgres.PgCqlDefinition;
 
@@ -49,12 +47,12 @@ public class RecordFailure extends StoredEntity {
   /**
    * CREATE TABLE statement.
    */
-  public String getCreateTableSql(String schema) {
+  public String makeCreateTableSql(String schema) {
     return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.record_failure
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJob.Field.ID.column.name + "), "
+        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
         + Column.record_errors + " JSONB NOT NULL, "
         + Column.original_record + " TEXT NOT NULL, "
         + Column.transformed_record + " JSONB NOT NULL"
@@ -62,7 +60,7 @@ public class RecordFailure extends StoredEntity {
   }
 
   @Override
-  public RowMapper<StoredEntity> getSelectListMapper() {
+  public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       RecordFailure recordFailure = new RecordFailure();
       recordFailure.id = row.getUUID(RecordFailure.Column.id.name());
@@ -75,7 +73,7 @@ public class RecordFailure extends StoredEntity {
   }
 
   @Override
-  public TupleMapper<StoredEntity> getInsertValuesMapper() {
+  public TupleMapper<StoredEntity> getTupleMapper() {
     return TupleMapper.mapper(
         recordFailure -> {
           RecordFailure entity = (RecordFailure) recordFailure;
@@ -90,7 +88,7 @@ public class RecordFailure extends StoredEntity {
   }
 
   @Override
-  public String getInsertTemplate(String schema) {
+  public String makeInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Storage.Table.record_failure
         + " ("
         + Column.id + ", "
@@ -119,7 +117,7 @@ public class RecordFailure extends StoredEntity {
   }
 
   @Override
-  public SqlQuery getSqlQueryFromRequest(RoutingContext routingContext, String schema) {
+  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
     return null;
   }
 

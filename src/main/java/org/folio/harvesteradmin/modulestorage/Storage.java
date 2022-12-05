@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
+import org.folio.harvesteradmin.moduledata.SqlQuery;
 import org.folio.harvesteradmin.moduledata.StoredEntity;
 import org.folio.tlib.postgres.TenantPgPool;
 
@@ -38,7 +40,7 @@ public class Storage {
     pool = TenantPgPool.pool(vertx, tenant);
   }
 
-  public String schemaTable(Table table) {
+  public String schemaDotTable(Table table) {
     return pool.getSchema() + "." + table.name();
   }
 
@@ -58,15 +60,12 @@ public class Storage {
     }
     final Promise<Void> promise = Promise.promise();
     @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
-    tables.add(
-        pool.query(
-            HarvestJob.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    tables.add(
-        pool.query(
-            LogLine.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    tables.add(
-        pool.query(
-            RecordFailure.entity().getCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    for (StoredEntity entity : Arrays.asList(
+        HarvestJob.entity(),
+        LogLine.entity(),
+        RecordFailure.entity())) {
+      tables.add(pool.query(entity.makeCreateTableSql(pool.getSchema())).execute().mapEmpty());
+    }
     CompositeFuture.all(tables).onComplete(
         creates -> {
           if (creates.succeeded()) {
@@ -95,8 +94,8 @@ public class Storage {
    */
   public Future<UUID> storeHarvestJob(HarvestJob harvestJob) {
     return SqlTemplate.forUpdate(pool.getPool(),
-            harvestJob.getInsertTemplate(pool.getSchema()))
-        .mapFrom(harvestJob.getInsertValuesMapper())
+            harvestJob.makeInsertTemplate(pool.getSchema()))
+        .mapFrom(harvestJob.getTupleMapper())
         .execute(harvestJob)
         .onSuccess(res -> logger.info("Saved harvest job"))
         .onFailure(res -> logger.error("Couldn't save harvest job: " + res.getMessage()))
@@ -131,8 +130,8 @@ public class Storage {
             + (nonMatches > 0
             ? "There were " + nonMatches + " log statements that could not be parsed!" : ""));
         return SqlTemplate.forUpdate(pool.getPool(),
-            LogLine.entity().getInsertTemplate(pool.getSchema()))
-            .mapFrom(LogLine.entity().getInsertValuesMapper())
+            LogLine.entity().makeInsertTemplate(pool.getSchema()))
+            .mapFrom(LogLine.entity().getTupleMapper())
             .executeBatch(logLines)
             .onFailure(res -> logger.error("Didn't save log lines: " + res.getMessage()))
             .mapEmpty();
@@ -157,8 +156,8 @@ public class Storage {
         list.add(RecordFailure.fromLegacyHarvesterJson(harvestJobId, failedRecord));
       }
       return SqlTemplate.forUpdate(pool.getPool(),
-          RecordFailure.entity().getInsertTemplate(pool.getSchema()))
-          .mapFrom(RecordFailure.entity().getInsertValuesMapper())
+          RecordFailure.entity().makeInsertTemplate(pool.getSchema()))
+          .mapFrom(RecordFailure.entity().getTupleMapper())
           .executeBatch(list)
           .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
           .mapEmpty();
@@ -175,7 +174,7 @@ public class Storage {
   public Future<List<HarvestJob>> getPreviousJobs(String query) {
     List<HarvestJob> previousJobs = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(), query)
-        .mapTo(HarvestJob.entity().getSelectListMapper())
+        .mapTo(HarvestJob.entity().getRowMapper())
         .execute(null)
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
@@ -190,9 +189,9 @@ public class Storage {
   public Future<HarvestJob> getPreviousJobById(UUID id) {
     return SqlTemplate.forQuery(pool.getPool(),
             "SELECT * "
-                + "FROM " + schemaTable(Table.harvest_job) + " "
+                + "FROM " + schemaDotTable(Table.harvest_job) + " "
                 + "WHERE id = #{id}")
-        .mapTo(HarvestJob.entity().getSelectListMapper())
+        .mapTo(HarvestJob.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
           RowIterator<StoredEntity> iterator = rows.iterator();
@@ -203,22 +202,23 @@ public class Storage {
   /**
    * Retrieves log for past harvest job.
    */
-  public Future<String> getLogsForPreviousJob(UUID id) {
+  public Future<String> getLogsForPreviousJob(UUID id, SqlQuery queryFromCql) {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
-    SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * "
-                + "FROM " + schemaTable(Table.log_statement) + " "
-                + "WHERE harvest_job_id = #{id} "
-                + "ORDER BY seq")
-        .mapTo(LogLine.entity().getSelectListMapper())
+    String query = queryFromCql.withExtraQueryParameters("harvest_job_id = #{id}").toString();
+    logger.info("Getting log lines using query " + query);
+    SqlTemplate.forQuery(pool.getPool(), query)
+        .mapTo(LogLine.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
             log.append(entity).append(System.lineSeparator());
           }
           promise.complete(log.toString());
-        });
+        })
+        .onFailure(
+            rows -> promise.fail(rows.getMessage())
+        );
     return promise.future();
   }
 
@@ -233,9 +233,9 @@ public class Storage {
     List<RecordFailure> recordFailures = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(),
             "SELECT * "
-                + "FROM " + schemaTable(Table.record_failure) + " "
+                + "FROM " + schemaDotTable(Table.record_failure) + " "
                 + "WHERE harvest_job_id = #{id} ")
-        .mapTo(RecordFailure.entity().getSelectListMapper())
+        .mapTo(RecordFailure.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
