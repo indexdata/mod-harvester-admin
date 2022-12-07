@@ -29,7 +29,7 @@ public class HarvestJob extends StoredEntity {
   }
 
   /**
-   * Maps legacy harvestable JSON to HarvestJob Java Object.
+   * Maps legacy harvestable JSON to a HarvestJob POJO.
    */
   public static HarvestJob fromHarvestableJson(JsonObject harvestableJson) {
     HarvestJob harvestJob = new HarvestJob();
@@ -137,7 +137,7 @@ public class HarvestJob extends StoredEntity {
   }
 
   /**
-   * Table insert-into values mapping.
+   * Maps values of the POJO into table columns for insert-into statement.
    */
   public TupleMapper<StoredEntity> getTupleMapper() {
     return TupleMapper.mapper(
@@ -171,7 +171,7 @@ public class HarvestJob extends StoredEntity {
   }
 
   /**
-   * Maps values from columns of a row to properties of a JSON object.
+   * Maps values from columns of a row to properties of the POJO.
    */
   public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
