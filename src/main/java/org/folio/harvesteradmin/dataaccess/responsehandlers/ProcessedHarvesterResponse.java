@@ -43,4 +43,6 @@ public abstract class ProcessedHarvesterResponse {
   public boolean wasNoContent() {
     return statusCode == 204;
   }
+
+
 }

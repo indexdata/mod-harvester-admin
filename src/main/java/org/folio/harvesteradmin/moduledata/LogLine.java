@@ -180,18 +180,6 @@ public class LogLine extends StoredEntity {
         + ")";
   }
 
-  @Override
-  public PgCqlDefinition getQueryableFields() {
-    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
-    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
-    for (LogLineField field : LogLineField.values()) {
-      if (field.queryable) {
-        pgCqlDefinition.addField(field.propertyName(), field.pgColumn().pgCqlField());
-      }
-    }
-    return pgCqlDefinition;
-  }
-
   /**
    * Creates a TupleMapper for input mapping.
    */
@@ -210,6 +198,19 @@ public class LogLine extends StoredEntity {
           return parameters;
         });
   }
+
+  @Override
+  public PgCqlDefinition getQueryableFields() {
+    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
+    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
+    for (LogLineField field : LogLineField.values()) {
+      if (field.queryable) {
+        pgCqlDefinition.addField(field.propertyName(), field.pgColumn().pgCqlField());
+      }
+    }
+    return pgCqlDefinition;
+  }
+
 
   public String toString() {
     return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);

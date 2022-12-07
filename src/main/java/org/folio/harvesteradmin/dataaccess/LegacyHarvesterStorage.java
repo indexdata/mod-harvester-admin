@@ -638,7 +638,7 @@ public class LegacyHarvesterStorage {
           List<Future> failedRecordFutures = new ArrayList<>();
           for (Object o : fileArray) {
             JsonObject entry = (JsonObject) o;
-            failedRecordFutures.add(getFailedRecord(entry.getString("url")));
+            failedRecordFutures.add(getFailedRecord(entry));
           }
           CompositeFuture.all(failedRecordFutures).onComplete(results -> {
             JsonObject response = new JsonObject();
@@ -697,10 +697,19 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
-  private Future<ProcessedHarvesterResponseGetById> getFailedRecord(String uri) {
+  private Future<ProcessedHarvesterResponseGetById> getFailedRecord(JsonObject entry) {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+    String uri = entry.getString("url");
     harvesterGetRequest(uri)
-        .send(ar ->  promise.complete(new ProcessedHarvesterResponseGetById(ar,uri,"","")));
+        .send(ar ->  {
+          ProcessedHarvesterResponseGetById response =
+              new ProcessedHarvesterResponseGetById(ar,uri,"","");
+          response.jsonObject().getJsonObject("failed-record")
+              .put("timeStamp", entry.getJsonObject("file").getString("date"));
+          response.jsonObject().getJsonObject("failed-record")
+              .put("recordNumber", entry.getJsonObject("file").getString("name"));
+          promise.complete(response);
+        });
     return promise.future();
   }
 
