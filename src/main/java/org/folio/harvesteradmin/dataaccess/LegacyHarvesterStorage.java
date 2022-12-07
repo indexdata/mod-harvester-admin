@@ -558,10 +558,18 @@ public class LegacyHarvesterStorage {
         if (idLookup.result().wasNotFound()) {
           promise.fail("Could not find harvestable with ID " + id);
         } else if (idLookup.result().wasOK()) {
-          String from = fromParameter != null && !fromParameter.isEmpty()
-              ? fromParameter
-              : idLookup.result().jsonObject().getString("lastHarvestStarted").substring(0,19);
-          getJobLog(id, from).onComplete(ar -> promise.complete(ar.result()));
+          String lastStarted = idLookup.result().jsonObject().getString("lastHarvestStarted");
+          if (lastStarted == null || lastStarted.isEmpty()) {
+            promise.fail(
+                "Could not find logs. This harvest configuration doesn't appear to have been run. "
+                    + "Cannot retrieve logs "
+                + HARVESTER_HARVESTABLES_PATH + "/" + id);
+          } else {
+            String from = fromParameter != null && !fromParameter.isEmpty()
+                ? fromParameter
+                : lastStarted.substring(0, 19);
+            getJobLog(id, from).onComplete(ar -> promise.complete(ar.result()));
+          }
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
               + HARVESTER_HARVESTABLES_PATH + "/" + id
