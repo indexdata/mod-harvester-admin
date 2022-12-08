@@ -70,10 +70,14 @@
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}",
           "permissionsRequired": ["harvester-admin.previous-jobs.item.get"]
-        }, {
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
           "permissionsRequired": ["harvester-admin.previous-jobs.log.get"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
         },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
@@ -262,6 +266,11 @@
       "description": "get log statements for past harvest jobs"
     },
     {
+      "permissionName": "harvester-admin.previous-jobs.failed-records.collection.get",
+      "displayName": "harvester admin - view failed records for a past harvest job",
+      "description": "get failed records for past harvest jobs"
+    },
+    {
       "permissionName": "harvester-admin.storages.collection.get",
       "displayName": "harvester admin - get storage collection",
       "description": "get storage collection from storage"
@@ -441,7 +450,8 @@
         "harvester-admin.harvestables.failed-records.item.get",
         "harvester-admin.previous-jobs.collection.get",
         "harvester-admin.previous-jobs.item.get",
-        "harvester-admin.previous-jobs.log.get"
+        "harvester-admin.previous-jobs.log.get",
+        "harvester-admin.previous-jobs.failed-records.collection.get"
       ]
     }
   ]

@@ -174,17 +174,18 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
-  public void canCreateHarvestableAndGetJobLog()
+  public void canCreateHarvestableButCannotGetJobLogIfNotRun()
   {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
         new JsonObject(
             "{\n"
                 + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
-                + "  \"name\": \"Test harvest job\",\n"
+                + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
                 + "  \"type\": \"oaiPmh\",\n"
                 + "  \"enabled\": \"false\",\n"
                 + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"lastUpdated\": \"2022-12-07T15:20:49.507Z\",\n"
                 + "  \"storage\": {\n"
                 + "    \"entityType\": \"inventoryStorageEntity\",\n"
                 + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
@@ -204,7 +205,7 @@ public class HarvesterAdminTestSuite {
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
-    getJobLog(harvestableId.toString(), 200);
+    getJobLog(harvestableId.toString(), 404);
   }
 
   @Test
