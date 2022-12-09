@@ -45,7 +45,7 @@ public class SqlQuery {
   /**
    * Adds ANDed where clause to query.
    */
-  public SqlQuery withExtraQueryParameters(String clause) {
+  public SqlQuery withAdditionalWhereClause(String clause) {
     if (clause != null && !clause.isEmpty()) {
       if (where.isEmpty()) {
         where = " where (" + clause + ")";
@@ -59,7 +59,7 @@ public class SqlQuery {
   /**
    * Applies offset and limit if any.
    */
-  public String limits(String offset, String limit) {
+  public static String limits(String offset, String limit) {
     return
         (offset == null || offset.isEmpty() ? "" : " offset " + offset)
             + (limit == null || limit.isEmpty() ? "" : " limit " + limit);
