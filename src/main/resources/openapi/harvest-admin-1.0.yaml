@@ -73,6 +73,21 @@ paths:
           $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
+
+    put:
+      operationId: putHarvestable
+      description: Update harvest configuration
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
     delete:
       operationId: deleteHarvestable
       description: Delete a harvest job configuration

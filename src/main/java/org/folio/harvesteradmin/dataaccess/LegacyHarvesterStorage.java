@@ -27,6 +27,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +66,8 @@ public class LegacyHarvesterStorage {
   public static final int NO_CONTENT = 204;
   public static final int CREATED = 201;
   protected final WebClient restClient;
+
+  private static final DateTimeFormatter iso_instant = DateTimeFormatter.ISO_INSTANT;
   private static final Logger logger = LogManager.getLogger(LegacyHarvesterStorage.class);
 
   public LegacyHarvesterStorage(Vertx vertx, String tenant) {
@@ -162,6 +166,9 @@ public class LegacyHarvesterStorage {
       return doPostTsaPutTransformation(routingContext);
     } else {
       JsonObject jsonToPost = routingContext.body().asJsonObject();
+      if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
+        jsonToPost.put("lastUpdated", iso_instant.format(Instant.now()));
+      }
       String requestUri = routingContext.request().absoluteURI();
       return doPostConfigRecord(requestUri, harvesterPath, jsonToPost);
     }
@@ -213,6 +220,9 @@ public class LegacyHarvesterStorage {
     String harvesterPath = mapToHarvesterPath(routingContext);
     JsonObject jsonToPut = routingContext.body().asJsonObject();
     String id = routingContext.request().getParam("id");
+    if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
+      jsonToPut.put("lastUpdated", iso_instant.format(Instant.now()));
+    }
     return putConfigRecord(routingContext, harvesterPath, jsonToPut, id);
   }
 
