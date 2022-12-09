@@ -58,6 +58,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("postHarvestable")
         .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
+        .operation("putHarvestable")
+        .handler(ctx -> putConfigRecord(vertx, ctx));
+    routerBuilder
         .operation("deleteHarvestable")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
 
@@ -71,26 +74,29 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     routerBuilder
         .operation("getFailedRecord")
-            .handler(ctx -> getFailedRecord(vertx, ctx));
+        .handler(ctx -> getFailedRecord(vertx, ctx));
 
     routerBuilder
         .operation("storeJobLog")
-            .handler(ctx -> saveJobWithLogs(vertx, ctx));
+        .handler(ctx -> saveJobWithLogs(vertx, ctx));
 
     routerBuilder
         .operation("getPreviousJobs")
-            .handler(ctx -> getPreviousJobs(vertx, ctx)
-                .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage())));
+        .handler(ctx -> getPreviousJobs(vertx, ctx)
+            .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage())));
     routerBuilder
         .operation("getPreviousJob")
-            .handler(ctx -> getPreviousJobById(vertx, ctx));
+        .handler(ctx -> getPreviousJobById(vertx, ctx));
 
     routerBuilder
         .operation("getPreviousJobLog")
-            .handler(ctx -> getPreviousJobLog(vertx, ctx));
+        .handler(ctx -> getPreviousJobLog(vertx, ctx));
     routerBuilder
         .operation("getFailedRecordsForPreviousJob")
-            .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx));
+        .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx));
+    routerBuilder
+        .operation("getFailedRecordForPreviousJob")
+        .handler(ctx -> getFailedRecordForPreviousJob(vertx, ctx));
 
     routerBuilder
         .operation("getStorages")
@@ -463,7 +469,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     SqlQuery queryFromCql = LogLine.entity()
         .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.log_statement))
         .withExtraQueryParameters(timeRange);
-    logger.info("getPreviousJobLog, query: " + queryFromCql.toString());
     return storage.getLogsForPreviousJob(id, queryFromCql)
         .onComplete(jobLog -> {
           if (jobLog.succeeded()) {
@@ -510,5 +515,28 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         }
     ).mapEmpty();
   }
+
+  private Future<Void> getFailedRecordForPreviousJob(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    UUID id = UUID.fromString(params.pathParameter("id").getString());
+    Storage storage = new Storage(vertx, tenant);
+    return storage.getFailedRecordForPreviousJob(id).onComplete(
+        failureRecord -> {
+          if (failureRecord.succeeded()) {
+            RecordFailure failure = failureRecord.result();
+            responseJson(routingContext, 200).end(failure.asJson().encodePrettily());
+          } else {
+            if (failureRecord.cause().getMessage().startsWith("No failed record")) {
+              responseText(routingContext, 404)
+                  .end(failureRecord.cause().getMessage());
+            }
+            responseText(routingContext, 500)
+                .end("Problem retrieving jobs: " + failureRecord.cause().getMessage());
+          }
+        }
+    ).mapEmpty();
+  }
+
 
 }
