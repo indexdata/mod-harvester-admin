@@ -91,6 +91,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     routerBuilder
         .operation("getFailedRecordsForPreviousJob")
             .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx));
+    routerBuilder
+        .operation("getFailedRecordForPreviousJob")
+            .handler(ctx -> getFailedRecordForPreviousJob(vertx, ctx));
 
     routerBuilder
         .operation("getStorages")
@@ -463,7 +466,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     SqlQuery queryFromCql = LogLine.entity()
         .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.log_statement))
         .withExtraQueryParameters(timeRange);
-    logger.info("getPreviousJobLog, query: " + queryFromCql.toString());
     return storage.getLogsForPreviousJob(id, queryFromCql)
         .onComplete(jobLog -> {
           if (jobLog.succeeded()) {
@@ -510,5 +512,28 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         }
     ).mapEmpty();
   }
+
+  private Future<Void> getFailedRecordForPreviousJob(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    UUID id = UUID.fromString(params.pathParameter("id").getString());
+    Storage storage = new Storage(vertx, tenant);
+    return storage.getFailedRecordForPreviousJob(id).onComplete(
+        failureRecord -> {
+          if (failureRecord.succeeded()) {
+            RecordFailure failure = failureRecord.result();
+            responseJson(routingContext, 200).end(failure.asJson().encodePrettily());
+          } else {
+            if (failureRecord.cause().getMessage().startsWith("No failed record")) {
+              responseText(routingContext, 404)
+                  .end(failureRecord.cause().getMessage());
+            }
+            responseText(routingContext, 500)
+                .end("Problem retrieving jobs: " + failureRecord.cause().getMessage());
+          }
+        }
+    ).mapEmpty();
+  }
+
 
 }

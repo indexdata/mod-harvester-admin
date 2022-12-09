@@ -80,6 +80,10 @@
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
         },{
           "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/failed-records/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.item.get"]
+        },{
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
           "permissionsRequired": ["harvester-admin.storages.collection.get"]
         }, {
@@ -451,7 +455,8 @@
         "harvester-admin.previous-jobs.collection.get",
         "harvester-admin.previous-jobs.item.get",
         "harvester-admin.previous-jobs.log.get",
-        "harvester-admin.previous-jobs.failed-records.collection.get"
+        "harvester-admin.previous-jobs.failed-records.collection.get",
+        "harvester-admin.previous-jobs.failed-records.item.get"
       ]
     }
   ]

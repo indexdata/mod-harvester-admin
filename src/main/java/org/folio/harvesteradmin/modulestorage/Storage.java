@@ -206,7 +206,6 @@ public class Storage {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
     String query = queryFromCql.withExtraQueryParameters("harvest_job_id = #{id}").toString();
-    logger.info("Getting log lines using query " + query);
     SqlTemplate.forQuery(pool.getPool(), query)
         .mapTo(LogLine.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
@@ -220,10 +219,6 @@ public class Storage {
             rows -> promise.fail(rows.getMessage())
         );
     return promise.future();
-  }
-
-  public Future<String> getLogsForPreviousJobs(String query, String from, String until) {
-    return null;
   }
 
   /**
@@ -243,6 +238,33 @@ public class Storage {
           }
         }).map(recordFailures);
   }
+
+  /**
+   * Retrieves failed records for past harvest job.
+   */
+  public Future<RecordFailure> getFailedRecordForPreviousJob(UUID id) {
+    Promise<RecordFailure> promise = Promise.promise();
+    SqlTemplate.forQuery(pool.getPool(),
+            "SELECT * "
+                + "FROM " + schemaDotTable(Table.record_failure) + " "
+                + "WHERE id = #{id} ")
+        .mapTo(RecordFailure.entity().getRowMapper())
+        .execute(Collections.singletonMap("id", id))
+        .onComplete(rows -> {
+          if (rows.succeeded()) {
+            if (rows.result().size() > 0) {
+              promise.complete((RecordFailure) rows.result().iterator().next());
+            } else {
+              promise.fail("No failed record found with ID " + id.toString());
+            }
+          } else {
+            promise.fail("There was a problem getting failed record by ID "
+                + rows.cause().getMessage());
+          }
+        });
+    return promise.future();
+  }
+
 
   /**
    * Gets record count.
