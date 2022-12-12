@@ -205,7 +205,7 @@ public class Storage {
   public Future<String> getLogsForPreviousJob(UUID id, SqlQuery queryFromCql) {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
-    String query = queryFromCql.withExtraQueryParameters("harvest_job_id = #{id}").toString();
+    String query = queryFromCql.withAdditionalWhereClause("harvest_job_id = #{id}").toString();
     SqlTemplate.forQuery(pool.getPool(), query)
         .mapTo(LogLine.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
@@ -224,12 +224,14 @@ public class Storage {
   /**
    * Retrieves failed records for past harvest job.
    */
-  public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(UUID id) {
+  public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(
+      UUID id, String offset, String limit) {
     List<RecordFailure> recordFailures = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(),
             "SELECT * "
                 + "FROM " + schemaDotTable(Table.record_failure) + " "
-                + "WHERE harvest_job_id = #{id} ")
+                + "WHERE harvest_job_id = #{id} "
+                + SqlQuery.limits(offset, limit))
         .mapTo(RecordFailure.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onSuccess(rows -> {
@@ -275,7 +277,11 @@ public class Storage {
         .mapTo(countingMapper())
         .execute(null)
         .onComplete(rows -> {
-          promise.complete(rows.result().iterator().next());
+          if (rows.result() != null) {
+            promise.complete(rows.result().iterator().next());
+          } else {
+            promise.fail("No result from counting by " + sql);
+          }
         });
     return promise.future();
   }

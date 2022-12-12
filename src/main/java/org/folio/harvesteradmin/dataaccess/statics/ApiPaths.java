@@ -62,8 +62,7 @@ public class ApiPaths {
     harvesterPathByRequestPath.put(THIS_STORAGES_PATH, HARVESTER_STORAGES_PATH);
     harvesterPathByRequestPath.put(THIS_TRANSFORMATIONS_PATH, HARVESTER_TRANSFORMATIONS_PATH);
     harvesterPathByRequestPath.put(THIS_STEPS_PATH, HARVESTER_STEPS_PATH);
-    harvesterPathByRequestPath.put(THIS_TRANSFORMATIONS_STEPS_PATH,
-        HARVESTER_TSAS_PATH);
+    harvesterPathByRequestPath.put(THIS_TRANSFORMATIONS_STEPS_PATH, HARVESTER_TSAS_PATH);
   }
 
 

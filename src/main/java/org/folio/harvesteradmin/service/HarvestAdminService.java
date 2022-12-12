@@ -407,7 +407,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     try {
       query = HarvestJob.entity()
           .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.harvest_job))
-          .withExtraQueryParameters(timeRange);
+          .withAdditionalWhereClause(timeRange);
     } catch (Exception e) {
       return Future.failedFuture(e.getMessage());
     }
@@ -468,7 +468,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     Storage storage = new Storage(vertx, tenant);
     SqlQuery queryFromCql = LogLine.entity()
         .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.log_statement))
-        .withExtraQueryParameters(timeRange);
+        .withAdditionalWhereClause(timeRange);
     return storage.getLogsForPreviousJob(id, queryFromCql)
         .onComplete(jobLog -> {
           if (jobLog.succeeded()) {
@@ -496,8 +496,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     UUID id = UUID.fromString(params.pathParameter("id").getString());
+    String offset = routingContext.request().getParam("offset");
+    String limit = routingContext.request().getParam("limit");
+
     Storage storage = new Storage(vertx, tenant);
-    return storage.getFailedRecordsForPreviousJob(id).onComplete(
+    return storage.getFailedRecordsForPreviousJob(id, offset, limit).onComplete(
         failuresList -> {
           if (failuresList.succeeded()) {
             JsonObject responseJson = new JsonObject();
@@ -507,7 +510,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             for (RecordFailure failure : failures) {
               recordFailures.add(failure.asJson());
             }
-            responseJson(routingContext, 200).end(responseJson.encodePrettily());
+            storage.getCount("SELECT COUNT(*) as total_records "
+                + "FROM " + storage.schemaDotTable(Storage.Table.record_failure) + " "
+                + "WHERE harvest_job_id = '" + id + "'").onComplete(count -> {
+                  responseJson.put("totalRecords", count.result());
+                  responseJson(routingContext, 200).end(responseJson.encodePrettily());
+                }
+            );
           } else {
             responseText(routingContext, 500)
                 .end("Problem retrieving jobs: " + failuresList.cause().getMessage());
