@@ -220,7 +220,7 @@ public class LegacyHarvesterStorage {
     String harvesterPath = mapToHarvesterPath(routingContext);
     JsonObject jsonToPut = routingContext.body().asJsonObject();
     String id = routingContext.request().getParam("id");
-    if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
+    if (harvesterPath != null && harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
       jsonToPut.put("lastUpdated", iso_instant.format(Instant.now()));
     }
     return putConfigRecord(routingContext, harvesterPath, jsonToPut, id);
