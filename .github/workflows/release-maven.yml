@@ -95,6 +95,8 @@ jobs:
           url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules"
           method: "POST"
           accept: 201
+          timeout: 5000
+          log-response: true
           headers: |
             {
               "content-type": "application/json",
