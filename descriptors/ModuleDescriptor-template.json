@@ -459,5 +459,30 @@
         "harvester-admin.previous-jobs.failed-records.item.get"
       ]
     }
-  ]
+  ],
+  "launchDescriptor": {
+    "dockerImage": "${artifactId}:${version}",
+    "dockerPull": false,
+    "dockerArgs": {
+      "HostConfig": {
+        "Memory": 536870912,
+        "PortBindings": { "8081/tcp": [ { "HostPort": "%p" } ] }
+      }
+    },
+    "env": [
+      { "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0"
+      },
+      { "name": "DB_HOST", "value": "postgres" },
+      { "name": "DB_PORT", "value": "5432" },
+      { "name": "DB_USERNAME", "value": "folio_admin" },
+      { "name": "DB_PASSWORD", "value": "folio_admin" },
+      { "name": "DB_DATABASE", "value": "okapi_modules" },
+      { "name": "DB_MAXPOOLSIZE", "value": "5" },
+      { "name": "harvester_protocol", "value": "http" },
+      { "name": "harvester_host", "value": "localhost" },
+      { "name": "harvester_port", "value": "8080" },
+      { "name": "acl_filter_by_tenant", "value": false }
+    ]
+  }
 }
