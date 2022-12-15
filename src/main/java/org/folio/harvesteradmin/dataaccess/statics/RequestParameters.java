@@ -33,10 +33,12 @@ public class RequestParameters {
 
   static {
     crosswalkCqlFieldNames.put("transformationId", "transformation.id");
+    crosswalkCqlFieldNames.put("storageId", "storage.id");
   }
 
   /**
    * Translate transformationId to transformation.id.
+   * And storageId to storage.id.
    */
   public static String crosswalkCqlFieldNames(String cqlQuery) {
     String query = cqlQuery;
