@@ -109,7 +109,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> postConfigRecord(vertx, ctx));
     routerBuilder
         .operation("putStorage")
-            .handler(ctx -> putConfigRecord(vertx, ctx));
+            .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteStorage")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
@@ -173,6 +174,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("stopJob")
         .handler(ctx -> stopJob(vertx, ctx));
 
+  }
+
+  public void routerExceptionResponse(RoutingContext ctx) {
+    HttpResponse.responseError(ctx, ctx.statusCode(), ctx.failure().getMessage());
   }
 
   @Override
