@@ -169,6 +169,14 @@ public class LegacyHarvesterStorage {
       JsonObject jsonToPost = routingContext.body().asJsonObject();
       if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
         jsonToPost.put("lastUpdated", iso_instant.format(Instant.now()));
+        JsonObject transformationReference = jsonToPost.getJsonObject("transformation");
+        if (!transformationReference.containsKey("entityType")) {
+          transformationReference.put("entityType", "basicTransformation");
+        }
+        JsonObject storageReference = jsonToPost.getJsonObject("storage");
+        if (!storageReference.containsKey("entityType")) {
+          storageReference.put("entityType", "inventoryStorageEntity");
+        }
       }
       String requestUri = routingContext.request().absoluteURI();
       return doPostConfigRecord(requestUri, harvesterPath, jsonToPost);
