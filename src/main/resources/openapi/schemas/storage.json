@@ -56,7 +56,7 @@
     },
     "json": {
       "type": "object",
-      "description": "Free form configuration"
+      "description": "Free form configuration. Only inventoryStorage"
     }
   },
   "additionalProperties": false
