@@ -2,6 +2,7 @@ package org.folio.harvesteradmin.dataaccess;
 
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STEPS_PATH;
+import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STORAGES_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TSAS_PATH;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.harvesterPathByRequestPath;
@@ -83,12 +84,18 @@ public class LegacyHarvesterStorage {
     String harvesterPath = mapToHarvesterPath(routingContext);
     Map<String, String> queryParameters =
         getSupportedGetRequestParameters(routingContext.request());
-    Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     String query = buildQueryString(queryParameters);
-    String pathAndQuery = harvesterPath
-        + (query.isEmpty() ? aclFilter(tenant) : query + andAclFilter(tenant));
-    harvesterGetRequest(pathAndQuery).send(ar -> promise.complete(
-        new ProcessedHarvesterResponseGet(ar, harvesterPath, query)));
+    return getConfigRecords(harvesterPath, query);
+  }
+
+  public Future<ProcessedHarvesterResponseGet> getConfigRecords(String path, String query) {
+    Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
+    String pathAndQuery = path
+        + ((query == null || query.isEmpty()) ? aclFilter(tenant)
+        : (query.startsWith("?") ? query : "?" + query) + andAclFilter(tenant));
+    harvesterGetRequest(pathAndQuery)
+        .send(ar ->
+            promise.complete(new ProcessedHarvesterResponseGet(ar, path, query)));
     return promise.future();
   }
 
@@ -156,6 +163,43 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
+  public Future<ProcessedHarvesterResponsePost> checkReferencedEntities(
+      String api, JsonObject entity) {
+    Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
+    List<String> constraintViolation = new ArrayList<>();
+    if (api.contains("harvestables")) {
+      // check transformation and storage
+      final String storageId = entity.getJsonObject("storage").getString("id");
+      final String transformationId = entity.getJsonObject("transformation").getString("id");
+      getConfigRecordById(HARVESTER_STORAGES_PATH, storageId)
+          .onComplete(storage -> {
+            if (storage.result().wasNotFound()) {
+              constraintViolation.add("No such storage: " + storageId);
+            }
+            getConfigRecordById(HARVESTER_TRANSFORMATIONS_PATH, transformationId)
+                .onComplete(transformation -> {
+                  if (transformation.result().wasNotFound()) {
+                    constraintViolation.add("No such transformation pipeline: " + transformationId);
+                  }
+                  if (constraintViolation.size() > 0) {
+                    promise.complete(
+                        new ProcessedHarvesterResponsePost(400, constraintViolation.toString())
+                    );
+                  } else {
+                    promise.complete(
+                        new ProcessedHarvesterResponsePost(200, "References OK")
+                    );
+                  }
+                });
+          });
+    } else {
+      promise.complete(
+          new ProcessedHarvesterResponsePost(200, "References not checked")
+      );
+    }
+    return promise.future();
+  }
+
   /**
    * Posts configuration record and retrieves the persisted result for the response.
    */
@@ -189,37 +233,43 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponsePost> doPostConfigRecord(
       String requestUri, String harvesterPath, JsonObject json) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    try {
-      String xml = JsonToHarvesterXml.convertToHarvesterRecord(json,
-          mapToNameOfRootOfEntity(harvesterPath), tenant);
-      harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml), ar -> {
-        if (ar.succeeded()) {
-          String location = ar.result().getHeader("Location");
-          if (ar.result().statusCode() == CREATED && location != null) {
-            String idFromLocation = location.split("/")[location.split("/").length - 1];
-            logger.debug("Got id from location: " + location);
-            getConfigRecordById(harvesterPath, idFromLocation).onComplete(
-                // going to return 500, internal server error if not found, 201, Created if found
-                lookUpNewlyCreatedRecord -> promise.complete(
-                    new ProcessedHarvesterResponsePost(
-                        ar, requestUri, harvesterPath,
-                        lookUpNewlyCreatedRecord.result())));
-          } else {
-            promise.complete(
-                new ProcessedHarvesterResponsePost(
-                    ar, requestUri, harvesterPath, null));
-          }
-        } else {
-          promise.complete(
-              new ProcessedHarvesterResponsePost(
-                  ar, requestUri, harvesterPath, null));
-        }
-      });
-    } catch (TransformerException | ParserConfigurationException e) {
-      promise.complete(new ProcessedHarvesterResponsePost(INTERNAL_SERVER_ERROR, e.getMessage()));
-    }
+      checkReferencedEntities(harvesterPath, json)
+          .onComplete(result -> {
+            if (result.result().wasOK()) {
+              try {
+                String xml = JsonToHarvesterXml.convertToHarvesterRecord(json,
+                  mapToNameOfRootOfEntity(harvesterPath), tenant);
+                harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml), ar -> {
+                  if (ar.succeeded()) {
+                    String location = ar.result().getHeader("Location");
+                    if (ar.result().statusCode() == CREATED && location != null) {
+                      String idFromLocation = location.split("/")[location.split("/").length - 1];
+                      logger.debug("Got id from location: " + location);
+                      getConfigRecordById(harvesterPath, idFromLocation).onComplete(
+                          // going to return 500, internal server error if not found, 201, Created if found
+                          lookUpNewlyCreatedRecord -> promise.complete(
+                              new ProcessedHarvesterResponsePost(
+                                  ar, requestUri, harvesterPath,
+                                  lookUpNewlyCreatedRecord.result())));
+                    } else {
+                      promise.complete(
+                          new ProcessedHarvesterResponsePost(
+                              ar, requestUri, harvesterPath, null));
+                    }
+                  } else {
+                    promise.complete(
+                        new ProcessedHarvesterResponsePost(
+                            ar, requestUri, harvesterPath, null));
+                  }
+                });
+                } catch (TransformerException | ParserConfigurationException e) {
+                  promise.complete(new ProcessedHarvesterResponsePost(INTERNAL_SERVER_ERROR, e.getMessage()));
+                }
+            } else {
+              promise.complete(result.result());
+            }
+          });
     return promise.future();
-
   }
 
   /**
