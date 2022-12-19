@@ -274,7 +274,7 @@ public class HarvesterAdminTestSuite {
                 + "}"
         );
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
-    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 400);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
@@ -306,7 +306,7 @@ public class HarvesterAdminTestSuite {
                 + "}"
         );
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
-    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 500);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 400);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
