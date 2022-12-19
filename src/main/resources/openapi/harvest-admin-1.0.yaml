@@ -494,6 +494,12 @@ paths:
     put:
       operationId: putStorage
       description: Update storage definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/storage"
+        required: true
       responses:
         "204":
           description: No content

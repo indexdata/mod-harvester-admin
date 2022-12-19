@@ -2,6 +2,11 @@
   "description": "A storage definition",
   "type": "object",
   "properties": {
+    "acl": {
+      "type": "string",
+      "description": "System maintained access control string.",
+      "readOnly": true
+    },
     "id": {
       "type": "string",
       "description": "Unique storage identifier."
@@ -20,22 +25,22 @@
     },
     "bulkSize": {
       "type": "string",
-      "description": "Size of chunks to harvest at a time."
+      "description": "Size of chunks to harvest at a time. Deprecated."
     },
     "currentStatus": {
       "type": "string",
-      "description": "Status of the storage definition."
+      "description": "Status of the storage definition. Deprecated."
     },
     "retryCount": {
       "type": "string",
-      "description": "Number of times to retry storage operation."
+      "description": "Number of times to retry storage operation. Deprecated."
     },
     "retryWait": {
-      "description": "Seconds to wait between retries."
+      "description": "Seconds to wait between retries. Deprecated."
     },
     "timeout": {
       "type": "string",
-      "description": "Seconds to wait before giving up a storage operation."
+      "description": "Seconds to wait before giving up a storage operation. Deprecated."
     },
     "url": {
       "type": "string",
@@ -43,11 +48,15 @@
     },
     "type": {
       "type": "string",
-      "description": "Type of storage."
+      "description": "Type of storage.",
+      "enum": [
+        "solrStorage",
+        "inventoryStorage"
+      ]
     },
     "json": {
       "type": "object",
-      "description": "Free form configuration"
+      "description": "Free form configuration. Only inventoryStorage"
     }
   },
   "additionalProperties": false

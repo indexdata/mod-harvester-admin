@@ -101,10 +101,6 @@
         }, {
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/storages/{id}",
-          "permissionsRequired": []
-        }, {
-          "methods": ["DELETE"],
-          "pathPattern": "/harvester-admin/storages/{id}",
           "permissionsRequired": ["harvester-admin.storages.item.delete"]
         }, {
           "methods": ["DELETE"],

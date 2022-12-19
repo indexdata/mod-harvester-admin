@@ -20,13 +20,31 @@ public class RequestParameters {
     supportedGetRequestParameters.add(REQUEST_PARAMETER_ORDER_BY);
   }
 
-  public static final Map<String, String> folioToLegacyParameter = new HashMap<>();
+  public static final Map<String, String> crosswalkRequestParameterNames = new HashMap<>();
 
   static {
-    folioToLegacyParameter.put(REQUEST_PARAMETER_QUERY, "query");
-    folioToLegacyParameter.put(REQUEST_PARAMETER_LIMIT, "max");
-    folioToLegacyParameter.put(REQUEST_PARAMETER_OFFSET, "start");
-    folioToLegacyParameter.put(REQUEST_PARAMETER_ORDER_BY, "sort");
+    crosswalkRequestParameterNames.put(REQUEST_PARAMETER_QUERY, "query");
+    crosswalkRequestParameterNames.put(REQUEST_PARAMETER_LIMIT, "max");
+    crosswalkRequestParameterNames.put(REQUEST_PARAMETER_OFFSET, "start");
+    crosswalkRequestParameterNames.put(REQUEST_PARAMETER_ORDER_BY, "sort");
   }
 
+  private static final Map<String, String> crosswalkCqlFieldNames = new HashMap<>();
+
+  static {
+    crosswalkCqlFieldNames.put("transformationId", "transformation.id");
+    crosswalkCqlFieldNames.put("storageId", "storage.id");
+  }
+
+  /**
+   * Translate transformationId to transformation.id.
+   * And storageId to storage.id.
+   */
+  public static String crosswalkCqlFieldNames(String cqlQuery) {
+    String query = cqlQuery;
+    for (String key : crosswalkCqlFieldNames.keySet()) {
+      query = query.replaceAll(key, crosswalkCqlFieldNames.get(key));
+    }
+    return query;
+  }
 }

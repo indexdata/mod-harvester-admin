@@ -7,7 +7,8 @@ import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TSA
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.harvesterPathByRequestPath;
 import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.mapToNameOfRootOfEntity;
 import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.typeToEmbeddedTypeMap;
-import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.folioToLegacyParameter;
+import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.crosswalkCqlFieldNames;
+import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.crosswalkRequestParameterNames;
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
@@ -168,6 +169,14 @@ public class LegacyHarvesterStorage {
       JsonObject jsonToPost = routingContext.body().asJsonObject();
       if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
         jsonToPost.put("lastUpdated", iso_instant.format(Instant.now()));
+        JsonObject transformationReference = jsonToPost.getJsonObject("transformation");
+        if (!transformationReference.containsKey("entityType")) {
+          transformationReference.put("entityType", "basicTransformation");
+        }
+        JsonObject storageReference = jsonToPost.getJsonObject("storage");
+        if (!storageReference.containsKey("entityType")) {
+          storageReference.put("entityType", "inventoryStorageEntity");
+        }
       }
       String requestUri = routingContext.request().absoluteURI();
       return doPostConfigRecord(requestUri, harvesterPath, jsonToPost);
@@ -865,10 +874,17 @@ public class LegacyHarvesterStorage {
           queryString.append("&");
         }
         String key = (String) keys[i];
-        queryString.append(folioToLegacyParameter.get(key));
+        queryString.append(crosswalkRequestParameterNames.get(key));
         queryString.append("=");
-        queryString.append(
-            URLEncoder.encode(parameterMap.get(key), StandardCharsets.UTF_8));
+        if (key.equals("query")) {
+          queryString.append(
+              URLEncoder.encode(
+                  crosswalkCqlFieldNames(parameterMap.get(key)),
+                  StandardCharsets.UTF_8));
+        } else {
+          queryString.append(
+              URLEncoder.encode(parameterMap.get(key), StandardCharsets.UTF_8));
+        }
       }
     }
     return queryString.toString();
