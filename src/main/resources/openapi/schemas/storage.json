@@ -4,7 +4,7 @@
   "properties": {
     "acl": {
       "type": "string",
-      "description": "system maintained acl",
+      "description": "System maintained access control string.",
       "readOnly": true
     },
     "id": {
