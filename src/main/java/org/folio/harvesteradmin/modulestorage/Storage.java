@@ -20,6 +20,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
+import org.folio.harvesteradmin.moduledata.HarvestJobField;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.SqlQuery;
@@ -267,6 +268,49 @@ public class Storage {
     return promise.future();
   }
 
+  /**
+   * Deletes the history of a previous job run.
+   */
+  public Future<Void> deletePreviousJob(UUID id) {
+    Promise<Void> promise = Promise.promise();
+    SqlTemplate.forUpdate(pool.getPool(),
+        "DELETE FROM " + schemaDotTable(Table.log_statement)
+            + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID + " = #{id} ")
+        .execute(Collections.singletonMap("id", id))
+        .onComplete(deletedLogs -> {
+          if (deletedLogs.succeeded()) {
+            SqlTemplate.forUpdate(pool.getPool(),
+                "DELETE FROM " + schemaDotTable(Table.record_failure)
+                + " WHERE " + RecordFailure.Column.harvest_job_id + " = #{id} ")
+                .execute(Collections.singletonMap("id", id))
+                .onComplete(deletedFailedRecords -> {
+                  if (deletedFailedRecords.succeeded()) {
+                    SqlTemplate.forUpdate(pool.getPool(),
+                        "DELETE FROM " + schemaDotTable(Table.harvest_job)
+                        + " WHERE " + HarvestJobField.ID + " = #{id} ")
+                        .execute(Collections.singletonMap("id", id))
+                        .onComplete(deletedJobRun -> {
+                          if (deletedJobRun.succeeded()) {
+                            promise.complete();
+                          } else {
+                            promise.fail("Could not delete the job run with ID " + id
+                                + deletedJobRun.cause().getMessage());
+                          }
+                        });
+                  } else {
+                    promise.fail("Could not delete the job run with ID " + id
+                        + " because deletion of its failed records failed: "
+                        + deletedFailedRecords.cause().getMessage());
+                  }
+                });
+          } else {
+            promise.fail("Could not delete the job run with ID " + id
+                + " because deletion of its logs failed: "
+                + deletedLogs.cause().getMessage());
+          }
+        });
+    return promise.future();
+  }
 
   /**
    * Gets record count.

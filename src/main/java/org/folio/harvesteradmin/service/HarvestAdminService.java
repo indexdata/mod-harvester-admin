@@ -88,6 +88,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     routerBuilder
         .operation("getPreviousJob")
         .handler(ctx -> getPreviousJobById(vertx, ctx));
+    routerBuilder
+        .operation("deletePreviousJob")
+        .handler(ctx -> deletePreviousJob(vertx, ctx));
 
     routerBuilder
         .operation("getPreviousJobLog")
@@ -455,6 +458,21 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             responseJson(routingContext, 200).end(harvestJob.result().asJson().encodePrettily());
           }
         }).mapEmpty();
+  }
+
+  private Future<Void> deletePreviousJob(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    UUID id = UUID.fromString(params.pathParameter("id").getString());
+    Storage storage = new Storage(vertx, tenant);
+    return storage.deletePreviousJob(id)
+        .onComplete(deleted -> {
+          if (deleted.succeeded()) {
+            responseText(routingContext, 204).end("Job " + id + " and its logs deleted.");
+          } else {
+            responseError(routingContext, 400, deleted.cause().getMessage());
+          }
+        });
   }
 
   private Future<Void> getPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
