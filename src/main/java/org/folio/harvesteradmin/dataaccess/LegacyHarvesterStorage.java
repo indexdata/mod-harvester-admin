@@ -352,10 +352,25 @@ public class LegacyHarvesterStorage {
    */
   public Future<ProcessedHarvesterResponseDelete> deleteConfigRecord(
       RoutingContext routingContext) {
+    Promise<ProcessedHarvesterResponseDelete> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
     String harvesterPath = mapToHarvesterPath(routingContext);
     String requestUri = routingContext.request().absoluteURI();
-    return deleteConfigRecord(requestUri, id, harvesterPath);
+    checkForReferencingEntities(harvesterPath, id)
+        .onComplete(check -> {
+          if (check.result() == 0) {
+            deleteConfigRecord(requestUri, id, harvesterPath)
+                .onComplete(result -> promise.complete(result.result()));
+          } else {
+            promise.complete(
+                new ProcessedHarvesterResponseDelete(
+                    400,
+                    "Cannot delete " + harvesterPath + "/" + id
+                        + " due to " + check.result() + " dependent record"
+                        + (check.result() == 1 ? "" : "s")));
+          }
+        });
+    return promise.future();
   }
 
   /**
@@ -408,6 +423,36 @@ public class LegacyHarvesterStorage {
         });
     return promisedResponse.future();
   }
+
+  /**
+   * Checks for referencing entities (before deletion).
+   */
+  public Future<Integer> checkForReferencingEntities(String api, String id) {
+    Promise<Integer> promise = Promise.promise();
+    if (api.contains("storages")) {
+      getConfigRecords(HARVESTER_HARVESTABLES_PATH, "query=storage.id=" + id)
+          .onComplete(harvestables -> {
+            if (harvestables.succeeded()) {
+              promise.complete(harvestables.result().jsonObject().getInteger("totalRecords"));
+            } else {
+              promise.complete(-1);
+            }
+          });
+    } else if (api.contains("transformations")) {
+      getConfigRecords(HARVESTER_HARVESTABLES_PATH, "query=transformation.id=" + id)
+          .onComplete(harvestables -> {
+            if (harvestables.succeeded()) {
+              promise.complete(harvestables.result().jsonObject().getInteger("totalRecords"));
+            } else {
+              promise.complete(-1);
+            }
+          });
+    } else {
+      promise.complete(0);
+    }
+    return promise.future();
+  }
+
 
 
   private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(

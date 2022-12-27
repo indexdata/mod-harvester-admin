@@ -484,7 +484,7 @@ paths:
         required: true
         description: Storage definition identifier
         schema:
-          type: string
+          type: integer
     get:
       operationId: getStorage
       description: Get storage definition
@@ -583,7 +583,7 @@ paths:
         required: true
         description: Transformation pipeline identifier
         schema:
-          type: string
+          type: integer
     get:
       operationId: getTransformation
       description: Get transformation pipeline
