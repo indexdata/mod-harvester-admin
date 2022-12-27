@@ -36,7 +36,7 @@ import org.folio.tlib.util.TenantUtil;
 
 public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
-  private final Logger logger = LogManager.getLogger(HarvestAdminService.class);
+  private static final Logger logger = LogManager.getLogger("harvester-admin");
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
@@ -371,24 +371,22 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   HarvestJob job =
                       HarvestJob.fromHarvestableJson(harvestable.result().jsonObject());
                   storage.storeHarvestJob(job)
-                          .onComplete(jobStored -> {
-                            CompositeFuture.all(
-                                storage.storeLogStatements(job.getId(),logsResponse.bodyAsString()),
-                                storage.storeFailedRecords(job.getId(),
-                                    failuresResponse.jsonObject().getJsonArray("failed-records"))
-                            ).onComplete(
-                                result -> {
-                                  if (result.succeeded()) {
-                                    responseText(routingContext,200)
-                                        .end("Saved job with logs and record failures if any.");
-                                  } else {
-                                    responseError(routingContext,500,
-                                        "There was an error saving the job or it's logs: "
-                                            + result.cause().getMessage());
-                                  }
+                          .onComplete(jobStored -> CompositeFuture.all(
+                              storage.storeLogStatements(job.getId(),logsResponse.bodyAsString()),
+                              storage.storeFailedRecords(job.getId(),
+                                  failuresResponse.jsonObject().getJsonArray("failed-records"))
+                          ).onComplete(
+                              result -> {
+                                if (result.succeeded()) {
+                                  responseText(routingContext,200)
+                                      .end("Saved job with logs and record failures if any.");
+                                } else {
+                                  responseError(routingContext,500,
+                                      "There was an error saving the job or it's logs: "
+                                          + result.cause().getMessage());
                                 }
-                            );
-                          });
+                              }
+                          ));
                 });
           } else {
             responseError(routingContext,
@@ -468,9 +466,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     return storage.deletePreviousJob(id)
         .onComplete(deleted -> {
           if (deleted.succeeded()) {
-            responseText(routingContext, 204).end("Job " + id + " and its logs deleted.");
+            responseText(routingContext, 200).end("Job " + id + " and its logs deleted.");
           } else {
-            responseError(routingContext, 400, deleted.cause().getMessage());
+            String message = deleted.cause().getMessage();
+            responseError(
+                routingContext, message.startsWith("No job history found") ? 404 : 500, message);
           }
         });
   }

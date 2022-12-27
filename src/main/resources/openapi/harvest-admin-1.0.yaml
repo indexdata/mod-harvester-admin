@@ -342,7 +342,7 @@ paths:
       operationId: deletePreviousJob
       description: Delete a previous job run with all its logs
       responses:
-        "204":
+        "200":
           description: Job run and logs deleted
         "400":
           $ref: "#/components/responses/trait_400"
