@@ -71,6 +71,10 @@
           "pathPattern": "/harvester-admin/previous-jobs/{id}",
           "permissionsRequired": ["harvester-admin.previous-jobs.item.get"]
         },{
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.item.delete"]
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
           "permissionsRequired": ["harvester-admin.previous-jobs.log.get"]
@@ -259,6 +263,11 @@
       "permissionName": "harvester-admin.previous-jobs.item.get",
       "displayName": "harvester admin - view info about a finished harvest job ",
       "description": "view info about a finished harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.item.delete",
+      "displayName": "harvester admin - delete a previous job run with all its logs",
+      "description": "delete the history of a previous job run with its logs and failed records, if any"
     },
     {
       "permissionName": "harvester-admin.previous-jobs.log.get",
@@ -450,6 +459,7 @@
         "harvester-admin.harvestables.failed-records.item.get",
         "harvester-admin.previous-jobs.collection.get",
         "harvester-admin.previous-jobs.item.get",
+        "harvester-admin.previous-jobs.item.delete",
         "harvester-admin.previous-jobs.log.get",
         "harvester-admin.previous-jobs.failed-records.collection.get",
         "harvester-admin.previous-jobs.failed-records.item.get"

@@ -88,6 +88,9 @@ public class LegacyHarvesterStorage {
     return getConfigRecords(harvesterPath, query);
   }
 
+  /**
+   * Gets Harvester config records.
+   */
   public Future<ProcessedHarvesterResponseGet> getConfigRecords(String path, String query) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     String pathAndQuery = path
@@ -115,10 +118,8 @@ public class LegacyHarvesterStorage {
       String harvesterPath, String id) {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
     logger.debug("GET " + harvesterPath + "/" + id);
-    harvesterGetRequest(harvesterPath + "/" + id).send(ar -> {
-      promise.complete(
-          new ProcessedHarvesterResponseGetById(ar, harvesterPath, id, tenant));
-    });
+    harvesterGetRequest(harvesterPath + "/" + id).send(ar -> promise.complete(
+        new ProcessedHarvesterResponseGetById(ar, harvesterPath, id, tenant)));
     return promise.future();
   }
 
@@ -132,9 +133,7 @@ public class LegacyHarvesterStorage {
     String idInPostedRecord = jsonToPost.getString("id");
     if (idInPostedRecord == null) {
       doPostConfigRecord(routingContext)
-          .onComplete(post -> {
-            promise.complete(post.result());
-          });
+          .onComplete(post -> promise.complete(post.result()));
     } else {
       getConfigRecordById(routingContext, idInPostedRecord)
           .onComplete(lookUp -> {
@@ -145,10 +144,8 @@ public class LegacyHarvesterStorage {
                         422,
                         harvesterPath + "/" + idInPostedRecord + " already exists."));
               } else if (lookUp.result().wasNotFound()) {
-                doPostConfigRecord(routingContext).onComplete(post -> {
-                      promise.complete(post.result());
-                    }
-                );
+                doPostConfigRecord(routingContext)
+                    .onComplete(post -> promise.complete(post.result()));
               } else {
                 promise.complete(new ProcessedHarvesterResponsePost(lookUp.result().statusCode(),
                     "There was an error ("
@@ -163,6 +160,9 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
+  /**
+   * Checks for referential constraints.
+   */
   public Future<ProcessedHarvesterResponsePost> checkReferencedEntities(
       String api, JsonObject entity) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
@@ -233,42 +233,44 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponsePost> doPostConfigRecord(
       String requestUri, String harvesterPath, JsonObject json) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-      checkReferencedEntities(harvesterPath, json)
-          .onComplete(result -> {
-            if (result.result().wasOK()) {
-              try {
-                String xml = JsonToHarvesterXml.convertToHarvesterRecord(json,
+    checkReferencedEntities(harvesterPath, json)
+        .onComplete(result -> {
+          if (result.result().wasOK()) {
+            try {
+              String xml = JsonToHarvesterXml.convertToHarvesterRecord(json,
                   mapToNameOfRootOfEntity(harvesterPath), tenant);
-                harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml), ar -> {
-                  if (ar.succeeded()) {
-                    String location = ar.result().getHeader("Location");
-                    if (ar.result().statusCode() == CREATED && location != null) {
-                      String idFromLocation = location.split("/")[location.split("/").length - 1];
-                      logger.debug("Got id from location: " + location);
-                      getConfigRecordById(harvesterPath, idFromLocation).onComplete(
-                          // going to return 500, internal server error if not found, 201, Created if found
-                          lookUpNewlyCreatedRecord -> promise.complete(
-                              new ProcessedHarvesterResponsePost(
-                                  ar, requestUri, harvesterPath,
-                                  lookUpNewlyCreatedRecord.result())));
-                    } else {
-                      promise.complete(
-                          new ProcessedHarvesterResponsePost(
-                              ar, requestUri, harvesterPath, null));
-                    }
+              harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml), ar -> {
+                if (ar.succeeded()) {
+                  String location = ar.result().getHeader("Location");
+                  if (ar.result().statusCode() == CREATED && location != null) {
+                    String idFromLocation = location.split("/")[location.split("/").length - 1];
+                    logger.debug("Got id from location: " + location);
+                    getConfigRecordById(harvesterPath, idFromLocation).onComplete(
+                        // going to return 500, internal server error if not found,
+                        // 201, Created if found
+                        lookUpNewlyCreatedRecord -> promise.complete(
+                            new ProcessedHarvesterResponsePost(
+                                ar, requestUri, harvesterPath,
+                                lookUpNewlyCreatedRecord.result())));
                   } else {
                     promise.complete(
                         new ProcessedHarvesterResponsePost(
                             ar, requestUri, harvesterPath, null));
                   }
-                });
-                } catch (TransformerException | ParserConfigurationException e) {
-                  promise.complete(new ProcessedHarvesterResponsePost(INTERNAL_SERVER_ERROR, e.getMessage()));
+                } else {
+                  promise.complete(
+                      new ProcessedHarvesterResponsePost(
+                          ar, requestUri, harvesterPath, null));
                 }
-            } else {
-              promise.complete(result.result());
+              });
+            } catch (TransformerException | ParserConfigurationException e) {
+              promise.complete(
+                  new ProcessedHarvesterResponsePost(INTERNAL_SERVER_ERROR, e.getMessage()));
             }
-          });
+          } else {
+            promise.complete(result.result());
+          }
+        });
     return promise.future();
   }
 
@@ -350,10 +352,25 @@ public class LegacyHarvesterStorage {
    */
   public Future<ProcessedHarvesterResponseDelete> deleteConfigRecord(
       RoutingContext routingContext) {
+    Promise<ProcessedHarvesterResponseDelete> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
     String harvesterPath = mapToHarvesterPath(routingContext);
     String requestUri = routingContext.request().absoluteURI();
-    return deleteConfigRecord(requestUri, id, harvesterPath);
+    checkForReferencingEntities(harvesterPath, id)
+        .onComplete(check -> {
+          if (check.result() == 0) {
+            deleteConfigRecord(requestUri, id, harvesterPath)
+                .onComplete(result -> promise.complete(result.result()));
+          } else {
+            promise.complete(
+                new ProcessedHarvesterResponseDelete(
+                    400,
+                    "Cannot delete " + harvesterPath + "/" + id
+                        + " due to " + check.result() + " dependent record"
+                        + (check.result() == 1 ? "" : "s")));
+          }
+        });
+    return promise.future();
   }
 
   /**
@@ -406,6 +423,36 @@ public class LegacyHarvesterStorage {
         });
     return promisedResponse.future();
   }
+
+  /**
+   * Checks for referencing entities (before deletion).
+   */
+  public Future<Integer> checkForReferencingEntities(String api, String id) {
+    Promise<Integer> promise = Promise.promise();
+    if (api.contains("storages")) {
+      getConfigRecords(HARVESTER_HARVESTABLES_PATH, "query=storage.id=" + id)
+          .onComplete(harvestables -> {
+            if (harvestables.succeeded()) {
+              promise.complete(harvestables.result().jsonObject().getInteger("totalRecords"));
+            } else {
+              promise.complete(-1);
+            }
+          });
+    } else if (api.contains("transformations")) {
+      getConfigRecords(HARVESTER_HARVESTABLES_PATH, "query=transformation.id=" + id)
+          .onComplete(harvestables -> {
+            if (harvestables.succeeded()) {
+              promise.complete(harvestables.result().jsonObject().getInteger("totalRecords"));
+            } else {
+              promise.complete(-1);
+            }
+          });
+    } else {
+      promise.complete(0);
+    }
+    return promise.future();
+  }
+
 
 
   private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(
@@ -489,7 +536,8 @@ public class LegacyHarvesterStorage {
                             } else {
                               promise.complete(
                                   new ProcessedHarvesterResponsePost(500,
-                                  " Failed to POST (with subsequent PUT and GET) of Transformation."
+                                  " Failed to POST (with subsequent PUT and GET) "
+                                      + "of Transformation."
                                       + " PUT failed with "
                                       + putResponse.result().errorMessage()));
                             }

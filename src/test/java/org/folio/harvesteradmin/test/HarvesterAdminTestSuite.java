@@ -155,7 +155,7 @@ public class HarvesterAdminTestSuite {
 
   @Test
   public void attemptAtUpdatingNonExistingRecordWillReturn404() {
-    putConfigRecord(THIS_STORAGES_PATH, "bad-id", BASE_STORAGE_JSON, 404);
+    putConfigRecord(THIS_STORAGES_PATH, "99887766554433", BASE_STORAGE_JSON, 404);
   }
 
   @Test
@@ -480,9 +480,9 @@ public class HarvesterAdminTestSuite {
 
   @Test
   public void deletingNonExistingConfigWillReturnNotFound() {
-    deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, "bad-id", 404);
-    deleteConfigRecord(THIS_HARVESTABLES_PATH, "bad-id", 404);
-    deleteConfigRecord(THIS_STEPS_PATH, "bad-id", 404);
+    deleteConfigRecord(THIS_TRANSFORMATIONS_PATH, "998877665544", 404);
+    deleteConfigRecord(THIS_HARVESTABLES_PATH, "998877665544", 404);
+    deleteConfigRecord(THIS_STEPS_PATH, "998877665544", 404);
   }
 
   @Test
