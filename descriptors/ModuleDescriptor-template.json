@@ -51,7 +51,7 @@
           "pathPattern": "/harvester-admin/harvestables/{id}/log",
           "permissionsRequired": ["harvester-admin.harvestables.log.get"]
         }, {
-          "methods": ["GET"],
+          "methods": ["GET", "POST"],
           "pathPattern": "/harvester-admin/harvestables/{id}/log/store",
           "permissionsRequired": ["harvester-admin.harvestables.log.store"]
         }, {
