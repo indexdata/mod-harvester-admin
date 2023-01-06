@@ -761,10 +761,12 @@ public class LegacyHarvesterStorage {
             JsonArray failedRecords = new JsonArray();
             response.put("failed-records", failedRecords);
             for (int i = 0; i < results.result().list().size(); i++) {
-              JsonObject record = ((ProcessedHarvesterResponseGetById) results
-                  .result().resultAt(i)).jsonObject();
-              record.getJsonObject("failed-record").put("harvestableId",harvestableId);
-              failedRecords.add(record.getJsonObject("failed-record"));
+              if (results.result().resultAt(i) != null) {
+                JsonObject record = ((ProcessedHarvesterResponseGetById) results
+                    .result().resultAt(i)).jsonObject();
+                record.getJsonObject("failed-record").put("harvestableId", harvestableId);
+                failedRecords.add(record.getJsonObject("failed-record"));
+              }
             }
             response.put("totalRecords", failedRecords.size());
             promise.complete(new ProcessedHarvesterResponseGet(response, 200, null));
@@ -818,13 +820,18 @@ public class LegacyHarvesterStorage {
     String uri = entry.getString("url");
     harvesterGetRequest(uri)
         .send(ar ->  {
-          ProcessedHarvesterResponseGetById response =
-              new ProcessedHarvesterResponseGetById(ar,uri,"","");
-          response.jsonObject().getJsonObject("failed-record")
-              .put("timeStamp", entry.getJsonObject("file").getString("date"));
-          response.jsonObject().getJsonObject("failed-record")
-              .put("recordNumber", entry.getJsonObject("file").getString("name"));
-          promise.complete(response);
+          if (ar.result().bodyAsString() != null) {
+            ProcessedHarvesterResponseGetById response =
+                new ProcessedHarvesterResponseGetById(ar, uri, "", "");
+            response.jsonObject().getJsonObject("failed-record")
+                .put("timeStamp", entry.getJsonObject("file").getString("date"));
+            response.jsonObject().getJsonObject("failed-record")
+                .put("recordNumber", entry.getJsonObject("file").getString("name"));
+            promise.complete(response);
+          } else {
+            promise.complete(null);
+          }
+
         });
     return promise.future();
   }

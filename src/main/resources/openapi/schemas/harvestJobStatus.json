@@ -1,0 +1,20 @@
+{
+  "description": "Status of finished harvest job.",
+  "type": "object",
+  "properties": {
+    "finished": {
+      "type": "string",
+      "description": "ISO formatted timestamp for when the job finished."
+    },
+    "amountHarvested": {
+      "type": "string",
+      "description": "The number of records harvested in the harvest run."
+    },
+    "message": {
+      "type": "string",
+      "description": "Status message for the outcome of the harvest run."
+    }
+  },
+  "additionalProperties": false,
+  "required": ["finished", "message"]
+}

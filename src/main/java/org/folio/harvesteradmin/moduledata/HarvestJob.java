@@ -48,7 +48,8 @@ public class HarvestJob extends StoredEntity {
     harvestJob.setStatus(harvestableJson.getString("currentStatus"));
     harvestJob.setStartedAndFinished(
         harvestableJson.getString("lastHarvestStarted"),
-        harvestableJson.getString("lastHarvestFinished"));
+        harvestableJson.getString("lastHarvestFinished")
+    );
     harvestJob.setAmountHarvested(harvestableJson.getString("amountHarvested"));
     harvestJob.setMessage(harvestableJson.getString("message"));
     return harvestJob;
@@ -324,16 +325,20 @@ public class HarvestJob extends StoredEntity {
   }
 
   public void setFinished(LocalDateTime finished) {
-    json.put(HarvestJobField.FINISHED.propertyName(), finished.toString());
+    setFinished(finished.toString());
+  }
+
+  public void setFinished(String finished) {
+    json.put(HarvestJobField.FINISHED.propertyName(), finished);
   }
 
   /**
    * Sets start and finish dates.
    */
   public void setStartedAndFinished(String started, String finished) {
-    if (started != null && finished != null) {
+    if (started != null) {
       json.put(HarvestJobField.STARTED.propertyName(), started);
-      if (started.compareTo(finished) < 0) { // or else it's the finish time of an earlier job
+      if (finished != null && started.compareTo(finished) < 0) {
         json.put(HarvestJobField.FINISHED.propertyName(), finished);
       }
     }
