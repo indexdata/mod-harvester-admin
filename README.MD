@@ -80,7 +80,7 @@ XSLT transformation or a custom Java-based transformation.
 
 #### /harvester-admin/steps/{step id}/script:
 
-Convenience API for retrieving or updating a XSLT style sheet of a given step. It could be used for authoring and testing a stylesheet off-line and then put it to Harvester when ready.  
+Convenience API for retrieving or updating a XSLT style sheet of a given step. It could be used for authoring and testing a stylesheet off-line and then put it to Harvester when ready. It is equivalent to GETting or PUTting a step with the XSLT embedded but without the need to encode the XML (XSLT) for transport in JSON. 
 
 #### /harvester-admin/tsas
 
