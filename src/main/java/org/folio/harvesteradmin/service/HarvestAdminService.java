@@ -186,6 +186,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("stopJob")
         .handler(ctx -> stopJob(vertx, ctx));
 
+    routerBuilder
+        .operation("getIds")
+        .handler(ctx -> generateIds(ctx));
+
   }
 
   public void routerExceptionResponse(RoutingContext ctx) {
@@ -589,5 +593,19 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     ).mapEmpty();
   }
 
+  private Future<Void> generateIds(RoutingContext routingContext) {
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    int count = 1;
+    if (params.queryParameter("count") != null) {
+      count = Math.min(params.queryParameter("count").getInteger(),100);
+    }
+    String response = "";
+    for (int i = 0; i < count; i++) {
+      response += LegacyHarvesterStorage.getRandomFifteenDigitString() + System.lineSeparator();
+    }
+    responseText(routingContext, 200)
+        .end(response);
+    return Future.succeededFuture();
+  }
 
 }

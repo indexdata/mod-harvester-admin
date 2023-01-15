@@ -886,6 +886,25 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/generate-ids:
+    parameters:
+      - in: query
+        name: count
+        required: false
+        description: integer, max 100
+        schema:
+          type: integer
+    get:
+      operationId: getIds
+      description: Get up to 100 random 15 digit numbers
+      responses:
+        "200":
+          description: 15 digit numbers separated by newline
+          content:
+            text/plain:
+              schema:
+                type: string
+
 components:
   responses:
     trait_400:
