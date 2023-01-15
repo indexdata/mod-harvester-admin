@@ -72,6 +72,14 @@ XSLT transformation or a custom Java-based transformation.
 
 Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
 
+#### /harvester-admin/job/run/{id}
+
+Convenience end-point to start a harvest job with the given harvest configuration ID. It is equivalent to PUTting a harvestable object with `harvestImmediately` set to true and `lastUpdated` set to now. 
+
+#### /harvester-admin/job/stop/{id}
+
+Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated` set to now for a running job. 
+
 #### /harvester-admin/
 
 ### IDs for primary keys
