@@ -40,7 +40,7 @@ secondly a number of APIs for retaining the harvest job history. The second grou
 
 The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use UUIDs for identifiers.
 
-### IDs for primary keys, legacy APIs and new APIs
+### IDs for primary keys
 
 When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a POST, and it can be set to any numeric ID. However, a large random number is adviced because multiple FOLIO tenants may be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas each tenant may only be able see the records for that tenant through the API. The tenant cannot see which IDs are already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data through the API directly, outside of a UI. A UI will probably depend entirely on the API generating the IDs internally.
 
@@ -48,36 +48,37 @@ The module has a convenience API `/harvester-admin/generate-ids` that will gener
 
 As mentioned, the new APIs on top of the module's own storage use the standard FOLIO identifier scheme of UUIDs, which will ensure uniqueness at any time (as long as no generated ID is reused of course).
 
-### Pass-through APIs
+### APIs
 
 #### /harvester-admin/harvestables
 
-Create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
+Pass-through API to create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
 source to harvest from, transformation pipeline to use, and storage engine to persist the resulting records in.
 
 #### /harvester-admin/harvestables/{harvestable-id}/log
 
-Returns the most recent log-file for the harvestable in plain text.
+Pass-through API to return the most recent log-file for the harvestable in plain text.
 
 #### /harvester-admin/harvestables/{harvestable-id}/failed-records
 
+Pass-through API to return list of structure error reports for indidvidual records 
+
 #### /harvester-admin/storages
 
-Create, update and delete definitions of storage engines, for example the server location and APIs of a FOLIO Inventory.
+Pass-through API to create, update and delete definitions of storage engines, for example the server location and APIs of a FOLIO Inventory.
 
 #### /harvester-admin/transformations
 
-Create, update and delete record transformation pipelines.
+Pass-through API to create, update and delete record transformation pipelines.
 
 #### /harvester-admin/steps
 
-Create, update, and delete transformation steps. A pipeline can be composed of multiple steps and each step can be an
+Pass-through API to create, update, and delete transformation steps. A pipeline can be composed of multiple steps and each step can be an
 XSLT transformation or a custom Java-based transformation.
 
 #### /harvester-admin/tsas
 
-TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of
-specific transformation steps to a pipeline.
+Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
 
-### Additional APIs on top of the modules own storage
+#### /harvester-admin/
 
