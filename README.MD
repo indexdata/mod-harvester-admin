@@ -15,8 +15,11 @@ Harvest job definitions, scheduling, and transformation pipelines are configured
 an XML based REST service that gives clients access to read and update the configurations and the Harvester then has a
 JSF based admin UI for admins to create and update configurations through the REST API.
 
-Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients
-can then use for managing harvest jobs.
+Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients 
+(like a Stripes UI) can then use for managing harvest jobs.
+
+Mod-harvester-admin is additionally able to persist the harvest job history, including the harvest configuration at the 
+time the job was run as well as the Log4J logs for the job and structured reports regarding failed records.  
 
 ## Configuration
 
@@ -32,25 +35,49 @@ In addition, if the `acl_filter_by_tenant` environment variable is set to the st
 
 ## Provided Interfaces
 
-### /harvester-admin/harvestables
+Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through from the legacy Harvester APIs, and 
+secondly a number of APIs for retaining the harvest job history. The second group of APIs are specific for the module and not found in the legacy Harvester.
+
+The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use UUIDs for identifiers.
+
+### IDs for primary keys, legacy APIs and new APIs
+
+When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a POST, and it can be set to any numeric ID. However, a large random number is adviced because multiple FOLIO tenants may be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas each tenant may only be able see the records for that tenant through the API. The tenant cannot see which IDs are already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data through the API directly, outside of a UI. A UI will probably depend entirely on the API generating the IDs internally.
+
+The module has a convenience API `/harvester-admin/generate-ids` that will generate and return as plain text a 15-digit random number using the same logic as the module uses internally for creating primary keys. These IDs might be used to define the IDs client side before POSTing. Up to hundred IDs can be generated at a time: `/harvester-admin/generate-ids?count=100`.    
+
+As mentioned, the new APIs on top of the module's own storage use the standard FOLIO identifier scheme of UUIDs, which will ensure uniqueness at any time (as long as no generated ID is reused of course).
+
+### Pass-through APIs
+
+#### /harvester-admin/harvestables
 
 Create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
 source to harvest from, transformation pipeline to use, and storage engine to persist the resulting records in.
 
-### /harvester-admin/storages
+#### /harvester-admin/harvestables/{harvestable-id}/log
+
+Returns the most recent log-file for the harvestable in plain text.
+
+#### /harvester-admin/harvestables/{harvestable-id}/failed-records
+
+#### /harvester-admin/storages
 
 Create, update and delete definitions of storage engines, for example the server location and APIs of a FOLIO Inventory.
 
-### /harvester-admin/transformations
+#### /harvester-admin/transformations
 
 Create, update and delete record transformation pipelines.
 
-### /harvester-admin/steps
+#### /harvester-admin/steps
 
 Create, update, and delete transformation steps. A pipeline can be composed of multiple steps and each step can be an
 XSLT transformation or a custom Java-based transformation.
 
-### /harvester-admin/tsas
+#### /harvester-admin/tsas
 
 TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of
 specific transformation steps to a pipeline.
+
+### Additional APIs on top of the modules own storage
+
