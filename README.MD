@@ -78,6 +78,10 @@ Pass-through API to create, update and delete record transformation pipelines.
 Pass-through API to create, update, and delete transformation steps. A pipeline can be composed of multiple steps and each step can be an
 XSLT transformation or a custom Java-based transformation.
 
+#### /harvester-admin/steps/{step id}/script:
+
+Convenience API for retrieving or updating a XSLT style sheet of a given step. It could be used for authoring and testing a stylesheet off-line and then put it to Harvester when ready.  
+
 #### /harvester-admin/tsas
 
 Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
@@ -93,6 +97,14 @@ Convenience end-point to stop a running harvest job. It is equivalent to PUTting
 #### /harvester-admin/previous-jobs
 
 End-point that will get a list of previous jobs as stored in mod-harvester-admin through `/harvester-admin/harvestables/{id}/log/store` as described  further above. This is a module native API; it will contain UUIDs for primary keys for example. 
+
+#### /harvester-admin/previous-jobs/{job run's uuid}/log
+
+Gets the log for a job in job history. If the job run is the most recent and the harvestable was not updated since the run, then this log would be the same as the log retrieved through `/harvester-admin/harvestables/{harvestable-id}/log`
+
+#### /harvester-admin/previous-jobs/{job run's uuid}/failed-records
+
+Gets collection of error reports for failed records for a job in the job history.
 
 
 
