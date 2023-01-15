@@ -90,7 +90,11 @@ Convenience end-point to start a harvest job with the given harvest configuratio
 
 Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated` set to now for a running job. 
 
-#### /harvester-admin/
+#### /harvester-admin/previous-jobs
+
+End-point that will get a list of previous jobs as stored in mod-harvester-admin through `/harvester-admin/harvestables/{id}/log/store` as described  further above. This is a module native API; it will contain UUIDs for primary keys for example. 
+
+
 
 ### IDs for primary keys
 
