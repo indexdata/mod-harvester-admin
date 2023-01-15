@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -72,9 +73,20 @@ public class LegacyHarvesterStorage {
   private static final DateTimeFormatter iso_instant = DateTimeFormatter.ISO_INSTANT;
   private static final Logger logger = LogManager.getLogger(LegacyHarvesterStorage.class);
 
+  private static final Iterator<Long> fifteenDigitLongs =
+      new Random().longs(100000000000000L, 999999999999999L).iterator();
+
   public LegacyHarvesterStorage(Vertx vertx, String tenant) {
     this.tenant = tenant;
     restClient = WebClient.create(vertx);
+  }
+
+  /**
+   * Primary key generator.
+   * @return random 12 digit number as string.
+   */
+  public static String getRandomFifteenDigitString() {
+    return Long.toString(fifteenDigitLongs.next());
   }
 
   /**
@@ -233,6 +245,9 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponsePost> doPostConfigRecord(
       String requestUri, String harvesterPath, JsonObject json) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
+    if (!json.containsKey("id")) {
+      json.put("id", getRandomFifteenDigitString());
+    }
     checkReferencedEntities(harvesterPath, json)
         .onComplete(result -> {
           if (result.result().wasOK()) {
@@ -500,7 +515,7 @@ public class LegacyHarvesterStorage {
                         ProcessedHarvesterResponseGetById stepResponse = steps.result().resultAt(i);
                         final JsonObject stepJson = stepResponse.jsonObject();
                         JsonObject tsaJson = new JsonObject();
-                        tsaJson.put("id", Integer.toString(getRandomInt()));
+                        tsaJson.put("id", getRandomFifteenDigitString());
                         tsaJson.put("position", Integer.toString(i + 1));
                         tsaJson.put("step", new JsonObject());
                         tsaJson.getJsonObject("step")
@@ -581,9 +596,6 @@ public class LegacyHarvesterStorage {
                         )
                     );
                   } else {
-                    if (!incomingTsa.containsKey("id")) {
-                      incomingTsa.put("id", getRandomInt());
-                    }
                     incomingTsa.put("type","transformationStepAssociation");
                     JsonObject step = theStep.result().jsonObject();
                     String entityType = typeToEmbeddedTypeMap.get(step.getString("type"));
@@ -961,11 +973,6 @@ public class LegacyHarvesterStorage {
     }
     logger.debug("Constructed new pipeline " + updatedListOfSteps.encodePrettily());
     return updatedListOfSteps;
-  }
-
-  private int getRandomInt() {
-    Random rand = new Random();
-    return rand.nextInt(900000000) + 100000000;
   }
 
   private static String buildQueryString(Map<String, String> parameterMap) {

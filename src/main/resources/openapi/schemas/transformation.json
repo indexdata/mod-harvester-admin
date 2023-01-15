@@ -16,7 +16,7 @@
     }
   },
   "required": [
-    "id", "name"
+    "name"
   ],
   "additionalProperties": true
 }
