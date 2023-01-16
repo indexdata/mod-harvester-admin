@@ -235,20 +235,28 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
   private Future<Void> postConfigRecord(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.postConfigRecord(routingContext).map(response -> {
-      if (response.wasCreated()) {
-        responseJson(
-            routingContext, response.statusCode())
-            .putHeader("Location", response.location)
-            .end(response.jsonObject().encodePrettily());
-      } else {
-        responseError(routingContext, response.statusCode(), response.errorMessage());
-      }
-      return null;
-    });
+    SchemaValidation validation = SchemaValidation.validateJsonObject(
+        routingContext.request().path(), routingContext.body().asJsonObject());
+    if (validation.passed()) {
+      String tenant = TenantUtil.tenant(routingContext);
+      LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+      return legacyStorage.postConfigRecord(routingContext).map(response -> {
+        if (response.wasCreated()) {
+          responseJson(
+              routingContext, response.statusCode())
+              .putHeader("Location", response.location)
+              .end(response.jsonObject().encodePrettily());
+        } else {
+          responseError(routingContext, response.statusCode(), response.errorMessage());
+        }
+        return null;
+      });
+    } else {
+      responseError(routingContext, 400, validation.getErrorMessage());
+      return Future.failedFuture(validation.getErrorMessage());
+    }
   }
+
 
   private Future<Void> putConfigRecord(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);

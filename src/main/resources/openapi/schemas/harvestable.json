@@ -13,7 +13,7 @@
     "type": {
       "type": "string",
       "enum": [
-        "oaiPmh"
+        "oaiPmh", "xmlBulk"
       ],
       "description": "The type of harvest configuration, ie. OAI-PMH or bulk XML."
     },
@@ -126,6 +126,6 @@
     }
   },
   "additionalProperties": true,
-  "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "metadataPrefix", "oaiSetName", "url"]
+  "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "url"]
 }
 
