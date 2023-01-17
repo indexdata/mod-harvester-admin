@@ -179,7 +179,7 @@ public class HarvestJob extends StoredEntity {
       HarvestJob harvestJob = new HarvestJob();
       harvestJob.setId(row.getUUID(HarvestJobField.ID.columnName()));
       harvestJob.setName(row.getString(HarvestJobField.HARVESTABLE_NAME.columnName()));
-      harvestJob.setHarvestableId(row.getInteger(HarvestJobField.HARVESTABLE_ID.columnName()));
+      harvestJob.setHarvestableId(row.getLong(HarvestJobField.HARVESTABLE_ID.columnName()));
       harvestJob.setType(row.getString(HarvestJobField.HARVESTABLE_TYPE.columnName()));
       harvestJob.setUrl(row.getString(HarvestJobField.URL.columnName()));
       harvestJob.setAllowErrors(row.getBoolean(HarvestJobField.ALLOW_ERRORS.columnName()));
@@ -210,16 +210,16 @@ public class HarvestJob extends StoredEntity {
     json.put(HarvestJobField.ID.propertyName(), id);
   }
 
-  public int getHarvestableId() {
-    return json.getInteger(HarvestJobField.HARVESTABLE_ID.propertyName());
+  public long getHarvestableId() {
+    return json.getLong(HarvestJobField.HARVESTABLE_ID.propertyName());
   }
 
-  public void setHarvestableId(int harvestableId) {
+  public void setHarvestableId(long harvestableId) {
     json.put(HarvestJobField.HARVESTABLE_ID.propertyName(), harvestableId);
   }
 
   public void setHarvestableId(String harvestableId) {
-    setHarvestableId(Integer.parseInt(harvestableId));
+    setHarvestableId(Long.parseLong(harvestableId));
   }
 
   public String getName() {
