@@ -2,7 +2,7 @@ package org.folio.harvesteradmin.moduledata;
 
 public enum HarvestJobField implements Field {
   ID("id", "id", PgColumn.Type.UUID, false, true, true),
-  HARVESTABLE_ID("harvestableId", "harvestable_id", PgColumn.Type.INTEGER, false, true),
+  HARVESTABLE_ID("harvestableId", "harvestable_id", PgColumn.Type.BIGINT, false, true),
   HARVESTABLE_NAME("name", "harvestable_name", PgColumn.Type.TEXT, false, true),
   HARVESTABLE_TYPE("type", "type", PgColumn.Type.TEXT, false, true),
   URL("url", "url", PgColumn.Type.TEXT, false, false),
