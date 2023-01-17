@@ -15,6 +15,7 @@ public class PgColumn {
   enum Type {
     TEXT,
     INTEGER,
+    BIGINT,
     TIMESTAMP,
     UUID,
     BOOLEAN
@@ -41,6 +42,7 @@ public class PgColumn {
   public PgCqlFieldBase pgCqlField() {
     switch (type) {
       case INTEGER:
+      case BIGINT:
         return new PgCqlFieldNumber();
       case UUID:
         return new PgCqlFieldUuid();
