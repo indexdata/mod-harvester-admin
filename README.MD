@@ -38,14 +38,44 @@ In addition, if the `acl_filter_by_tenant` environment variable is set to the st
 Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through from the legacy Harvester APIs, and 
 secondly a number of APIs for retaining the harvest job history. The second group of APIs are specific for the module and not found in the legacy Harvester.
 
-The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use UUIDs for identifiers. See more details regarding ID schemes below the API descriptions.
+The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more details regarding ID schemes below the API descriptions.
 
 ### APIs
+
+#### Overview
+
+In order to configure a harvest job from scratch through the API, following API interactions are required: 
+1) Create the storage configuration to use for persisting harvested records, through `/harvester-admin/storages`.
+2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage, through `/harvester-admin/steps`.
+3) Create the transformation pipeline that will contain the steps in the order they should be performed. This can be done in two ways: Create a minimal transformation object through `/harvester-admin/transformations` and assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
+4) Create the harvest job configuration, either as an XML bulk job or an OAI-PMH job, and assign the newly created storage definition as well as the new transformation pipeline to it, through `/harvester-admin/harvestables`
 
 #### /harvester-admin/harvestables
 
 Pass-through API to create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
-source to harvest from, transformation pipeline to use, and storage engine to persist the resulting records in.
+source to harvest from, and the IDs of the transformation pipeline to use and the storage engine to persist the resulting records in.
+
+The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`, does not affect whether it can be started on demand), and/or should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url`. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`:
+
+```
+{
+  "name": "my harvest job",
+  "type": "xmlBulk",
+  "harvestImmediately": "false",
+  "enabled": "false",
+  "url": "http://localhost:8080/my-xml-files/",
+  "transformation": {
+    "entityType": "basicTransformation",
+    "id": "464646464646464"
+  },
+  "storage": {
+    "entityType": "inventoryStorageEntity",
+    "id": "989898989898989"
+  }
+}
+```
+
+When retrieving a harvestable through the API, the definitions of transformation and storage will be fully expanded. In order to support retrieval of a harvestable from a service for import to another, the fully expanded harvestable can be posted to `/harvester-admin/harvestables` just like the minimal harvestable, but all the detailed properties of the transformation and the storage (apart from the IDs and the entity types) will be ignored.  
 
 #### /harvester-admin/harvestables/{harvestable-id}/log
 
