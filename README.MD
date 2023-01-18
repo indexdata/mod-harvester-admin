@@ -45,17 +45,20 @@ The pass-through APIs are adapted to FOLIO conventions as much as possible but s
 #### Overview
 
 In order to configure a harvest job from scratch through the API, following API interactions are required: 
-1) Create the storage configuration to use for persisting harvested records, through `/harvester-admin/storages`.
-2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage, through `/harvester-admin/steps`.
-3) Create the transformation pipeline that will contain the steps in the order they should be performed. This can be done in two ways: Create a minimal transformation object through `/harvester-admin/transformations` and assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
-4) Create the harvest job configuration, either as an XML bulk job or an OAI-PMH job, and assign the newly created storage definition as well as the new transformation pipeline to it, through `/harvester-admin/harvestables`
+1) Create the storage configuration to use for persisting harvested records; through `/harvester-admin/storages`.
+2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage; through `/harvester-admin/steps`.
+3) Create the transformation pipeline through `/harvester-admin/transformations`.
+4) Assign transformation steps to the pipeline in the desired order of execution through `/harvester-admin/tsas` (or by embedding steps directly in the POSTed transformation, see details below)
+5) Finally, create the harvest job configuration through `/harvester-admin/harvestables`, either as an XML bulk job or an OAI-PMH job, and reference the newly created transformation pipeline and storage definition by their IDs.
+
+The following paragraphs describe the involved APIs in a little more detail.
 
 #### /harvester-admin/harvestables
 
 Pass-through API to create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
 source to harvest from, and the IDs of the transformation pipeline to use and the storage engine to persist the resulting records in.
 
-The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`, does not affect whether it can be started on demand), and/or should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url`. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`:
+The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`. This boolean would not affect whether the job can be started on demand), whether the job should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url` it should fetch data from. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`:
 
 ```
 {
@@ -63,19 +66,19 @@ The minimal harvestable JSON object that the service will accept would contain t
   "type": "xmlBulk",
   "harvestImmediately": "false",
   "enabled": "false",
-  "url": "http://localhost:8080/my-xml-files/",
+  "url": "http://localhost:8080/marc-xml-files/",
   "transformation": {
     "entityType": "basicTransformation",
-    "id": "464646464646464"
+    "id": "642863552135242"
   },
   "storage": {
     "entityType": "inventoryStorageEntity",
-    "id": "989898989898989"
+    "id": "203985902042325"
   }
 }
 ```
 
-When retrieving a harvestable through the API, the definitions of transformation and storage will be fully expanded. In order to support retrieval of a harvestable from a service for import to another, the fully expanded harvestable can be posted to `/harvester-admin/harvestables` just like the minimal harvestable, but all the detailed properties of the transformation and the storage (apart from the IDs and the entity types) will be ignored.  
+When retrieving a harvestable through the API, the definitions of transformation and storage will be (almost) fully expanded as embedded objects. In order to support retrieval of a harvestable from one service for import to another, the fully expanded harvestable can be posted to `/harvester-admin/harvestables` just like the minimal harvestable, but all the detailed properties of the transformation and the storage (apart from the IDs and the entity types) would then be ignored.  
 
 #### /harvester-admin/harvestables/{harvestable-id}/log
 
@@ -83,7 +86,7 @@ Pass-through API to return the most recent log-file for the harvestable in plain
 
 #### /harvester-admin/harvestables/{harvestable-id}/failed-records
 
-Pass-through API to return list of structured error reports for indidvidual records, that failed to load partially or fully.
+Pass-through API to return list of structured error reports for individual records, that failed to load partially or fully.
 
 #### /harvester-admin/harvestables/{harvestable-id}/failed-records/{record-number}
 
@@ -91,7 +94,7 @@ Pass-through API to retrieve a structured error report for an individual record 
 
 #### /harvester-admin/harvestables/{id}/log/store
 
-End-point for requesting that the mod-harvester-admin stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing the log history to mod-harvester-admin). 
+End-point for requesting that mod-harvester-admin stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing the log history to mod-harvester-admin). 
 
 The API has two versions, GET and POST. Harvester needs the POST version. Other clients _could_ use the GET version but there is no need to if Harvester has already requested that the logs be pulled, using the POST.
 
@@ -101,15 +104,101 @@ Requests that mod-harvester-admin pulls the current job configuration plus the l
 ##### `POST /harvester-admin/harvestables/{id}/log/store`
 The same as GET, except the POST body contains corrective data for the job's status message and finish time.
 
-The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an outdated status; the POSTed data will correct that as necessary.    
+The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an outdated status if invoked immediately after the completion of the job; the POSTed data will correct the stale data as necessary.    
 
 #### /harvester-admin/storages
 
 Pass-through API to create, update and delete definitions of storage engines, for example the server location and APIs of a FOLIO Inventory.
 
+```
+{
+  "name" : "FOLIO Inventory Storage",
+  "id": "203985902042325",
+  "type" : "inventoryStorage"
+  "description" : "Inventory storage at localhost",
+  "enabled" : "true",
+  "json" : {
+    "folioAuthPath" : "bl-users/login",
+    "folioTenant" : "diku",
+    "folioUsername" : "diku_admin",
+    "folioPassword" : "admin",
+    "inventoryUpsertPath" : "inventory-upsert-hrid",
+    "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
+    "logHistoryStoragePath" : "/harvester-admin/harvestables/{id}/log/store"
+  },
+  "url" : "http://okapi:9130/",
+}
+``` 
+
+This is an example of a Solr storage definition:
+
+```
+{
+  "name" : "Solr @ localhost",
+  "id" : "220800285438527",
+  "type" : "solrStorage",
+  "description" : "Solr at localhost:8983",
+  "enabled" : "true",
+  "url" : "http://localhost:8983/solr/lui/"
+}
+```
 #### /harvester-admin/transformations
 
 Pass-through API to create, update and delete record transformation pipelines.
+
+This can be done in two ways: Either create a minimal transformation object through `/harvester-admin/transformations` and subsequently assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
+
+The option to post a composite transformation object is a convenience when exporting/GETting the composite from one service and importing/POSTing it to another. 
+
+However, when POSTing a transformation with embedded steps, it's only the references to the steps that are persisted, not the expanded content of each step. The steps must thus exist already in Harvester, and the POST API will then take care of attaching them to the pipeline in one go. Any other step properties are accepted but will be ignored and can be omitted. This is an example of a transformation with just enough information to attach already existing steps to the pipeline:
+
+```
+{
+  "id": "642863552135242",
+  "description" : "transformation pipeline with two XSLT steps and a custom step",
+  "enabled" : "true",
+  "name" : "MARC to Folio Inventory",
+  "parallel" : "false",
+  "stepAssociations" : [ {
+      "position" : "1",
+      "step" : {
+        "entityType" : "xmlTransformationStep",
+        "id" : "642189435236986",
+        "description": "marc to folio"
+      }
+    }, {
+      "position" : "2",
+      "step" : {
+        "entityType" : "xmlTransformationStep",
+        "id" : "690557868011894",
+        "description": "codes to uuids"
+      }
+    }, {
+      "position": "3",
+      "step": {
+        "entityType": "customTransformationStep",
+        "id": "742603990671914",
+        "description": "xml 2 json"
+      }
+    }
+  ],
+  "type" : "basicTransformation"
+}
+
+```
+
+Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.  A PUT of the above entity would be equivalent to PUTting
+
+```
+{
+  "id": "642863552135242",
+  "description" : "transformation pipeline with two XSLT steps and a custom step",
+  "enabled" : "true",
+  "name" : "MARC to Folio Inventory",
+  "parallel" : "false",
+  "type" : "basicTransformation"
+}
+```
 
 #### /harvester-admin/steps
 
