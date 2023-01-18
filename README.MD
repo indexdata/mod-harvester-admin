@@ -91,9 +91,17 @@ Pass-through API to retrieve a structured error report for an individual record 
 
 #### /harvester-admin/harvestables/{id}/log/store
 
-End-point for requesting that the module stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing log history in mod-harvester-admin). 
+End-point for requesting that the mod-harvester-admin stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing the log history to mod-harvester-admin). 
 
-Due to a time-lag in Harvester's internal persistence of a completed job's status, this API contains a work-around to ensure consistent, up-to-date data are stored in mod-harvester-admin. Since clients would normally NOT need to invoke this end-point, it's not necessarily relevant to know the specifics but they are explained here nonetheless. The end-point can be invoked in two different ways. (1) Either by a GET that will pull the configuration as is from Harvester, together with the logs and failed records, and store them in mod-harvester-admin. This will work if the logs are pulled by a client some time after the job completed. (2) Or the end-point can be invoked by a POST, which is what Harvester would use. The request body contains the status message and finish date of the job, which is then used for overriding those pieces of information when mod-harvester-admin pulls the job config (with logs and failed records) from Harvester for storage in the job history. Harvester must use the POST because those pieces of information are not stored in Harvester immediately after the job completes but rather when Harvester's scheduler thread comes around to check the status of all jobs, meaning that mod-harvester-admin may be pulling stale status info through Harvester's API immediately after the job completes.    
+The API has two versions, GET and POST. Harvester needs the POST version. Other clients _could_ use the GET version but there is no need to if Harvester has already requested that the logs be pulled, using the POST.
+
+##### `GET /harvester-admin/harvestables/{id}/log/store` 
+Requests that mod-harvester-admin pulls the current job configuration plus the logs and failed records, if any, for a completed job, and stores them in mod-harvester-admin's log history. 
+
+##### `POST /harvester-admin/harvestables/{id}/log/store`
+The same as GET, except the POST body contains corrective data for the job's status message and finish time.
+
+The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an outdated status; the POSTed data will correct that as necessary.    
 
 #### /harvester-admin/storages
 
