@@ -257,7 +257,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     }
   }
 
-
   private Future<Void> putConfigRecord(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
