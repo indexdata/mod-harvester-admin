@@ -255,9 +255,27 @@ paths:
         description: Harvest configuration identifier
         schema:
           type: string
+    post:
+      description: Takes submitted job status, pulls the job config, and stores a copy of its most recent logs
+      operationId: storeJobLogWithPostedStatus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestJobStatus"
+        required: true
+      responses:
+        "200":
+          description: Harvest log statements stored in module storage
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
     get:
       operationId: storeJobLog
-      description: Stores a copy of the most recent log for a harvest job
+      description: Pulls the current job config from Harvester and stores a copy of the most recent log for that job
       responses:
         "200":
           description: Harvest log statements stored in module storage
@@ -868,6 +886,25 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/generate-ids:
+    parameters:
+      - in: query
+        name: count
+        required: false
+        description: integer, max 100
+        schema:
+          type: integer
+    get:
+      operationId: getIds
+      description: Get up to 100 random 15 digit numbers
+      responses:
+        "200":
+          description: 15 digit numbers separated by newline
+          content:
+            text/plain:
+              schema:
+                type: string
+
 components:
   responses:
     trait_400:
@@ -918,3 +955,5 @@ components:
       $ref: schemas/transformationStepAssociation.json
     transformationStepAssociations:
       $ref: schemas/transformationStepAssociations.json
+    harvestJobStatus:
+      $ref: schemas/harvestJobStatus.json

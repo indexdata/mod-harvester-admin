@@ -25,6 +25,7 @@ import org.folio.harvesteradmin.dataaccess.JobLauncher;
 import org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGet;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
+import org.folio.harvesteradmin.moduledata.HarvestJobField;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.SqlQuery;
@@ -79,7 +80,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     routerBuilder
         .operation("storeJobLog")
-        .handler(ctx -> saveJobWithLogs(vertx, ctx));
+        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx));
+
+    routerBuilder
+        .operation("storeJobLogWithPostedStatus")
+        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx));
 
     routerBuilder
         .operation("getPreviousJobs")
@@ -181,6 +186,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("stopJob")
         .handler(ctx -> stopJob(vertx, ctx));
 
+    routerBuilder
+        .operation("getIds")
+        .handler(ctx -> generateIds(ctx));
+
   }
 
   public void routerExceptionResponse(RoutingContext ctx) {
@@ -226,19 +235,26 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
   private Future<Void> postConfigRecord(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.postConfigRecord(routingContext).map(response -> {
-      if (response.wasCreated()) {
-        responseJson(
-            routingContext, response.statusCode())
-            .putHeader("Location", response.location)
-            .end(response.jsonObject().encodePrettily());
-      } else {
-        responseError(routingContext, response.statusCode(), response.errorMessage());
-      }
-      return null;
-    });
+    SchemaValidation validation = SchemaValidation.validateJsonObject(
+        routingContext.request().path(), routingContext.body().asJsonObject());
+    if (validation.passed()) {
+      String tenant = TenantUtil.tenant(routingContext);
+      LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+      return legacyStorage.postConfigRecord(routingContext).map(response -> {
+        if (response.wasCreated()) {
+          responseJson(
+              routingContext, response.statusCode())
+              .putHeader("Location", response.location)
+              .end(response.jsonObject().encodePrettily());
+        } else {
+          responseError(routingContext, response.statusCode(), response.errorMessage());
+        }
+        return null;
+      });
+    } else {
+      responseError(routingContext, 400, validation.getErrorMessage());
+      return Future.failedFuture(validation.getErrorMessage());
+    }
   }
 
   private Future<Void> putConfigRecord(Vertx vertx, RoutingContext routingContext) {
@@ -352,7 +368,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     })).mapEmpty();
   }
 
-  private Future<Void> saveJobWithLogs(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> pullJobAndSaveItsLogs(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     String harvestableId = routingContext.request().getParam("id");
@@ -372,6 +388,16 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   Storage storage = new Storage(vertx, tenant);
                   HarvestJob job =
                       HarvestJob.fromHarvestableJson(harvestable.result().jsonObject());
+                  if (routingContext.body() != null) {
+                    // Job status was included in request, overwrite pulled properties
+                    JsonObject jobStatus = routingContext.body().asJsonObject();
+                    job.setFinished(jobStatus.getString(HarvestJobField.FINISHED.propertyName()));
+                    if (jobStatus.containsKey(HarvestJobField.AMOUNT_HARVESTED.propertyName())) {
+                      job.setAmountHarvested(
+                          jobStatus.getString(HarvestJobField.AMOUNT_HARVESTED.propertyName()));
+                    }
+                    job.setMessage(jobStatus.getString(HarvestJobField.MESSAGE.propertyName()));
+                  }
                   storage.storeHarvestJob(job)
                           .onComplete(jobStored -> CompositeFuture.all(
                               storage.storeLogStatements(job.getId(),logsResponse.bodyAsString()),
@@ -574,5 +600,19 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     ).mapEmpty();
   }
 
+  private Future<Void> generateIds(RoutingContext routingContext) {
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    int count = 1;
+    if (params.queryParameter("count") != null) {
+      count = Math.min(params.queryParameter("count").getInteger(),100);
+    }
+    String response = "";
+    for (int i = 0; i < count; i++) {
+      response += LegacyHarvesterStorage.getRandomFifteenDigitString() + System.lineSeparator();
+    }
+    responseText(routingContext, 200)
+        .end(response);
+    return Future.succeededFuture();
+  }
 
 }

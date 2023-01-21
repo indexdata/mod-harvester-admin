@@ -48,7 +48,8 @@ public class HarvestJob extends StoredEntity {
     harvestJob.setStatus(harvestableJson.getString("currentStatus"));
     harvestJob.setStartedAndFinished(
         harvestableJson.getString("lastHarvestStarted"),
-        harvestableJson.getString("lastHarvestFinished"));
+        harvestableJson.getString("lastHarvestFinished")
+    );
     harvestJob.setAmountHarvested(harvestableJson.getString("amountHarvested"));
     harvestJob.setMessage(harvestableJson.getString("message"));
     return harvestJob;
@@ -178,7 +179,7 @@ public class HarvestJob extends StoredEntity {
       HarvestJob harvestJob = new HarvestJob();
       harvestJob.setId(row.getUUID(HarvestJobField.ID.columnName()));
       harvestJob.setName(row.getString(HarvestJobField.HARVESTABLE_NAME.columnName()));
-      harvestJob.setHarvestableId(row.getInteger(HarvestJobField.HARVESTABLE_ID.columnName()));
+      harvestJob.setHarvestableId(row.getLong(HarvestJobField.HARVESTABLE_ID.columnName()));
       harvestJob.setType(row.getString(HarvestJobField.HARVESTABLE_TYPE.columnName()));
       harvestJob.setUrl(row.getString(HarvestJobField.URL.columnName()));
       harvestJob.setAllowErrors(row.getBoolean(HarvestJobField.ALLOW_ERRORS.columnName()));
@@ -209,16 +210,16 @@ public class HarvestJob extends StoredEntity {
     json.put(HarvestJobField.ID.propertyName(), id);
   }
 
-  public int getHarvestableId() {
-    return json.getInteger(HarvestJobField.HARVESTABLE_ID.propertyName());
+  public long getHarvestableId() {
+    return json.getLong(HarvestJobField.HARVESTABLE_ID.propertyName());
   }
 
-  public void setHarvestableId(int harvestableId) {
+  public void setHarvestableId(long harvestableId) {
     json.put(HarvestJobField.HARVESTABLE_ID.propertyName(), harvestableId);
   }
 
   public void setHarvestableId(String harvestableId) {
-    setHarvestableId(Integer.parseInt(harvestableId));
+    setHarvestableId(Long.parseLong(harvestableId));
   }
 
   public String getName() {
@@ -324,16 +325,20 @@ public class HarvestJob extends StoredEntity {
   }
 
   public void setFinished(LocalDateTime finished) {
-    json.put(HarvestJobField.FINISHED.propertyName(), finished.toString());
+    setFinished(finished.toString());
+  }
+
+  public void setFinished(String finished) {
+    json.put(HarvestJobField.FINISHED.propertyName(), finished);
   }
 
   /**
    * Sets start and finish dates.
    */
   public void setStartedAndFinished(String started, String finished) {
-    if (started != null && finished != null) {
+    if (started != null) {
       json.put(HarvestJobField.STARTED.propertyName(), started);
-      if (started.compareTo(finished) < 0) { // or else it's the finish time of an earlier job
+      if (finished != null && started.compareTo(finished) < 0) {
         json.put(HarvestJobField.FINISHED.propertyName(), finished);
       }
     }

@@ -51,7 +51,7 @@
           "pathPattern": "/harvester-admin/harvestables/{id}/log",
           "permissionsRequired": ["harvester-admin.harvestables.log.get"]
         }, {
-          "methods": ["GET"],
+          "methods": ["GET", "POST"],
           "pathPattern": "/harvester-admin/harvestables/{id}/log/store",
           "permissionsRequired": ["harvester-admin.harvestables.log.store"]
         }, {
@@ -198,6 +198,10 @@
           "methods": ["PUT"],
           "pathPattern": "/harvester-admin/jobs/stop/{id}",
           "permissionsRequired": ["harvester-admin.stop-jobs"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/generate-ids",
+          "permissionsRequired": []
         }
       ]
     }

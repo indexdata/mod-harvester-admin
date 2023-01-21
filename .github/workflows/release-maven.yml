@@ -50,6 +50,7 @@ jobs:
           method: "POST"
           accept: 201
           timeout: 5000
+          retries: 3
           log-response: true
           headers: |
             {

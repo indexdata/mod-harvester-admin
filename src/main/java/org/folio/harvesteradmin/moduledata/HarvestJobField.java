@@ -2,7 +2,7 @@ package org.folio.harvesteradmin.moduledata;
 
 public enum HarvestJobField implements Field {
   ID("id", "id", PgColumn.Type.UUID, false, true, true),
-  HARVESTABLE_ID("harvestableId", "harvestable_id", PgColumn.Type.INTEGER, false, true),
+  HARVESTABLE_ID("harvestableId", "harvestable_id", PgColumn.Type.BIGINT, false, true),
   HARVESTABLE_NAME("name", "harvestable_name", PgColumn.Type.TEXT, false, true),
   HARVESTABLE_TYPE("type", "type", PgColumn.Type.TEXT, false, true),
   URL("url", "url", PgColumn.Type.TEXT, false, false),
@@ -11,7 +11,7 @@ public enum HarvestJobField implements Field {
   BATCH_SIZE("batchSize", "batch_size", PgColumn.Type.INTEGER, true, false),
   TRANSFORMATION("transformation", "transformation", PgColumn.Type.TEXT, false, false),
   STORAGE("storage", "storage", PgColumn.Type.TEXT, false, false),
-  STATUS("status", "status", PgColumn.Type.TEXT, false, true),
+  STATUS("status", "status", PgColumn.Type.TEXT, true, true),
   STARTED("started", "started", PgColumn.Type.TIMESTAMP, false, false),
   FINISHED("finished", "finished", PgColumn.Type.TIMESTAMP, true, false),
   AMOUNT_HARVESTED("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, false),
