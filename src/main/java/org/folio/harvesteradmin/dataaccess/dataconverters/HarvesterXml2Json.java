@@ -167,9 +167,13 @@ public class HarvesterXml2Json {
             logger.error("Could not parse content of 'json' field as JSON: " + de.getMessage());
             json.put(child.getNodeName(), child.getTextContent());
           }
-        } else if (isChildEntity && child.getNodeName().equals("script")) {
+        } else if (isChildEntity
+            && (child.getNodeName().equals("script")
+            || child.getNodeName().equals("testData")
+            || child.getNodeName().equals("testOutput"))) {
           json.put(child.getNodeName(),
-              (child.getTextContent().isEmpty() ? "" : "<scripts omitted from nested displays>"));
+              (child.getTextContent().isEmpty() ? ""
+                  : "<'" + child.getNodeName() + "' omitted from nested displays>"));
         } else {
           json.put(child.getNodeName(), child.getTextContent());
         }
