@@ -294,9 +294,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.getScript(routingContext)
-        .onComplete(response -> responseText(routingContext, 200).end(response.result()))
-        .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
-        .mapEmpty();
+        .onComplete(response -> {
+          if (response.succeeded()) {
+            responseText(routingContext, 200).end(response.result());
+          } else {
+            responseError(routingContext, 400, response.cause().getMessage());
+          }
+        }).mapEmpty();
   }
 
   private Future<Void> putScript(Vertx vertx, RoutingContext routingContext) {
