@@ -392,7 +392,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   Storage storage = new Storage(vertx, tenant);
                   HarvestJob job =
                       HarvestJob.fromHarvestableJson(harvestable.result().jsonObject());
-                  if (routingContext.body() != null) {
+                  if (routingContext.body() != null
+                      && routingContext.body().asJsonObject() != null) {
                     // Job status was included in request, overwrite pulled properties
                     JsonObject jobStatus = routingContext.body().asJsonObject();
                     job.setFinished(jobStatus.getString(HarvestJobField.FINISHED.propertyName()));
