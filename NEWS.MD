@@ -1,4 +1,12 @@
-## 0.2.3-SNAPSHOT Not a release. Tag v0.2.3-SNAPSHOT
+
+* Fixes NPE in store-log by GET
+* Omits `testData`, `testOutput` from step in nested display 
+
+## 0.2.4-SNAPSHOT re-tag due to timeout in release-maven workflow
+
+* Enables retries for registry login
+
+## 0.2.3-SNAPSHOT (not a release)
 
 * Applies second line of validations for complex schema rules (MODHAADM-23)
 * Accepts harvestables of type `xmlBulk` too (MODHAADM-23)
