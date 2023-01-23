@@ -1,5 +1,7 @@
+## 0.2.5-SNAPSHOT (not a release)
 
-* Fixes NPE in store-log by GET
+* Fixes NPE when storing logs by GET
+* Fixes error handling when `step` not found in GET script
 * Omits `testData`, `testOutput` from step in nested display 
 
 ## 0.2.4-SNAPSHOT re-tag due to timeout in release-maven workflow
