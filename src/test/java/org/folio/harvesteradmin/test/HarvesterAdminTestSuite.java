@@ -174,6 +174,70 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
+  public void canCreateHarvestableWithReferencesById() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"lastUpdated\": \"2022-12-07T15:20:49.507Z\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
+  }
+
+  @Test
+  public void canCreateHarvestableWithReferencesByName() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"lastUpdated\": \"2022-12-07T15:20:49.507Z\",\n"
+                + "  \"storage\": {\n"
+                + "    \"name\": \"" + BASE_STORAGE_JSON.getString("name") + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"name\": \"" + BASE_TRANSFORMATION_JSON.getString("name") + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 200);
+  }
+
+  @Test
   public void canCreateHarvestableButCannotGetJobLogIfNotRun()
   {
     SampleId harvestableId = new SampleId(1);
@@ -362,6 +426,28 @@ public class HarvesterAdminTestSuite {
     JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
     JsonArray stepAssociations = new JsonArray();
     stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
+    pipeline.put("stepAssociations", stepAssociations);
+    postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
+    JsonObject tsa = new JsonObject(
+        "{\n"
+            + "  \"step\": { \n"
+            + "    \"id\": \"" + SAMPLE_STEP_2_ID + "\"\n"
+            + "  },\n"
+            + "  \"transformation\": \"" + BASE_TRANSFORMATION_ID +"\",\n"
+            + "  \"position\": \"2\"\n"
+            + "}"
+    );
+    postConfigRecord(tsa, THIS_TRANSFORMATIONS_STEPS_PATH, 201);
+  }
+
+  @Test
+  public void canCreateTransformationAssociatedWithAStepByStepName() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
+    JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
+    JsonArray stepAssociations = new JsonArray();
+    stepAssociations.add(new JsonObject().put("stepName", SAMPLE_STEP.getString("name")));
     pipeline.put("stepAssociations", stepAssociations);
     postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
     getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
