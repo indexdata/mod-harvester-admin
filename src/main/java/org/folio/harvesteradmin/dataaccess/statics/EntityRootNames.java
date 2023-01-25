@@ -30,13 +30,29 @@ public class EntityRootNames {
   static {
     rootOfEntityByHarvesterPath.put(HARVESTER_HARVESTABLES_PATH,
         EntityRootNames.HARVESTABLE_ROOT_PROPERTY);
-    rootOfEntityByHarvesterPath.put(HARVESTER_STORAGES_PATH, EntityRootNames.STORAGE_ROOT_PROPERTY);
+    rootOfEntityByHarvesterPath.put(HARVESTER_STORAGES_PATH,
+        EntityRootNames.STORAGE_ROOT_PROPERTY);
     rootOfEntityByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_PATH,
         EntityRootNames.TRANSFORMATION_ROOT_PROPERTY);
-    rootOfEntityByHarvesterPath.put(HARVESTER_STEPS_PATH, EntityRootNames.STEP_ROOT_PROPERTY);
+    rootOfEntityByHarvesterPath.put(HARVESTER_STEPS_PATH,
+        EntityRootNames.STEP_ROOT_PROPERTY);
     rootOfEntityByHarvesterPath.put(HARVESTER_TSAS_PATH,
         EntityRootNames.TRANSFORMATION_STEP_ROOT_PROPERTY);
+  }
 
+  private static final Map<String, String> rootOfEntitiesByHarvesterPath = new HashMap<>();
+
+  static {
+    rootOfEntitiesByHarvesterPath.put(HARVESTER_HARVESTABLES_PATH,
+        EntityRootNames.HARVESTABLE_SET_ROOT_PROPERTY);
+    rootOfEntitiesByHarvesterPath.put(HARVESTER_STORAGES_PATH,
+        EntityRootNames.STORAGE_SET_ROOT_PROPERTY);
+    rootOfEntitiesByHarvesterPath.put(HARVESTER_TRANSFORMATIONS_PATH,
+        EntityRootNames.TRANSFORMATION_SET_ROOT_PROPERTY);
+    rootOfEntitiesByHarvesterPath.put(HARVESTER_STEPS_PATH,
+        EntityRootNames.STEP_SET_ROOT_PROPERTY);
+    rootOfEntitiesByHarvesterPath.put(HARVESTER_TSAS_PATH,
+        EntityRootNames.TRANSFORMATION_STEP_SET_ROOT_PROPERTY);
   }
 
   /**
@@ -49,6 +65,13 @@ public class EntityRootNames {
    */
   public static String mapToNameOfRootOfEntity(String harvesterPath) {
     return rootOfEntityByHarvesterPath.get(harvesterPath);
+  }
+
+  /**
+   * Get the Harvester's name for the array of entities from the requested Harvester path.
+   */
+  public static String mapToNameOfArrayOfEntities(String harvesterPath) {
+    return rootOfEntitiesByHarvesterPath.get(harvesterPath);
   }
 
   public static Map<String, String> typeToEmbeddedTypeMap = new HashMap<>();

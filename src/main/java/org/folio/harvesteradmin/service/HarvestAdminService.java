@@ -133,7 +133,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postTransformation")
-        .handler(ctx -> postConfigRecord(vertx, ctx));
+        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putTransformation")
             .handler(ctx -> putConfigRecord(vertx, ctx));

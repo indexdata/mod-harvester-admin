@@ -13,6 +13,71 @@
     "description": {
       "type": "string",
       "description": "Details about the pipeline."
+    },
+    "stepAssociations" : {
+      "type": "array",
+      "description": "List of steps that make up the transformation pipeline. In a POST this will be used for attaching the steps to the pipeline. In a PUT this is ignored.",
+      "items": {
+        "type": "object",
+        "anyOf": [
+          {
+            "properties": {
+              "position": {
+                "type": "string",
+                "description": "The steps position in the sequence of steps, starting with number 1."
+              },
+              "step": {
+                "type": "object",
+                "anyOf": [
+                  {
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "The step's numeric id. In a POST it is used for looking up the step and attaching it."
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "An alternative to the ID for look-up and attachment. Used in a POST if no ID is present."
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "required": ["step"]
+          },
+          {
+            "properties": {
+              "position": {
+                "type": "string",
+                "description": "The steps position in the sequence of steps, starting with number 1."
+              },
+              "stepId": {
+                "type": "string",
+                "description": "The step's numeric id. In a POST it is used for looking up the step and attaching it."
+              }
+            },
+            "required": ["stepId"]
+          },
+          {
+            "properties": {
+              "position": {
+                "type": "string",
+                "description": "The steps position in the sequence of steps, starting with number 1."
+              },
+              "stepName": {
+                "type": "string",
+                "description": "An alternative to the ID for look-up and attachment. Used in a POST if no ID is present."
+              }
+            },
+            "required": ["stepName"]
+          }
+        ]
+      }
     }
   },
   "required": [
