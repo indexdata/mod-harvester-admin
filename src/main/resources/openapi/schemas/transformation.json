@@ -28,6 +28,7 @@
               },
               "step": {
                 "type": "object",
+                "description": "Existing transformation step to include in pipeline, referenced by ID or step name.",
                 "anyOf": [
                   {
                     "properties": {
