@@ -238,6 +238,37 @@ public class HarvesterAdminTestSuite {
   }
 
   @Test
+  public void cannotCreateOaiPmhHarvestableWithoutOaiSetName() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"lastUpdated\": \"2022-12-07T15:20:49.507Z\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 400);
+  }
+
+  @Test
   public void canCreateHarvestableButCannotGetJobLogIfNotRun()
   {
     SampleId harvestableId = new SampleId(1);
