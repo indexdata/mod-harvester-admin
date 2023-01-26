@@ -68,11 +68,9 @@ The minimal harvestable JSON object that the service will accept would contain t
   "enabled": "false",
   "url": "http://localhost:8080/marc-xml-files/",
   "transformation": {
-    "entityType": "basicTransformation",
     "id": "642863552135242"
   },
   "storage": {
-    "entityType": "inventoryStorageEntity",
     "id": "203985902042325"
   }
 }
