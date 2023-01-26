@@ -148,36 +148,23 @@ This can be done in two ways: Either create a minimal transformation object thro
 
 The option to post a composite transformation object is a convenience when exporting/GETting the composite from one service and importing/POSTing it to another. 
 
-However, when POSTing a transformation with embedded steps, it's only the references to the steps that are persisted, not the expanded content of each step. The steps must thus exist already in Harvester, and the POST API will then take care of attaching them to the pipeline in one go. Any other step properties are accepted but will be ignored and can be omitted. This is an example of a transformation with just enough information to attach already existing steps to the pipeline:
+When POSTing a transformation with embedded steps, it's only the references to the steps that are persisted. The reference can be by the step's name or ID. The steps must thus exist already in Harvester, and the POST API will then take care of attaching them to the pipeline in one go. Any other step properties are accepted but will be ignored. This is an example of a transformation with just enough information to attach already existing steps to the pipeline:
 
 ```
 {
-  "id": "642863552135242",
+  "name" : "MARC to Folio Inventory",
   "description" : "transformation pipeline with two XSLT steps and a custom step",
   "enabled" : "true",
-  "name" : "MARC to Folio Inventory",
   "parallel" : "false",
   "stepAssociations" : [ {
       "position" : "1",
-      "step" : {
-        "entityType" : "xmlTransformationStep",
-        "id" : "642189435236986",
-        "description": "marc to folio"
-      }
+      "stepName" : "marc to folio"
     }, {
       "position" : "2",
-      "step" : {
-        "entityType" : "xmlTransformationStep",
-        "id" : "690557868011894",
-        "description": "codes to uuids"
-      }
+      "stepName" : "codes to uuids"
     }, {
       "position": "3",
-      "step": {
-        "entityType": "customTransformationStep",
-        "id": "742603990671914",
-        "description": "xml 2 json"
-      }
+      "stepName": "xml 2 json"
     }
   ],
   "type" : "basicTransformation"
@@ -185,12 +172,12 @@ However, when POSTing a transformation with embedded steps, it's only the refere
 
 ```
 
-Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.  A PUT of the above entity would be equivalent to PUTting
+Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.  
 
 ```
 {
   "id": "642863552135242",
-  "description" : "transformation pipeline with two XSLT steps and a custom step",
+  "description" : "MARC to FOLIO. Transformation pipeline with two XSLT steps and a custom step.",
   "enabled" : "true",
   "name" : "MARC to Folio Inventory",
   "parallel" : "false",
