@@ -15,14 +15,14 @@ public class SchemaValidation {
         if (!input.containsKey("oaiSetName")) {
           passed = false;
           errorMessage +=
-              "[Bad Request] Validation error for body application/json: "
-                  + "provided object should contain property oaiSetName"
+              "[Bad Request] Validation[2] error for body application/json: "
+                  + "provided object should contain property oaiSetName if type is oaiPmh."
               + System.lineSeparator();
         }
         if (!input.containsKey("metadataPrefix")) {
           passed = false;
-          errorMessage += "[Bad Request] Validation error for body application/json: "
-              + "provided object should contain property metadataPrefix"
+          errorMessage += "[Bad Request] Validation[2] error for body application/json: "
+              + "provided object should contain property metadataPrefix if type is oaiPmh."
               + System.lineSeparator();
         }
       }

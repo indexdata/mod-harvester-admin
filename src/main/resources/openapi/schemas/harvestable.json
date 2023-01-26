@@ -10,13 +10,6 @@
       "type": "string",
       "description": "The name assigned to the harvest configuration."
     },
-    "type": {
-      "type": "string",
-      "enum": [
-        "oaiPmh", "xmlBulk"
-      ],
-      "description": "The type of harvest configuration, ie. OAI-PMH or bulk XML."
-    },
     "storage": {
       "type": "object",
       "description": "Reference to applied storage target.",
@@ -74,18 +67,6 @@
     "dateFormat": {
       "type": "string",
       "description": "For example yyyy-MM-dd'T'hh:mm:ss'Z'."
-    },
-    "metadataPrefix": {
-      "type": "string",
-      "description": "OAI-PMH only. The metadata prefix supported by the OAI-PMH service to harvest from."
-    },
-    "oaiSetName": {
-      "type": "string",
-      "description": "OAI-PMH only. The name of a record set offered by the OAI-PMH service to harvest from."
-    },
-    "resumptionToken": {
-      "type": "string",
-      "description": "OAI-PMH only. PMH identifier for fetching the next batch of records."
     },
     "url": {
       "type": "string",
@@ -145,6 +126,39 @@
       "description": "Whether or not to run harvest job from records cached in a previous job run."
     }
   },
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["oaiPmh"],
+          "description": "Indicates OAI-PMH job."
+        },
+        "metadataPrefix": {
+          "type": "string",
+          "description": "OAI-PMH only. The metadata prefix supported by the OAI-PMH service to harvest from."
+        },
+        "oaiSetName": {
+          "type": "string",
+          "description": "OAI-PMH only. The name of a record set offered by the OAI-PMH service to harvest from."
+        },
+        "resumptionToken": {
+          "type": "string",
+          "description": "OAI-PMH only. PMH identifier for fetching the next batch of records."
+        }
+      },
+      "required": ["metadataPrefix", "oaiSetName"]
+    },
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["xmlBulk"],
+          "description": "Indicates bulk XML job."
+        }
+      }
+    }
+  ],
   "additionalProperties": true,
   "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "url"]
 }

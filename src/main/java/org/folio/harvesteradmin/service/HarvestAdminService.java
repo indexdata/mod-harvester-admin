@@ -193,8 +193,20 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   }
 
+  /**
+   * Returns request validation exception, potentially with improved error message if problem was
+   * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
+   */
   public void routerExceptionResponse(RoutingContext ctx) {
-    HttpResponse.responseError(ctx, ctx.statusCode(), ctx.failure().getMessage());
+    String message = ctx.failure().getMessage();
+    if (message.contains("No schema matches")) {
+      SchemaValidation validation = SchemaValidation.validateJsonObject(
+          ctx.request().path(), ctx.body().asJsonObject());
+      if (!validation.passed()) {
+        message += ". " + System.lineSeparator() + validation.getErrorMessage();
+      }
+    }
+    HttpResponse.responseError(ctx, ctx.statusCode(), message);
   }
 
   @Override
