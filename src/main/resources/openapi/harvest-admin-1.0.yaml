@@ -15,7 +15,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestable"
+              $ref: "#/components/schemas/harvestablePostPut"
         required: true
       responses:
         "204":
@@ -66,7 +66,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestable"
+                $ref: "#/components/schemas/harvestableGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -76,6 +76,12 @@ paths:
     put:
       operationId: putHarvestable
       description: Update harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestablePostPut"
+        required: true
       responses:
         "204":
           description: No content
@@ -935,8 +941,10 @@ components:
   schemas:
     harvestables:
       $ref: schemas/harvestables.json
-    harvestable:
-      $ref: schemas/harvestable.json
+    harvestablePostPut:
+      $ref: schemas/harvestablePostPut.json
+    harvestableGet:
+      $ref: schemas/harvestableGet.json
     storages:
       $ref: schemas/storages.json
     storage:

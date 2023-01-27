@@ -1,0 +1,228 @@
+{
+  "description": "A harvest job definition",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique, numeric ID for the job definition. Will be assigned if not provided.",
+      "pattern": "^[0-9]*$"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name assigned to the harvest configuration."
+    },
+    "description": {
+      "type": "string",
+      "description": "Free form description of the configuration to support the administration."
+    },
+    "storage": {
+      "type": "object",
+      "description": "Reference to applied storage target.",
+      "anyOf": [
+        {
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Reference to the ID of the storage engine to use."
+            }
+          }
+        },
+        {
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Used for look-up by name as an alternative to reference by id (id will be used if present)."
+            }
+          }
+        }
+      ]
+    },
+    "transformation": {
+      "type": "object",
+      "description": "Reference to applied transformation pipeline.",
+      "anyOf": [
+        {
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Reference to the ID of the transformation pipeline to apply."
+            }
+          }
+        },
+        {
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Used for look-up by name as an alternative to reference by ID (id will be used if present)."
+            }
+          }
+        }
+      ]
+    },
+    "enabled": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Indicates if the job is scheduled for running"
+    },
+    "harvestImmediately": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether to harvest when the config is persisted."
+    },
+    "dateFormat": {
+      "type": "string",
+      "description": "For example yyyy-MM-dd'T'hh:mm:ss'Z'."
+    },
+    "url": {
+      "type": "string",
+      "description": "The URL to access the data from."
+    },
+    "currentStatus": {
+      "type": "string",
+      "enum": [
+        "NEW",
+        "OK",
+        "WARN",
+        "ERROR",
+        "RUNNING",
+        "FINISHED",
+        "KILLED"
+      ],
+      "readOnly": true,
+      "description": "Indicates the state of the job. Assigned by API."
+    },
+    "cacheEnabled": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether or not to store incoming records in Harvester's file system."
+    },
+    "diskRun": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether or not to run harvest job from records cached in a previous job run."
+    },
+    "recordLimit": {
+      "type": "string",
+      "description": "Maximum number of records to harvest.",
+      "pattern": "^[0-9]*$"
+    },
+    "laxParsing": {
+      "type": "string",
+      "description": "When enabled, Harvester will attempt to parse malformed XML (missing closing tags, entities)",
+      "enum": ["true", "false"],
+      "default": "false"
+    },
+    "managedBy": {
+      "type": "string",
+      "description": "Free-text field for tagging a job with the producer or manager of the resource. Multiple tags may be separated by commas. The tags can be used for filtering status reports by job administrators for example."
+    },
+    "logLevel": {
+      "type": "string",
+      "description": "Specifies the logging level for the job with TRACE being the most (extremely) verbose. INFO is the recommended log level in most cases.",
+      "enum": ["ERROR","WARN","INFO","DEBUG","TRACE"]
+    },
+    "failedRecordsLogging": {
+      "type": "string",
+      "description": "Specify whether or not failed records should be saved as XML files in a designated log directory. Also specifies retention policy for the directory, that is, whether to retain files that were saved in previous runs (CLEAN_DIRECTORY = don't retain) and, if so, whether to overwrite any existing files if the same record fails again (CREATE_OVERWRITE) or rather add a sequence number to the new file name in order not to overwrite (ADD_ALL).",
+      "enum": ["NO_STORE", "CLEAN_DIRECTORY", "CREATE_OVERWRITE", "ADD_ALL"],
+      "default": "CLEAN_DIRECTORY"
+    },
+    "maxSavedFailedRecordsPerRun": {
+      "type": "string",
+      "description": "Sets a maximum number of files to save in the failed records directory per run. The job log will tell when the limit is reached.",
+      "pattern": "^[0-9]*$",
+      "default": "100"
+    },
+    "maxSavedFailedRecordsTotal": {
+      "type": "string",
+      "description": "Sets a maximum number of files to be saved in the failed records directory at any given time - as the sum of previously saved records (that were not cleaned up before this run) plus any new records added during the run.The job log will tell when the limit is reached.",
+      "pattern": "^[0-9]*$",
+      "default": "1000"
+    },
+    "mailAddress": {
+      "type": "string",
+      "description": "Comma separated list of e-mail addresses that should receive notification on job completion."
+    },
+    "mailLevel": {
+      "type": "string",
+      "description": "The minimum severity of a job's completion status that will trigger email notification.",
+      "enum": ["OK","WARN","ERROR"]
+    },
+    "lastHarvestFinished": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration completed."
+    },
+    "lastHarvestStarted": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration began."
+    },
+    "lastUpdated": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when this definition was last modified."
+    },
+    "nextHarvestSchedule": {
+      "type": "string",
+      "description": "The date and time when a job with this definition should be run (if job is enabled)."
+    },
+    "amountHarvested": {
+      "type": "string",
+      "description": "Assigned by API. Number of records harvested in last run. It seems this should really be an integer, but string is what the WSAPI gives us.",
+      "pattern": "^[0-9]*$"
+    },
+    "message": {
+      "type": "string",
+      "description": "Assigned by API. Message summarising results of last run."
+    },
+    "acl": {
+      "type": "string",
+      "description": "Assigned by API. Name of the tenant that created the configuration record.",
+      "readOnly": true
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["oaiPmh"],
+          "description": "Indicates OAI-PMH job."
+        },
+        "metadataPrefix": {
+          "type": "string",
+          "description": "OAI-PMH only. The metadata prefix supported by the OAI-PMH service to harvest from."
+        },
+        "oaiSetName": {
+          "type": "string",
+          "description": "OAI-PMH only. The name of a record set offered by the OAI-PMH service to harvest from."
+        },
+        "resumptionToken": {
+          "type": "string",
+          "description": "OAI-PMH only. PMH identifier for fetching the next batch of records."
+        }
+      },
+      "required": ["metadataPrefix", "oaiSetName"]
+    },
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["xmlBulk"],
+          "description": "Indicates bulk XML job."
+        },
+        "allowErrors": {
+          "type": "string",
+          "description": "Whether or not to continue despite harvest record errors.",
+          "default": "false",
+          "enum": ["true", "false"]
+        },
+        "overwrite": {
+          "type": "string",
+          "description": "Applies to storages that supports this (Solr, not FOLIO Inventory). Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
+          "enum": ["true", "false"]
+        }
+      }
+    }
+  ],
+  "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "url"]
+}
+

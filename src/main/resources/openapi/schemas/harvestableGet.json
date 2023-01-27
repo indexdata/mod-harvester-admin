@@ -1,0 +1,135 @@
+{
+  "description": "A harvest job definition as retrieved by ID.",
+  "type": "object",
+  "properties": {
+    "acl": {
+      "type": "string",
+      "description": "Read only. Name of the tenant that created the record."
+    },
+    "allowErrors": {
+      "type": "string",
+      "description": "Whether or not to continue in case of harvest record errors.",
+      "enum": ["true", "false"]
+    },
+    "amountHarvested": {
+      "type": "string",
+      "description": "Maintained by harvester. Number of records harvested."
+    },
+    "cacheEnabled": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether or not to store incoming records in Harvester's file system."
+    },
+    "constantFields": {
+      "type": "string",
+      "description": "Values related to target handling in MasterKey. Otherwise obsolete."
+    },
+    "contactNotes": {
+      "type": "string",
+      "description": "Free form text to support configuration administration procedures."
+    },
+    "currentStatus": {
+      "type": "string",
+      "enum": [
+        "NEW",
+        "OK",
+        "WARN",
+        "ERROR",
+        "RUNNING",
+        "FINISHED",
+        "KILLED"
+      ],
+      "readOnly": true,
+      "description": "Indicates the state of the job. Assigned by API."
+    },
+    "diskRun": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether or not to run harvest job from records cached in a previous job run."
+    },
+    "enabled": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Indicates if the job is scheduled for running"
+    },
+    "failedRecordsLogging": {
+      "type": "string",
+      "description": "Specify whether or not failed records should be saved as XML files in a designated log directory. Also specifies retention policy for the directory, that is, whether to retain files that were saved in previous runs (CLEAN_DIRECTORY = don't retain) and, if so, whether to overwrite any existing files if the same record fails again (CREATE_OVERWRITE) or rather add a sequence number to the new file name in order not to overwrite (ADD_ALL).",
+      "enum": ["NO_STORE", "CLEAN_DIRECTORY", "CREATE_OVERWRITE", "ADD_ALL"],
+      "default": "CLEAN_DIRECTORY"
+    },
+    "harvestImmediately": {
+      "type": "string",
+      "enum": ["true", "false"],
+      "description": "Whether to harvest as soon as the config is persisted."
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique, numeric ID for the job definition. Will be assigned if not provided.",
+      "pattern": "^[0-9]*$"
+    },
+    "lastHarvestFinished": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration completed."
+    },
+    "lastHarvestStarted": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration began."
+    },
+    "lastUpdated": {
+      "type": "string",
+      "description": "Assigned by API. The date and time when this definition was last modified."
+    },
+    "laxParsing": {
+      "type": "string",
+      "description": "When enabled, Harvester will attempt to parse malformed XML (missing closing tags, entities)",
+      "enum": ["true", "false"],
+      "default": "false"
+    },
+    "logLevel": {
+      "type": "string",
+      "description": "Specifies the logging level for the job with TRACE being the most (extremely) verbose. INFO is the recommended log level in most cases.",
+      "enum": ["ERROR","WARN","INFO","DEBUG","TRACE"]
+    },
+    "mailAddress": {
+      "type": "string",
+      "description": "Comma separated list of e-mail addresses that should receive notification on job completion."
+    },
+    "mailLevel": {
+      "type": "string",
+      "description": "The minimum severity of a job's completion status that will trigger email notification.",
+      "enum": ["OK","WARN","ERROR"]
+    },
+    "managedBy": {
+      "type": "string",
+      "description": "Free-text field for tagging a job with the producer or manager of the resource. Multiple tags may be separated by commas. The tags can be used for filtering status reports by job administrators for example."
+    },
+    "maxSavedFailedRecordsPerRun": {
+      "type": "string",
+      "description": "Sets a maximum number of files to save in the failed records directory per run. The job log will tell when the limit is reached.",
+      "pattern": "^[0-9]*$",
+      "default": "100"
+    },
+    "maxSavedFailedRecordsTotal": {
+      "type": "string",
+      "description": "Sets a maximum number of files to be saved in the failed records directory at any given time - as the sum of previously saved records (that were not cleaned up before this run) plus any new records added during the run.The job log will tell when the limit is reached.",
+      "pattern": "^[0-9]*$",
+      "default": "1000"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name assigned to the harvest configuration."
+    },
+    "openAccess": {
+      "type": "string",
+      "description": "--",
+      "enum": ["true", "false"]
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "Applies to storages that supports this (Solr, not FOLIO Inventory). Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
+      "enum": ["true", "false"]
+    }
+  }
+}
+
