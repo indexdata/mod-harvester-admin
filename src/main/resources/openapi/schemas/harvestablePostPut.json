@@ -15,9 +15,14 @@
       "type": "string",
       "description": "Free form description of the configuration to support the administration."
     },
+    "openAccess": {
+      "type": "string",
+      "description": "tbd",
+      "enum": ["true", "false"]
+    },
     "storage": {
       "type": "object",
-      "description": "Reference to applied storage target.",
+      "description": "Reference to the storage configuration to use.",
       "anyOf": [
         {
           "properties": {
@@ -25,7 +30,8 @@
               "type": "string",
               "description": "Reference to the ID of the storage engine to use."
             }
-          }
+          },
+          "required": ["id"]
         },
         {
           "properties": {
@@ -33,21 +39,24 @@
               "type": "string",
               "description": "Used for look-up by name as an alternative to reference by id (id will be used if present)."
             }
-          }
+          },
+          "required": ["name"]
         }
       ]
     },
     "transformation": {
       "type": "object",
-      "description": "Reference to applied transformation pipeline.",
+      "description": "Reference to the transformation pipeline to use.",
       "anyOf": [
         {
           "properties": {
             "id": {
               "type": "string",
-              "description": "Reference to the ID of the transformation pipeline to apply."
+              "description": "Reference to the ID of the transformation pipeline to apply.",
+              "pattern": "^[0-9]*$"
             }
-          }
+          },
+          "required": ["id"]
         },
         {
           "properties": {
@@ -55,7 +64,8 @@
               "type": "string",
               "description": "Used for look-up by name as an alternative to reference by ID (id will be used if present)."
             }
-          }
+          },
+          "required": ["name"]
         }
       ]
     },
@@ -69,6 +79,10 @@
       "enum": ["true", "false"],
       "description": "Whether to harvest when the config is persisted."
     },
+    "scheduleString": {
+      "type": "string",
+      "description": "Crontab style schedule string (simplified): minute(0-59) hour(0-24)  day of month(* or 1-31)  month (* or 1-12)  day of week (* or 0-6)."
+    },
     "dateFormat": {
       "type": "string",
       "description": "For example yyyy-MM-dd'T'hh:mm:ss'Z'."
@@ -77,19 +91,11 @@
       "type": "string",
       "description": "The URL to access the data from."
     },
-    "currentStatus": {
+    "timeout": {
       "type": "string",
-      "enum": [
-        "NEW",
-        "OK",
-        "WARN",
-        "ERROR",
-        "RUNNING",
-        "FINISHED",
-        "KILLED"
-      ],
-      "readOnly": true,
-      "description": "Indicates the state of the job. Assigned by API."
+      "description": "Connection/read timeout in seconds; application depending on the specific protocol used for fetching data.",
+      "pattern": "^[0-9]*$",
+      "default": "300"
     },
     "cacheEnabled": {
       "type": "string",
@@ -112,9 +118,49 @@
       "enum": ["true", "false"],
       "default": "false"
     },
+    "constantFields": {
+      "type": "string",
+      "description": "Values related to target handling in MasterKey. Otherwise obsolete."
+    },
+    "storeOriginal": {
+      "type": "string",
+      "description": "Indicates whether to store incoming original record, if supported by the job type and the storage configuration.",
+      "enum": ["true", "false"],
+      "default": "false"
+    },
+    "currentStatus": {
+      "type": "string",
+      "enum": [
+        "NEW",
+        "OK",
+        "WARN",
+        "ERROR",
+        "RUNNING",
+        "FINISHED",
+        "KILLED"
+      ],
+      "readOnly": true,
+      "description": "Indicates the state of the job. Assigned by API."
+    },
     "managedBy": {
       "type": "string",
       "description": "Free-text field for tagging a job with the producer or manager of the resource. Multiple tags may be separated by commas. The tags can be used for filtering status reports by job administrators for example."
+    },
+    "usedBy": {
+      "type": "string",
+      "description": "Free form administrative information; could be tags for the clients using this harvestable."
+    },
+    "serviceProvider": {
+      "type": "string",
+      "description": "Free-text field for administrative information about the harvest job."
+    },
+    "contactNotes": {
+      "type": "string",
+      "description": "Free form text field for administrator's notes."
+    },
+    "technicalNotes": {
+      "type": "string",
+      "description": "Free-text field for administrative information."
     },
     "logLevel": {
       "type": "string",
@@ -198,7 +244,20 @@
         "resumptionToken": {
           "type": "string",
           "description": "OAI-PMH only. PMH identifier for fetching the next batch of records."
+        },
+        "retryCount": {
+          "type": "string",
+          "description": "Indicates how many times Harvester should retry a failed OAI-PMH request.",
+          "pattern": "^[0-9]*$",
+          "default": "2"
+        },
+        "retryWait": {
+          "type": "string",
+          "description": "Indicates how many seconds Harvester should wait before retrying a failed OAI-PMH request.",
+          "pattern": "^[0-9]*$",
+          "default": "60"
         }
+
       },
       "required": ["metadataPrefix", "oaiSetName"]
     },
@@ -219,6 +278,58 @@
           "type": "string",
           "description": "Applies to storages that supports this (Solr, not FOLIO Inventory). Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
           "enum": ["true", "false"]
+        },
+        "allowCondReq": {
+          "type": "string",
+          "description": "Whether or not to filter on file date to only harvest new XML files",
+          "enum": ["true", "false"],
+          "default": "false"
+        },
+        "fromDate": {
+          "type": "string",
+          "description": "Initial start date (yyyy-MM-dd) for incremental updates (when allowConfReq is 'true')"
+        },
+        "csvConfiguration": {
+          "type": "string",
+          "description": "Semicolon-separated key-value pairs that specifies parsing of a CSV file into XML for further processing (see Harvester documentation for details)."
+        },
+        "excludeFilePattern": {
+          "type": "string",
+          "description": "Regular expression; setting to skip harvesting of files with names matching the given regular expression (see Harvester documentation for details)."
+        },
+        "expectedSchema": {
+          "type": "string",
+          "description": "Mime-type override (e.g: application/marc; charset=MARC-8)."
+        },
+        "includeFilePattern": {
+          "type": "string",
+          "description": "Regular expression; setting to request harvesting of files with names matching the given regular expression unless those file names are simultaneously excluded by the excludeFilePattern. .zip, .gz, .tar included by default unless explicitly excluded by excludeFilePattern (see Harvester documentation for details)."
+        },
+        "outputSchema": {
+          "type": "string",
+          "description": "MARC XML transformation format (application/marc or application/tmarc)."
+        },
+        "passiveMode": {
+          "type": "string",
+          "description": "Whether or not to use passive mode for FTP transfers.",
+          "enum": ["true","false"],
+          "default": "false"
+        },
+        "recurse": {
+          "type": "string",
+          "description": "Whether or not to recurse into sub-folders in the source directory tree.",
+          "enum": ["true","false"],
+          "default": "false"
+        },
+        "splitAt": {
+          "type": "string",
+          "description": "Level/depth to split XML files at to extract records. Zero/empty disables split.",
+          "pattern": "^[0-9]*$"
+        },
+        "splitSize": {
+          "type": "string",
+          "description": "Setting to split large XML files into chunks of `splitSize' number of records; to preserve memory during XSLT transformations.",
+          "pattern": "^[0-9]*$"
         }
       }
     }
