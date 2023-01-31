@@ -588,7 +588,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformation"
+              $ref: "#/components/schemas/transformationPostPut"
         required: true
       responses:
         "204":
@@ -639,7 +639,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformation"
+                $ref: "#/components/schemas/transformationGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -975,8 +975,10 @@ components:
       $ref: schemas/storage.json
     transformations:
       $ref: schemas/transformations.json
-    transformation:
-      $ref: schemas/transformation.json
+    transformationGet:
+      $ref: schemas/transformationGet.json
+    transformationPostPut:
+      $ref: schemas/transformationPostPut.json
     steps:
       $ref: schemas/steps.json
     step:
