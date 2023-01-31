@@ -22,7 +22,6 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
     if (response.succeeded()) {
       bodyAsString = response.result().bodyAsString();
       int harvesterStatusCode = response.result().statusCode();
-
       if (harvesterStatusCode == 200) {
         logger.debug("Retrieved a record from Harvester " + bodyAsString);
         JsonObject transformed = HarvesterXml2Json.convertRecordToJson(bodyAsString);
@@ -31,7 +30,9 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
               + "] failed to produce a JSON object";
           statusCode = 500;
         } else if (LegacyServiceConfig.filterByTenant
-            && !tenant.equals(transformed.getString("acl"))) {
+            && (!tenant.equals((apiPath.contains("tsas") // tsas got no acl, check step's instead
+            ? transformed.getJsonObject("step").getString("acl")
+            : transformed.getString("acl"))))) {
           statusCode = 404;
           errorMessage = apiPath + "/" + id + " not found";
         } else {
