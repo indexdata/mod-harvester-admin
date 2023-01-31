@@ -14,6 +14,22 @@
       "type": "string",
       "description": "Details about the pipeline."
     },
+    "type": {
+      "type": "string",
+      "description": "The type of transformation pipeline.",
+      "enum": ["basicTransformation", "customTransformation"]
+    },
+    "enabled": {
+      "type": "string",
+      "description": "Indicates if the transformation pipeline can be used by harvest jobs",
+      "enum": ["true","false"]
+    },
+    "parallel": {
+      "type": "string",
+      "description": "Indicates if steps should be run concurrently (each in its own thread).",
+      "enum": ["true", "false"],
+      "default": "false"
+    },
     "stepAssociations" : {
       "type": "array",
       "description": "List of steps that make up the transformation pipeline. In a POST this will be used for attaching the steps to the pipeline. In a PUT this is ignored.",
@@ -82,7 +98,7 @@
     }
   },
   "required": [
-    "name"
+    "name", "type"
   ],
-  "additionalProperties": true
+  "additionalProperties": false
 }
