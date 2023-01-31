@@ -45,13 +45,223 @@ The pass-through APIs are adapted to FOLIO conventions as much as possible but s
 #### Overview
 
 In order to configure a harvest job from scratch through the API, following API interactions are required: 
-1) Create the storage configuration to use for persisting harvested records; through `/harvester-admin/storages`.
-2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage; through `/harvester-admin/steps`.
-3) Create the transformation pipeline through `/harvester-admin/transformations`.
-4) Assign transformation steps to the pipeline in the desired order of execution through `/harvester-admin/tsas` (or by embedding steps directly in the POSTed transformation, see details below)
-5) Finally, create the harvest job configuration through `/harvester-admin/harvestables`, either as an XML bulk job or an OAI-PMH job, and reference the newly created transformation pipeline and storage definition by their IDs.
+1) Create the storage configuration to use for persisting harvested records.
+2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage.
+3) Create the transformation pipeline.
+4) Assign transformation steps to the pipeline in the desired order of execution.
+5) Finally, create the harvest job configuration referencing the newly created transformation pipeline and storage definition.
 
-The following paragraphs describe the involved APIs in a little more detail.
+#### 1) Create storage definition
+
+POST storage object to `/harvester-admin/storages`, for example a FOLIO inventory storage using Inventory Update's upsert-by-hrid API: 
+
+```
+{
+  "name" : "FOLIO Inventory Storage",
+  "type" : "inventoryStorage"
+  "description" : "Inventory storage at localhost",
+  "enabled" : "true",
+  "json" : {
+    "folioAuthPath" : "bl-users/login",
+    "folioTenant" : "diku",
+    "folioUsername" : "diku_admin",
+    "folioPassword" : "admin",
+    "inventoryUpsertPath" : "inventory-upsert-hrid",
+    "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
+    "logHistoryStoragePath" : "/harvester-admin/harvestables/{id}/log/store"
+  },
+  "url" : "http://okapi:9130/",
+}
+``` 
+
+This is an example of a Solr storage definition:
+
+```
+{
+  "name" : "Solr @ localhost",
+  "type" : "solrStorage",
+  "description" : "Solr at localhost:8983",
+  "enabled" : "true",
+  "url" : "http://localhost:8983/solr/lui/"
+}
+```
+
+#### 2) Create transformation steps
+
+A pipeline can be composed of multiple steps and each step can be an XSLT transformation or a custom Java-based transformation.
+
+POST step object to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as a XSLT document. 
+
+````
+{
+  "name": "Copy XML",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "outputFormat" : "XML",
+  "type" : "XmlTransformStep"
+}
+````
+Response: 
+````
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: http://localhost:9130/harvester-admin/steps/563244948367770
+transfer-encoding: chunked
+
+{
+  "acl" : "diku",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "name" : "Copy XML",
+  "outputFormat" : "XML",
+  "script" : "",
+  "id" : "563244948367770",
+  "testData" : "",
+  "testOutput" : "",
+  "type" : "XmlTransformStep"
+}
+````
+
+Say the XSLT script has this content: 
+````
+<xsl:stylesheet version="1.0"
+ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="node()|@*">
+      <xsl:copy>
+        <xsl:apply-templates select="node()|@*"/>
+      </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>
+````
+
+Then this XSLT can be PUT to `/harvester-admin/steps/{step-id}/script?name=Copy+XML`, here `/harvester-admin/steps/563244948367770/script`, and the result would be
+
+GET /harvester-admin/steps/563244948367770: 
+````
+{
+  "acl" : "diku",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "name" : "Copy XML",
+  "outputFormat" : "XML",
+  "script" : "<xsl:stylesheet version=\"1.0\"\n xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n    <xsl:template match=\"node()|@*\">\n      <xsl:copy>\n        <xsl:apply-templates select=\"node()|@*\"/>\n      </xsl:copy>\n    </xsl:template>\n</xsl:stylesheet>\n",
+  "id" : "563244948367770",
+  "testData" : "",
+  "testOutput" : "",
+  "type" : "XmlTransformStep"
+}
+````
+
+#### 3) Create the transformation pipeline
+
+The transformation pipeline can be created in two ways: Either create a minimal transformation object through `/harvester-admin/transformations` and subsequently assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
+
+The option to POST a composite transformation object is a convenience when exporting/GETting the composite from one service and importing/POSTing it to another.
+
+```
+{
+  "name" : "A transformation",
+  "description" : "transformation pipeline with two XSLT steps",
+  "enabled" : "true",
+  "parallel" : "false",
+  "stepAssociations" : [ {
+      "position" : "1",
+      "step": {
+        "name" : "Copy XML"
+      }
+    }, {
+      "position" : "2",
+      "step": {
+        "name" : "Copy XML again"
+      }
+    }
+  ],
+  "type" : "basicTransformation"
+}
+```
+The response should be something like
+````
+{
+  "acl" : "diku",
+  "description" : "transformation pipeline with two XSLT steps",
+  "enabled" : "true",
+  "name" : "A transformation",
+  "parallel" : "false",
+  "stepAssociations" : [ {
+    "id" : "733436313031356",
+    "position" : "1",
+    "step" : {
+      "entityType" : "xmlTransformationStep",
+      "acl" : "diku",
+      "description" : "Minimal step",
+      "inputFormat" : "XML",
+      "name" : "Copy XML",
+      "outputFormat" : "XML",
+      "script" : "<'script' omitted from nested displays>",
+      "id" : "563244948367770",
+      "testData" : "",
+      "testOutput" : ""
+    },
+    "transformation" : "638697013731967"
+  }, {
+    "id" : "904615174851830",
+    "position" : "2",
+    "step" : {
+      "entityType" : "xmlTransformationStep",
+      "acl" : "diku",
+      "description" : "Minimal step 2",
+      "inputFormat" : "XML",
+      "name" : "Copy XML again",
+      "outputFormat" : "XML",
+      "script" : "<'script' omitted from nested displays>",
+      "id" : "550979590351830",
+      "testData" : "",
+      "testOutput" : ""
+    },
+    "transformation" : "638697013731967"
+  } ],
+  "id" : "638697013731967",
+  "type" : "basicTransformation"
+}
+````
+Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.
+
+#### 4) Assign transformation steps to the pipeline in the desired order of execution.
+
+In the example above, the steps where included with the POST of the pipeline, but alternatively the steps could be added one by one.
+
+Say, the transformation POST body was instead: 
+```
+{
+  "name" : "A transformation",
+  "description" : "transformation pipeline with two XSLT steps",
+  "enabled" : "true",
+  "parallel" : "false"
+  "type" : "basicTransformation"
+}
+```
+Response would be:
+````
+Location: http://localhost:9130/harvester-admin/transformations/516309045363828
+{
+  "acl" : "diku",
+  "description" : "transformation pipeline with two XSLT steps",
+  "enabled" : "true",
+  "name" : "A transformation - example 2",
+  "parallel" : "false",
+  "id" : "516309045363828",
+  "type" : "basicTransformation"
+}
+````
+
+Then the steps can be added subsequently: 
+
+
+#### /harvester-admin/tsas
+
+Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
+
+
 
 #### /harvester-admin/harvestables
 
@@ -104,99 +314,7 @@ The same as GET, except the POST body contains corrective data for the job's sta
 
 The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an outdated status if invoked immediately after the completion of the job; the POSTed data will correct the stale data as necessary.    
 
-#### /harvester-admin/storages
 
-Pass-through API to create, update and delete definitions of storage engines, for example the server location and APIs of a FOLIO Inventory.
-
-```
-{
-  "name" : "FOLIO Inventory Storage",
-  "id": "203985902042325",
-  "type" : "inventoryStorage"
-  "description" : "Inventory storage at localhost",
-  "enabled" : "true",
-  "json" : {
-    "folioAuthPath" : "bl-users/login",
-    "folioTenant" : "diku",
-    "folioUsername" : "diku_admin",
-    "folioPassword" : "admin",
-    "inventoryUpsertPath" : "inventory-upsert-hrid",
-    "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
-    "logHistoryStoragePath" : "/harvester-admin/harvestables/{id}/log/store"
-  },
-  "url" : "http://okapi:9130/",
-}
-``` 
-
-This is an example of a Solr storage definition:
-
-```
-{
-  "name" : "Solr @ localhost",
-  "id" : "220800285438527",
-  "type" : "solrStorage",
-  "description" : "Solr at localhost:8983",
-  "enabled" : "true",
-  "url" : "http://localhost:8983/solr/lui/"
-}
-```
-#### /harvester-admin/transformations
-
-Pass-through API to create, update and delete record transformation pipelines.
-
-This can be done in two ways: Either create a minimal transformation object through `/harvester-admin/transformations` and subsequently assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
-
-The option to post a composite transformation object is a convenience when exporting/GETting the composite from one service and importing/POSTing it to another. 
-
-When POSTing a transformation with embedded steps, it's only the references to the steps that are persisted. The reference can be by the step's name or ID. The steps must thus exist already in Harvester, and the POST API will then take care of attaching them to the pipeline in one go. Any other step properties are accepted but will be ignored. This is an example of a transformation with just enough information to attach already existing steps to the pipeline:
-
-```
-{
-  "name" : "MARC to Folio Inventory",
-  "description" : "transformation pipeline with two XSLT steps and a custom step",
-  "enabled" : "true",
-  "parallel" : "false",
-  "stepAssociations" : [ {
-      "position" : "1",
-      "stepName" : "marc to folio"
-    }, {
-      "position" : "2",
-      "stepName" : "codes to uuids"
-    }, {
-      "position": "3",
-      "stepName": "xml 2 json"
-    }
-  ],
-  "type" : "basicTransformation"
-}
-
-```
-
-Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.  
-
-```
-{
-  "id": "642863552135242",
-  "description" : "MARC to FOLIO. Transformation pipeline with two XSLT steps and a custom step.",
-  "enabled" : "true",
-  "name" : "MARC to Folio Inventory",
-  "parallel" : "false",
-  "type" : "basicTransformation"
-}
-```
-
-#### /harvester-admin/steps
-
-Pass-through API to create, update, and delete transformation steps. A pipeline can be composed of multiple steps and each step can be an
-XSLT transformation or a custom Java-based transformation.
-
-#### /harvester-admin/steps/{step id}/script:
-
-Convenience API for retrieving or updating a XSLT style sheet of a given step. It could be used for authoring and testing a stylesheet off-line and then put it to Harvester when ready. It is equivalent to GETting or PUTting a step with the XSLT embedded but without the need to encode the XML (XSLT) for transport in JSON. 
-
-#### /harvester-admin/tsas
-
-Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
 
 #### /harvester-admin/job/run/{id}
 
