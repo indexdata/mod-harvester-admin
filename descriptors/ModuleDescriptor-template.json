@@ -35,6 +35,10 @@
           "pathPattern": "/harvester-admin/harvestables",
           "permissionsRequired": ["harvester-admin.harvestables.item.post"]
         }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/harvestables/xml-bulk",
+          "permissionsRequired": ["harvester-admin.harvestables.item.post"]
+        },{
           "methods": ["PUT"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
           "permissionsRequired": ["harvester-admin.harvestables.item.put"]

@@ -1,0 +1,9 @@
+{
+  "description": "A harvest job definition",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "harvestableXmlBulkPostPut.json"},
+    {"$ref": "harvestableOaiPmhPostPut.json"}
+  ]
+}
+

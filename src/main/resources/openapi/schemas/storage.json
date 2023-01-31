@@ -21,43 +21,54 @@
     },
     "enabled": {
       "type": "string",
-      "description": "Boolean string to indicate if the storage definition can be used."
+      "description": "Boolean string to indicate if the storage definition can be used.",
+      "enum": [
+        "true",
+        "false"
+      ],
+      "default": "false"
     },
     "bulkSize": {
       "type": "string",
-      "description": "Size of chunks to harvest at a time. Deprecated."
+      "description": "Obsolete, constant 1000.",
+      "readOnly": true
     },
     "currentStatus": {
       "type": "string",
-      "description": "Status of the storage definition. Deprecated."
-    },
-    "retryCount": {
-      "type": "string",
-      "description": "Number of times to retry storage operation. Deprecated."
-    },
-    "retryWait": {
-      "description": "Seconds to wait between retries. Deprecated."
-    },
-    "timeout": {
-      "type": "string",
-      "description": "Seconds to wait before giving up a storage operation. Deprecated."
+      "description": "Obsolete, constant NEW.",
+      "readOnly": true
     },
     "url": {
       "type": "string",
       "description": "Address of the storage service."
-    },
-    "type": {
-      "type": "string",
-      "description": "Type of storage.",
-      "enum": [
-        "solrStorage",
-        "inventoryStorage"
-      ]
-    },
-    "json": {
-      "type": "object",
-      "description": "Free form configuration. Only inventoryStorage"
     }
   },
-  "additionalProperties": false
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of storage.",
+          "enum": [
+            "inventoryStorage"
+          ]
+        },
+        "json": {
+          "type": "object",
+          "description": "Storage configuration parameters in JSON."
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of storage.",
+          "enum": [
+            "solrStorage"
+          ]
+        }
+      }
+    }
+  ]
 }

@@ -15,7 +15,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestable"
+              $ref: "#/components/schemas/harvestablePostPut"
         required: true
       responses:
         "204":
@@ -46,6 +46,28 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/harvestables/xml-bulk:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create bulk XML harvest job configuration
+      operationId: postHarvestableXmlBulk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+        required: true
+      responses:
+        "204":
+          description: XML bulk harvest definition created
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /harvester-admin/harvestables/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
@@ -56,7 +78,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     get:
       operationId: getHarvestable
       description: Get harvest configuration
@@ -66,7 +88,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestable"
+                $ref: "#/components/schemas/harvestableGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -76,6 +98,12 @@ paths:
     put:
       operationId: putHarvestable
       description: Update harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestablePostPut"
+        required: true
       responses:
         "204":
           description: No content
@@ -108,7 +136,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     put:
       operationId: startJob
       description: Starts a harvest job immediately if possible
@@ -136,7 +164,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     put:
       operationId: stopJob
       description: Stops a harvest job
@@ -163,7 +191,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     get:
       operationId: getJobLog
       description: Get log statements for a harvest job
@@ -191,7 +219,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     get:
       operationId: getFailedRecords
       description: Get failed records for a harvest job
@@ -219,7 +247,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
       - in: path
         name: num
         required: true
@@ -254,7 +282,7 @@ paths:
         required: true
         description: Harvest configuration identifier
         schema:
-          type: string
+          type: number
     post:
       description: Takes submitted job status, pulls the job config, and stores a copy of its most recent logs
       operationId: storeJobLogWithPostedStatus
@@ -935,8 +963,12 @@ components:
   schemas:
     harvestables:
       $ref: schemas/harvestables.json
-    harvestable:
-      $ref: schemas/harvestable.json
+    harvestablePostPut:
+      $ref: schemas/harvestablePostPut.json
+    harvestableXmlBulkPostPut:
+      $ref: schemas/harvestableXmlBulkPostPut.json
+    harvestableGet:
+      $ref: schemas/harvestableGet.json
     storages:
       $ref: schemas/storages.json
     storage:
