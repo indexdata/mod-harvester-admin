@@ -54,11 +54,17 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecords(vertx, ctx));
     routerBuilder
         .operation("getHarvestable")
-        .handler(ctx -> getConfigRecordById(vertx, ctx));
+        .handler(ctx -> getConfigRecordById(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postHarvestable")
         .handler(ctx -> postConfigRecord(vertx, ctx))
         .failureHandler(this::routerExceptionResponse);
+    routerBuilder
+        .operation("postHarvestableXmlBulk")
+        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
+
     routerBuilder
         .operation("putHarvestable")
         .handler(ctx -> putConfigRecord(vertx, ctx));
@@ -155,7 +161,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putStep")
-        .handler(ctx -> putConfigRecord(vertx, ctx));
+        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteStep")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
@@ -199,7 +206,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
    */
   public void routerExceptionResponse(RoutingContext ctx) {
     String message = ctx.failure().getMessage();
-    if (message.contains("No schema matches")) {
+    if (message != null && message.contains("No schema matches")) {
       SchemaValidation validation = SchemaValidation.validateJsonObject(
           ctx.request().path(), ctx.body().asJsonObject());
       if (!validation.passed()) {

@@ -338,7 +338,7 @@ public class HarvesterAdminTestSuite {
 
   @Test
   public void cannotGetLogsForNonExistingHarvestable() {
-    getJobLog("bad-id", 404);
+    getJobLog("9865320", 404);
   }
 
   @Test
