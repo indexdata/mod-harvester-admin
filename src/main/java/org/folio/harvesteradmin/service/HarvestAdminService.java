@@ -182,7 +182,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> getConfigRecordById(vertx, ctx));
     routerBuilder
         .operation("postTsa")
-        .handler(ctx -> postConfigRecord(vertx, ctx));
+        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteTsa")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
