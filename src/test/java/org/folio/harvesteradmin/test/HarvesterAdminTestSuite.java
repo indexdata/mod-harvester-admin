@@ -532,7 +532,6 @@ public class HarvesterAdminTestSuite {
     stepAssociations.add(new JsonObject().put("stepId", "bad-step"));
     pipeline.put("stepAssociations", stepAssociations);
     postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 422);
-
   }
 
   // @Test - disabled because at this point you can
@@ -602,6 +601,51 @@ public class HarvesterAdminTestSuite {
     deleteConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 400);
     getConfigRecord(THIS_STORAGES_PATH, BASE_STORAGE_ID.toString(), 200);
   }
+
+  @Test
+  public void cannotPostConfigsWithAlreadyExistingNames() {
+    JsonObject storageWithNoId = BASE_STORAGE_JSON.copy();
+    storageWithNoId.remove("id");
+    JsonObject transformationWithNoId = BASE_TRANSFORMATION_JSON.copy();
+    transformationWithNoId.remove("id");
+
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    Response resp1 = postConfigRecord(storageWithNoId, THIS_STORAGES_PATH, 422);
+    assertTrue(resp1.body().asPrettyString().contains("name 'BASE_STORAGE' exists already"));
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    Response resp2 = postConfigRecord(transformationWithNoId, THIS_TRANSFORMATIONS_PATH, 422);
+    assertTrue(resp2.body().asPrettyString().contains("name 'BASE_TRANSFORMATION' exists already"));
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject(
+            "{\n"
+                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
+                + "  \"name\": \"Test harvest job\",\n"
+                + "  \"type\": \"oaiPmh\",\n"
+                + "  \"enabled\": \"false\",\n"
+                + "  \"harvestImmediately\": \"false\",\n"
+                + "  \"storage\": {\n"
+                + "    \"entityType\": \"inventoryStorageEntity\",\n"
+                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"transformation\": {\n"
+                + "    \"entityType\": \"basicTransformation\",\n"
+                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
+                + "  },\n"
+                + "  \"metadataPrefix\": \"marc21\",\n"
+                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
+                + "  \"url\": \"https://na01.alma.exlibrisgroup"
+                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
+                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
+                + "}"
+        );
+        postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+        harvestable.remove("id");
+        Response resp3 = postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 422);
+        assertTrue(resp3.body().asPrettyString().contains("name 'Test harvest job' exists already"));
+
+  }
+
 
   @Test
   public void canGetPreviousJob () {

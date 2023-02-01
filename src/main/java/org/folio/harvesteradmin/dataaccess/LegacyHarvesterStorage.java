@@ -171,7 +171,8 @@ public class LegacyHarvesterStorage {
   }
 
   /**
-   * Posts config record, after checking the ID, and retrieves the record for the response.
+   * Posts config record, after checking the ID, and -- if no ID provided -- for possible
+   * duplicate name, and retrieves the record for the response.
    */
   public Future<ProcessedHarvesterResponsePost> postConfigRecord(RoutingContext routingContext) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
@@ -179,8 +180,23 @@ public class LegacyHarvesterStorage {
     JsonObject jsonToPost = routingContext.body().asJsonObject();
     String idInPostedRecord = jsonToPost.getString("id");
     if (idInPostedRecord == null) {
-      doPostConfigRecord(routingContext)
-          .onComplete(post -> promise.complete(post.result()));
+      nameExistsAlready(harvesterPath,jsonToPost).onComplete(
+          exists -> {
+            if (exists.result()) {
+              promise.complete(
+                  new ProcessedHarvesterResponsePost(
+                      422,
+                      "The name '"
+                          + jsonToPost.getString("name")
+                          + "' exists already in "
+                          + harvesterPath
+                          + "."));
+            } else {
+              doPostConfigRecord(routingContext)
+                  .onComplete(post -> promise.complete(post.result()));
+            }
+          }
+      );
     } else {
       getConfigRecordById(routingContext, idInPostedRecord)
           .onComplete(lookUp -> {
@@ -274,6 +290,26 @@ public class LegacyHarvesterStorage {
       promise.complete(
           new ProcessedHarvesterResponsePost(200, "References not checked")
       );
+    }
+    return promise.future();
+  }
+
+  private Future<Boolean> nameExistsAlready(
+      String harvesterPath, JsonObject entity) {
+    Promise<Boolean> promise = Promise.promise();
+    if (entity.containsKey("name")) {
+      Map<String,String> identifierParam = Map.of("query", "name=" + entity.getString("name"));
+      getConfigRecords(harvesterPath, buildQueryString(identifierParam)).onComplete(records -> {
+        if (records.succeeded()) {
+          if (records.result().jsonObject().getInteger("totalRecords") > 0) {
+            promise.complete(true);
+          } else {
+            promise.complete(false);
+          }
+        }
+      });
+    } else {
+      promise.complete(false);
     }
     return promise.future();
   }
