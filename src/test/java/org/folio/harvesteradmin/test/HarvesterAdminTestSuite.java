@@ -470,6 +470,33 @@ public class HarvesterAdminTestSuite {
             + "}"
     );
     postConfigRecord(tsa, THIS_TRANSFORMATIONS_STEPS_PATH, 201);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH,BASE_TRANSFORMATION_ID.toString());
+  }
+
+  @Test
+  public void canAssociateAStepWithATransformationByNames() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    postConfigRecord(SAMPLE_STEP_2, THIS_STEPS_PATH, 201);
+    JsonObject pipeline = new JsonObject(BASE_TRANSFORMATION_JSON.encode());
+    JsonArray stepAssociations = new JsonArray();
+    stepAssociations.add(new JsonObject().put("stepId", SAMPLE_STEP.getString("id")));
+    pipeline.put("stepAssociations", stepAssociations);
+    postConfigRecord(pipeline, THIS_TRANSFORMATIONS_PATH, 201);
+    Response firstResponse =
+        getConfigRecord(THIS_TRANSFORMATIONS_PATH, BASE_TRANSFORMATION_ID.toString(), 200);
+    logger.info("First response: " + firstResponse.body().asPrettyString());
+    JsonObject tsa = new JsonObject(
+        "{\n"
+            + "  \"step\": { \n"
+            + "    \"name\": \"" + SAMPLE_STEP_2.getString("name") + "\"\n"
+            + "  },\n"
+            + "  \"transformationName\": \"" + BASE_TRANSFORMATION_JSON.getString("name") +"\",\n"
+            + "  \"position\": \"2\"\n"
+            + "}"
+    );
+    logger.info("Posting tsa " + tsa.encodePrettily());
+    postConfigRecord(tsa, THIS_TRANSFORMATIONS_STEPS_PATH, 201);
+    getConfigRecord(THIS_TRANSFORMATIONS_PATH,BASE_TRANSFORMATION_ID.toString());
   }
 
   @Test

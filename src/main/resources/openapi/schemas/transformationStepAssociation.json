@@ -12,21 +12,36 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "id of the step associated with a pipeline"
+          "description": "Id of the step associated with a pipeline."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the step associated with a pipeline."
         }
       },
       "additionalProperties": true,
-      "required": ["id"]
+      "anyOf": [
+        {"required": ["id"]},
+        {"required":  ["name"]}
+      ]
     },
     "transformation": {
       "type": "string",
-      "description": "id of the transformation pipeline that the step is associated with"
+      "description": "Id of the transformation pipeline that the step is associated with."
+    },
+    "transformationName": {
+      "type": "string",
+      "description": "Transient. Optional alternative to the id for looking up the transformation to attach the step to."
     },
     "position": {
       "type": "string",
-      "description": "the position of the step amongst other transformation steps in the pipeline"
+      "description": "The position of the step amongst other transformation steps in the pipeline."
     }
   },
   "additionalProperties": false,
-  "required": ["step","transformation","position"]
+  "required": ["step","position"],
+  "anyOf": [
+    {"required":  ["transformation"]},
+    {"required":  ["transformationName"]}
+  ]
 }
