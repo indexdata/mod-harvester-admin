@@ -1,4 +1,10 @@
-## 0.2.5-SNAPSHOT (not a release)
+## 0.2.6-SNAPSHOT
+
+* Enforces unique names when no "id" in POSTs (MODHAADM-26)
+* Supports config names in references in POSTS (MODHAADM-25 etc)
+* Bug-fixes, schema improvement and fixes, documentation
+
+## 0.2.5-SNAPSHOT
 
 * Fixes NPE when storing logs by GET
 * Fixes error handling when `step` not found in GET script
