@@ -35,8 +35,8 @@ In addition, if the `acl_filter_by_tenant` environment variable is set to the st
 
 ## Provided Interfaces
 
-Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through from the legacy Harvester APIs, and 
-secondly a number of APIs for retaining the harvest job history. The second group of APIs are specific for the module and not found in the legacy Harvester.
+Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through to/from the legacy Harvester APIs, and 
+secondly a number of APIs for retaining the harvest job history. 
 
 The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more details regarding ID schemes below the API descriptions.
 
