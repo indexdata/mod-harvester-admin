@@ -541,7 +541,7 @@ transfer-encoding: chunked
   "allowCondReq" : "false",
   "passiveMode" : "false",
   "recurse" : "false",
-  "url" : "http://localhost:8080/marc-xml-files/",
+  "url" : "http://localhost:8080/test/marc-xml-files/",
   "type" : "xmlBulk"
 }
 ```
