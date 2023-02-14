@@ -171,7 +171,8 @@ public class LegacyHarvesterStorage {
   }
 
   /**
-   * Posts config record, after checking the ID, and retrieves the record for the response.
+   * Posts config record, after checking the ID, and -- if no ID provided -- for possible
+   * duplicate name, and retrieves the record for the response.
    */
   public Future<ProcessedHarvesterResponsePost> postConfigRecord(RoutingContext routingContext) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
@@ -179,8 +180,23 @@ public class LegacyHarvesterStorage {
     JsonObject jsonToPost = routingContext.body().asJsonObject();
     String idInPostedRecord = jsonToPost.getString("id");
     if (idInPostedRecord == null) {
-      doPostConfigRecord(routingContext)
-          .onComplete(post -> promise.complete(post.result()));
+      nameExistsAlready(harvesterPath,jsonToPost).onComplete(
+          exists -> {
+            if (exists.result()) {
+              promise.complete(
+                  new ProcessedHarvesterResponsePost(
+                      422,
+                      "The name '"
+                          + jsonToPost.getString("name")
+                          + "' exists already in "
+                          + harvesterPath
+                          + "."));
+            } else {
+              doPostConfigRecord(routingContext)
+                  .onComplete(post -> promise.complete(post.result()));
+            }
+          }
+      );
     } else {
       getConfigRecordById(routingContext, idInPostedRecord)
           .onComplete(lookUp -> {
@@ -274,6 +290,26 @@ public class LegacyHarvesterStorage {
       promise.complete(
           new ProcessedHarvesterResponsePost(200, "References not checked")
       );
+    }
+    return promise.future();
+  }
+
+  private Future<Boolean> nameExistsAlready(
+      String harvesterPath, JsonObject entity) {
+    Promise<Boolean> promise = Promise.promise();
+    if (entity.containsKey("name")) {
+      Map<String,String> identifierParam = Map.of("query", "name=" + entity.getString("name"));
+      getConfigRecords(harvesterPath, buildQueryString(identifierParam)).onComplete(records -> {
+        if (records.succeeded()) {
+          if (records.result().jsonObject().getInteger("totalRecords") > 0) {
+            promise.complete(true);
+          } else {
+            promise.complete(false);
+          }
+        }
+      });
+    } else {
+      promise.complete(false);
     }
     return promise.future();
   }
@@ -646,19 +682,27 @@ public class LegacyHarvesterStorage {
   private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(
       RoutingContext routingContext) {
     JsonObject incomingTsa = routingContext.body().asJsonObject();
-    String transformationId = incomingTsa.getString("transformation");
+    String transId = incomingTsa.getString("transformation");
+    String transName = incomingTsa.getString("transformationName");
     String stepId = incomingTsa.getJsonObject("step").getString("id");
+    String stepName = incomingTsa.getJsonObject("step").getString("name");
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    getConfigRecordById(HARVESTER_TRANSFORMATIONS_PATH, transformationId).onComplete(
+    getConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH, transId, transName).onComplete(
         theTransformation -> {
-          if (!theTransformation.result().found()) {
+          if (theTransformation.failed()) {
+            promise.complete(
+                new ProcessedHarvesterResponsePost(
+                    422,
+                    theTransformation.cause().getMessage()));
+          } else if (!theTransformation.result().found()) {
             promise.complete(
                 new ProcessedHarvesterResponsePost(
                     422,
                     "Could not create transformation-step association. Transformation "
-                    + transformationId + " not found."));
+                    + transId + " not found."));
           } else {
-            getConfigRecordById(HARVESTER_STEPS_PATH, stepId).onComplete(
+            JsonObject transformationFound = theTransformation.result().jsonObject();
+            getConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName).onComplete(
                 theStep -> {
                   if (!theStep.result().found()) {
                     promise.complete(
@@ -670,9 +714,11 @@ public class LegacyHarvesterStorage {
                     );
                   } else {
                     incomingTsa.put("type","transformationStepAssociation");
-                    JsonObject step = theStep.result().jsonObject();
-                    String entityType = typeToEmbeddedTypeMap.get(step.getString("type"));
+                    JsonObject stepFound = theStep.result().jsonObject();
+                    String entityType = typeToEmbeddedTypeMap.get(stepFound.getString("type"));
                     incomingTsa.getJsonObject("step").put("entityType", entityType);
+                    incomingTsa.getJsonObject("step").put("id", stepFound.getString("id"));
+                    incomingTsa.put("transformation", transformationFound.getString("id"));
                     doPostConfigRecord(
                         routingContext.request().absoluteURI(),
                         HARVESTER_TSAS_PATH,
@@ -694,7 +740,8 @@ public class LegacyHarvesterStorage {
                                       EntityRootNames.TRANSFORMATION_ROOT_PROPERTY,
                                       tenant);
                               harvesterPutRequest(
-                                  HARVESTER_TRANSFORMATIONS_PATH + "/" + transformationId)
+                                  HARVESTER_TRANSFORMATIONS_PATH + "/"
+                                      + transformationFound.getString("id"))
                                   .sendBuffer(Buffer.buffer(xml), ar -> {
                                     if (ar.succeeded()) {
                                       if (ar.result().statusCode() == NO_CONTENT) {
@@ -716,7 +763,7 @@ public class LegacyHarvesterStorage {
                                               INTERNAL_SERVER_ERROR,
                                               "There was an error PUTting to "
                                                   + HARVESTER_TRANSFORMATIONS_PATH + "/"
-                                                  + transformationId + ": "
+                                                  + transId + ": "
                                                   + ar.cause().getMessage()
                                           )
                                       );
@@ -1029,20 +1076,24 @@ public class LegacyHarvesterStorage {
       JsonObject updatingStep) {
     logger.debug("Inserting/moving step: " + updatingStep.encodePrettily());
     JsonArray updatedListOfSteps = new JsonArray();
-    int positionOfUpdatingStep = Integer.parseInt(updatingStep.getString("position"));
-    List<JsonObject> existingList = existingSteps.copy().getList();
-    for (JsonObject existingStep : existingList) {
-      if (existingStep.getString("id").equals(updatingStep.getString("id"))) {
-        existingList.remove(existingStep);
-        break;
+    if (existingSteps == null) {
+      updatedListOfSteps.add(updatingStep);
+    } else {
+      int positionOfUpdatingStep = Integer.parseInt(updatingStep.getString("position"));
+      List<JsonObject> existingList = existingSteps.copy().getList();
+      for (JsonObject existingStep : existingList) {
+        if (existingStep.getString("id").equals(updatingStep.getString("id"))) {
+          existingList.remove(existingStep);
+          break;
+        }
       }
-    }
-    existingList.add(Math.min(positionOfUpdatingStep - 1, existingList.size()),
-        updatingStep.copy());
-    for (int i = 0; i < existingList.size(); i++) {
-      JsonObject step = existingList.get(i);
-      step.put("position", Integer.toString(i + 1));
-      updatedListOfSteps.add(step);
+      existingList.add(Math.min(positionOfUpdatingStep - 1, existingList.size()),
+          updatingStep.copy());
+      for (int i = 0; i < existingList.size(); i++) {
+        JsonObject step = existingList.get(i);
+        step.put("position", Integer.toString(i + 1));
+        updatedListOfSteps.add(step);
+      }
     }
     logger.debug("Constructed new pipeline " + updatedListOfSteps.encodePrettily());
     return updatedListOfSteps;
