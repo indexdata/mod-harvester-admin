@@ -424,7 +424,7 @@ In the POST, the transformation and the storage can be referenced by name or by 
 }
 ```
 
-This curl script should create the transformation:
+This curl script should create the job configuration:
 
 ```
 curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
