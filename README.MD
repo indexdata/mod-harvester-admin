@@ -433,7 +433,7 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
   "type": "xmlBulk",
   "harvestImmediately": "false",
   "enabled": "false",
-  "url": "http://localhost:8080/marc-xml-files/",
+  "url": "http://localhost:8080/test/marc-xml-files/",
   "transformation": {
     "name": "A transformation"
   },
