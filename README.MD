@@ -424,7 +424,7 @@ In the POST, the transformation and the storage can be referenced by name or by 
 }
 ```
 
-This curl script should create the transformation:
+This curl script should create the job configuration:
 
 ```
 curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
@@ -433,7 +433,7 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
   "type": "xmlBulk",
   "harvestImmediately": "false",
   "enabled": "false",
-  "url": "http://localhost:8080/marc-xml-files/",
+  "url": "http://localhost:8080/test/marc-xml-files/",
   "transformation": {
     "name": "A transformation"
   },
@@ -541,7 +541,7 @@ transfer-encoding: chunked
   "allowCondReq" : "false",
   "passiveMode" : "false",
   "recurse" : "false",
-  "url" : "http://localhost:8080/marc-xml-files/",
+  "url" : "http://localhost:8080/test/marc-xml-files/",
   "type" : "xmlBulk"
 }
 ```
