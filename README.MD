@@ -47,8 +47,8 @@ The pass-through APIs are adapted to FOLIO conventions as much as possible but s
 In order to configure a harvest job from scratch through the API, following API interactions are required: 
 1) Create the storage configuration to use for persisting harvested records.
 2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage.
-3) Create the transformation pipeline.
-4) Assign transformation steps to the pipeline in the desired order of execution.
+3) Create the transformation pipeline. Possibly including the steps, otherwise do 4)
+4) If steps where not assigned in 3) then assign transformation steps to the pipeline in the desired order of execution.
 5) Finally, create the harvest job configuration referencing the newly created transformation pipeline and storage definition.
 
 #### 1) Create storage definition
@@ -58,7 +58,7 @@ POST storage object to `/harvester-admin/storages`, for example a FOLIO inventor
 ```
 {
   "name" : "FOLIO Inventory Storage",
-  "type" : "inventoryStorage"
+  "type" : "inventoryStorage",
   "description" : "Inventory storage at localhost",
   "enabled" : "true",
   "json" : {
@@ -68,7 +68,7 @@ POST storage object to `/harvester-admin/storages`, for example a FOLIO inventor
     "folioPassword" : "admin",
     "inventoryUpsertPath" : "inventory-upsert-hrid",
     "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
-    "logHistoryStoragePath" : "/harvester-admin/harvestables/{id}/log/store"
+    "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
   },
   "url" : "http://okapi:9130/",
 }
@@ -86,13 +86,65 @@ This is an example of a Solr storage definition:
 }
 ```
 
+Assuming the shell has `protocol`, `host`, `tenant` and `token` for a FOLIO session defined, a curl script to create the storage definition could be
+
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name" : "FOLIO Inventory Storage",
+  "type" : "inventoryStorage",
+  "description" : "Inventory storage at localhost",
+  "enabled" : "true",
+  "json" : {
+    "folioAuthPath" : "bl-users/login",
+    "folioTenant" : "diku",
+    "folioUsername" : "diku_admin",
+    "folioPassword" : "admin",
+    "inventoryUpsertPath" : "inventory-upsert-hrid",
+    "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
+    "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
+  },
+  "url" : "http://okapi:9130/"
+}
+' $protocol://$host/harvester-admin/storages
+```
+
+Response should be something like: 
+
+```
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: http://localhost:9130/harvester-admin/storages/250767295269321
+transfer-encoding: chunked
+
+{
+  "acl" : "diku",
+  "bulkSize" : "1000",
+  "currentStatus" : "NEW",
+  "description" : "Inventory storage at localhost",
+  "enabled" : "true",
+  "id" : "250767295269321",
+  "json" : {
+    "folioAuthPath" : "bl-users/login",
+    "folioTenant" : "diku",
+    "folioUsername" : "diku_admin",
+    "folioPassword" : "admin",
+    "inventoryUpsertPath" : "inventory-upsert-hrid",
+    "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
+    "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
+  },
+  "name" : "FOLIO Inventory Storage",
+  "url" : "http://okapi:9130/",
+  "type" : "inventoryStorage"
+}
+```
 #### 2) Create transformation steps
 
 A pipeline can be composed of multiple steps and each step can be an XSLT transformation or a custom Java-based transformation.
 
-POST step object to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as a XSLT document. 
+POST step objects to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as an XSLT document. 
 
-````
+```
 {
   "name": "Copy XML",
   "description" : "Minimal step",
@@ -100,9 +152,9 @@ POST step object to `/harvester-admin/steps`. It can include the transformation 
   "outputFormat" : "XML",
   "type" : "XmlTransformStep"
 }
-````
+```
 Response: 
-````
+```
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: http://localhost:9130/harvester-admin/steps/563244948367770
@@ -120,10 +172,10 @@ transfer-encoding: chunked
   "testOutput" : "",
   "type" : "XmlTransformStep"
 }
-````
+```
 
 Say the XSLT script has this content: 
-````
+```
 <xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:template match="node()|@*">
@@ -132,12 +184,12 @@ Say the XSLT script has this content:
       </xsl:copy>
     </xsl:template>
 </xsl:stylesheet>
-````
+```
 
 Then this XSLT can be PUT to `/harvester-admin/steps/{step-id}/script?name=Copy+XML`, here `/harvester-admin/steps/563244948367770/script`, and the result would be
 
 GET /harvester-admin/steps/563244948367770: 
-````
+```
 {
   "acl" : "diku",
   "description" : "Minimal step",
@@ -150,7 +202,58 @@ GET /harvester-admin/steps/563244948367770:
   "testOutput" : "",
   "type" : "XmlTransformStep"
 }
-````
+```
+
+This curl script would POST two steps and PUT the XSLTs. It uses `jq` to grab the id of the steps but a grep could do it too of course.
+
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name": "Copy XML",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "outputFormat" : "XML",
+  "type" : "XmlTransformStep"
+}
+' $protocol://$host/harvester-admin/steps
+
+STEP_ID_1=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
+
+curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID_1/script?name=Copy+XML --data-binary '
+<xsl:stylesheet version="1.0"
+ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="node()|@*">
+      <xsl:copy>
+        <xsl:apply-templates select="node()|@*"/>
+      </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>
+'
+
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name": "Copy XML Again",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "outputFormat" : "XML",
+  "type" : "XmlTransformStep"
+}
+' $protocol://$host/harvester-admin/steps
+
+STEP_ID_2=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML+Again 2>&1 | jq -r -c '.transformationSteps[0].id')
+
+curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID_2/script?name=Copy+XML+Again --data-binary '
+<xsl:stylesheet version="1.0"
+ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="node()|@*">
+      <xsl:copy>
+        <xsl:apply-templates select="node()|@*"/>
+      </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>
+'
+```
+
 
 #### 3) Create the transformation pipeline
 
@@ -179,8 +282,40 @@ The option to POST a composite transformation object is a convenience when expor
   "type" : "basicTransformation"
 }
 ```
+
+This curl script should create the transformation pipeline: 
+
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name" : "A transformation",
+  "description" : "transformation pipeline with two XSLT steps",
+  "enabled" : "true",
+  "parallel" : "false",
+  "stepAssociations" : [ {
+      "position" : "1",
+      "step": {
+        "name" : "Copy XML"
+      }
+    }, {
+      "position" : "2",
+      "step": {
+        "name" : "Copy XML again"
+      }
+    }
+  ],
+  "type" : "basicTransformation"
+}
+' $protocol://$host/harvester-admin/transformations
+```
+
 The response should be something like
-````
+```
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: http://localhost:9130/harvester-admin/transformations/313200596498197
+transfer-encoding: chunked
+
 {
   "acl" : "diku",
   "description" : "transformation pipeline with two XSLT steps",
@@ -188,7 +323,7 @@ The response should be something like
   "name" : "A transformation",
   "parallel" : "false",
   "stepAssociations" : [ {
-    "id" : "733436313031356",
+    "id" : "464431555010095",
     "position" : "1",
     "step" : {
       "entityType" : "xmlTransformationStep",
@@ -198,32 +333,34 @@ The response should be something like
       "name" : "Copy XML",
       "outputFormat" : "XML",
       "script" : "<'script' omitted from nested displays>",
-      "id" : "563244948367770",
+      "id" : "873913596204614",
       "testData" : "",
       "testOutput" : ""
     },
-    "transformation" : "638697013731967"
+    "transformation" : "313200596498197"
   }, {
-    "id" : "904615174851830",
+    "id" : "773419215379837",
     "position" : "2",
     "step" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step 2",
+      "description" : "Minimal step",
       "inputFormat" : "XML",
-      "name" : "Copy XML again",
+      "name" : "Copy XML Again",
       "outputFormat" : "XML",
       "script" : "<'script' omitted from nested displays>",
-      "id" : "550979590351830",
+      "id" : "194799646936121",
       "testData" : "",
       "testOutput" : ""
     },
-    "transformation" : "638697013731967"
+    "transformation" : "313200596498197"
   } ],
-  "id" : "638697013731967",
+  "id" : "313200596498197",
   "type" : "basicTransformation"
 }
-````
+```
+
+
 Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.
 
 #### 4) Assign transformation steps to the pipeline in the desired order of execution.
@@ -256,37 +393,162 @@ Location: http://localhost:9130/harvester-admin/transformations/516309045363828
 
 Then the steps can be added subsequently: 
 
-
-#### /harvester-admin/tsas
+[work in progress]
 
 Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
 
+[work in progress]
 
 
-#### /harvester-admin/harvestables
+#### 5) Create the harvest job configuration
 
-Pass-through API to create, update and delete harvest job configurations. A job configuration includes scheduling, definition of the record
-source to harvest from, and the IDs of the transformation pipeline to use and the storage engine to persist the resulting records in.
+Once the required storage definition and transformation pipeline are configured, a harvest job can be created that will use them.
 
-The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`. This boolean would not affect whether the job can be started on demand), whether the job should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url` it should fetch data from. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`:
+The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`; this boolean would not affect whether the job can be started on demand), whether the job should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url` it should fetch data from. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`.
+
+In the POST, the transformation and the storage can be referenced by name or by ID. If both are present, the ID will be used and the name ignored. 
 
 ```
 {
-  "name": "my harvest job",
+  "name": "My Harvest Job",
+  "type": "xmlBulk",
+  "harvestImmediately": "false",
+  "enabled": "false",
+  "url": "http://localhost:8080/test/marc-xml-files/",
+  "transformation": {
+    "name": "A transformation"
+  },
+  "storage": {
+    "name": "FOLIO Inventory Storage"
+  }
+}
+```
+
+This curl script should create the transformation:
+
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name": "My Harvest Job",
   "type": "xmlBulk",
   "harvestImmediately": "false",
   "enabled": "false",
   "url": "http://localhost:8080/marc-xml-files/",
   "transformation": {
-    "id": "642863552135242"
+    "name": "A transformation"
   },
   "storage": {
-    "id": "203985902042325"
+    "name": "FOLIO Inventory Storage"
   }
+}
+' $protocol://$host/harvester-admin/harvestables
+```
+
+The response should be something like:
+
+```
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: http://localhost:9130/harvester-admin/harvestables/930117057636685
+transfer-encoding: chunked
+
+{
+  "acl" : "diku",
+  "allowErrors" : "false",
+  "cacheEnabled" : "false",
+  "currentStatus" : "NEW",
+  "diskRun" : "false",
+  "enabled" : "false",
+  "failedRecordsLogging" : "CLEAN_DIRECTORY",
+  "harvestImmediately" : "false",
+  "id" : "930117057636685",
+  "lastUpdated" : "2023-02-14T22:01:33.329Z",
+  "laxParsing" : "false",
+  "logLevel" : "INFO",
+  "mailLevel" : "WARN",
+  "maxSavedFailedRecordsPerRun" : "100",
+  "maxSavedFailedRecordsTotal" : "1000",
+  "name" : "My Harvest Job",
+  "openAccess" : "false",
+  "overwrite" : "false",
+  "retryCount" : "2",
+  "retryWait" : "60",
+  "storage" : {
+    "entityType" : "inventoryStorageEntity",
+    "acl" : "diku",
+    "bulkSize" : "1000",
+    "currentStatus" : "NEW",
+    "description" : "Inventory storage at localhost",
+    "enabled" : "true",
+    "id" : "250767295269321",
+    "idAsString" : "250767295269321",
+    "json" : {
+      "folioAuthPath" : "bl-users/login",
+      "folioTenant" : "diku",
+      "folioUsername" : "diku_admin",
+      "folioPassword" : "admin",
+      "inventoryUpsertPath" : "inventory-upsert-hrid",
+      "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
+      "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
+    },
+    "name" : "FOLIO Inventory Storage",
+    "url" : "http://okapi:9130/"
+  },
+  "storeOriginal" : "false",
+  "timeout" : "300",
+  "transformation" : {
+    "entityType" : "basicTransformation",
+    "acl" : "diku",
+    "description" : "transformation pipeline with two XSLT steps",
+    "enabled" : "true",
+    "name" : "A transformation",
+    "parallel" : "false",
+    "stepAssociations" : [ {
+      "id" : "972322513182170",
+      "position" : "1",
+      "step" : {
+        "entityType" : "xmlTransformationStep",
+        "acl" : "diku",
+        "description" : "Minimal step",
+        "inputFormat" : "XML",
+        "name" : "Copy XML",
+        "outputFormat" : "XML",
+        "script" : "<'script' omitted from nested displays>",
+        "id" : "873913596204614",
+        "testData" : "",
+        "testOutput" : ""
+      },
+      "transformation" : "382256033318379"
+    }, {
+      "id" : "448989508016711",
+      "position" : "2",
+      "step" : {
+        "entityType" : "xmlTransformationStep",
+        "acl" : "diku",
+        "description" : "Minimal step",
+        "inputFormat" : "XML",
+        "name" : "Copy XML Again",
+        "outputFormat" : "XML",
+        "script" : "<'script' omitted from nested displays>",
+        "id" : "194799646936121",
+        "testData" : "",
+        "testOutput" : ""
+      },
+      "transformation" : "382256033318379"
+    } ],
+    "id" : "382256033318379"
+  },
+  "allowCondReq" : "false",
+  "passiveMode" : "false",
+  "recurse" : "false",
+  "url" : "http://localhost:8080/marc-xml-files/",
+  "type" : "xmlBulk"
 }
 ```
 
-When retrieving a harvestable through the API, the definitions of transformation and storage will be (almost) fully expanded as embedded objects. In order to support retrieval of a harvestable from one service for import to another, the fully expanded harvestable can be posted to `/harvester-admin/harvestables` just like the minimal harvestable, but all the detailed properties of the transformation and the storage (apart from the IDs and the entity types) would then be ignored.  
+If the configuration details are correct, this should complete the configurations required to run the harvest job. 
+
+### Harvester logs and log history
 
 #### /harvester-admin/harvestables/{harvestable-id}/log
 
@@ -340,8 +602,8 @@ Gets collection of error reports for failed records for a job in the job history
 
 ### IDs for primary keys
 
-When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a POST, and it can be set to any numeric ID. However, a large random number is adviced because multiple FOLIO tenants may be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas each tenant may only be able see the records for that tenant through the API. The tenant cannot see which IDs are already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data through the API directly, outside of a UI. A UI will probably depend entirely on the API generating the IDs internally.
+When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a POST, and it can be set to any numeric ID. However, a large random number is advised because multiple FOLIO tenants may be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas each tenant may only be able to see the records for that tenant through the API. The tenant cannot see which IDs are already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data through the API directly, outside a UI. A UI will probably depend entirely on the API generating the IDs internally.
 
-The module has a convenience API `/harvester-admin/generate-ids` that will generate and return as plain text a 15-digit random number using the same logic as the module uses internally for creating primary keys. These IDs might be used to define the IDs client side before POSTing. Up to hundred IDs can be generated at a time: `/harvester-admin/generate-ids?count=100`.    
+The module has a convenience API `/harvester-admin/generate-ids` that will generate and return as plain text a 15-digit random number using the same logic as the module uses internally for creating primary keys. These IDs might be used to define the IDs client side before POSTing. Up to a hundred IDs can be generated at a time: `/harvester-admin/generate-ids?count=100`.    
 
 As mentioned, the new APIs on top of the module's own storage use the standard FOLIO identifier scheme of UUIDs, which will ensure uniqueness at any time (as long as no generated ID is reused of course).
