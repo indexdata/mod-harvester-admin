@@ -204,7 +204,9 @@ GET /harvester-admin/steps/563244948367770:
 }
 ```
 
-This curl script would POST two steps and PUT the XSLTs. It uses `jq` to grab the id of the steps but a grep could do it too of course.
+The response on the GET above shows the stylesheet included in the step JSON, with quotes escaped and line feeds inserted. Sending this object instead would have had the same effect as sending first the step and then the script.
+
+The following curl script would POST two steps and PUT the XSLTs. It uses `jq` to capture the IDs of the steps, which would not be necessary with the XSLT included in the step JSON.
 
 ```
 curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
@@ -360,12 +362,9 @@ transfer-encoding: chunked
 }
 ```
 
-
-Note that a PUT of a composite transformation entity will NOT consider the embedded steps. That is, a PUT would update basic information like name and description of the pipeline but would not change, add or remove steps from the transformation. Embedded steps are in other words ignored in the PUT, and changes to the sequence of steps must be performed through `/harvester-admin/tsas`.
-
 #### 4) Assign transformation steps to the pipeline in the desired order of execution.
 
-In the example above, the steps where included with the POST of the pipeline, but alternatively the steps could be added one by one.
+In the example above, the steps where included with the POST of the pipeline but alternatively the steps could be added one by one using the `/harvester-admin/tsas` (transformation-step-associations) endpoint.
 
 Say, the transformation POST body was instead: 
 ```
@@ -377,28 +376,110 @@ Say, the transformation POST body was instead:
   "type" : "basicTransformation"
 }
 ```
-Response would be:
-````
-Location: http://localhost:9130/harvester-admin/transformations/516309045363828
+then the steps could be added through tsas afterwards. Likewise for the transformation pipeline that was created with two steps. The following scripts will add a third step in second position. 
+
+Create the new step:
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "name": "New Second Step",
+  "description" : "Minimal step",
+  "inputFormat" : "XML",
+  "outputFormat" : "XML",
+  "type" : "XmlTransformStep"
+}
+' $protocol://$host/harvester-admin/steps
+
+STEP_ID=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
+
+curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID/script?name=New+Second+Step --data-binary '
+<xsl:stylesheet version="1.0"
+ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="node()|@*">
+      <xsl:copy>
+        <xsl:apply-templates select="node()|@*"/>
+      </xsl:copy>
+    </xsl:template>
+</xsl:stylesheet>
+'
+```
+
+Insert it in second position:
+```
+curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+{
+  "position" : "2",
+  "step" : {
+    "name" : "New Second Step"
+  },
+  "transformationName": "A transformation"
+}
+' $protocol://$host/harvester-admin/tsas
+```
+
+The resulting transformation pipeline would be something like:
+```
 {
   "acl" : "diku",
   "description" : "transformation pipeline with two XSLT steps",
   "enabled" : "true",
-  "name" : "A transformation - example 2",
+  "name" : "A transformation",
   "parallel" : "false",
-  "id" : "516309045363828",
+  "stepAssociations" : [ {
+    "id" : "713325705981288",
+    "position" : "1",
+    "step" : {
+      "entityType" : "xmlTransformationStep",
+      "acl" : "diku",
+      "description" : "Minimal step",
+      "inputFormat" : "XML",
+      "name" : "Copy XML",
+      "outputFormat" : "XML",
+      "script" : "<'script' omitted from nested displays>",
+      "id" : "926226260562339",
+      "testData" : "",
+      "testOutput" : ""
+    },
+    "transformation" : "770158869141425"
+  }, {
+    "id" : "570064169942393",
+    "position" : "2",
+    "step" : {
+      "entityType" : "xmlTransformationStep",
+      "acl" : "diku",
+      "description" : "Minimal step",
+      "inputFormat" : "XML",
+      "name" : "New Second Step",
+      "outputFormat" : "XML",
+      "script" : "<'script' omitted from nested displays>",
+      "id" : "600615164767587",
+      "testData" : "",
+      "testOutput" : ""
+    },
+    "transformation" : "770158869141425"
+  }, {
+    "id" : "373552657153015",
+    "position" : "3",
+    "step" : {
+      "entityType" : "xmlTransformationStep",
+      "acl" : "diku",
+      "description" : "Minimal step",
+      "inputFormat" : "XML",
+      "name" : "Copy XML Again",
+      "outputFormat" : "XML",
+      "script" : "<'script' omitted from nested displays>",
+      "id" : "823703256263144",
+      "testData" : "",
+      "testOutput" : ""
+    },
+    "transformation" : "770158869141425"
+  } ],
+  "id" : "770158869141425",
   "type" : "basicTransformation"
 }
-````
+```
 
-Then the steps can be added subsequently: 
-
-[work in progress]
-
-Pass-through API to attach steps to transformation pipelines. TSA stands for transformation-step-association, and the API can be used to create, update, and delete associations of specific transformation steps to a pipeline.
-
-[work in progress]
-
+In order to fix the description of this transformation, take the JSON response above, change the description to "transformation pipeline with three XSLT steps" and PUT it to `/harvester-admin/transformations/770158869141425`. When doing that, the contents of each step, like the XSLT, is ignored, whereas the PUT would change the number and positions of steps if the PUT JSON changed any of that.
 
 #### 5) Create the harvest job configuration
 
@@ -461,8 +542,8 @@ transfer-encoding: chunked
   "enabled" : "false",
   "failedRecordsLogging" : "CLEAN_DIRECTORY",
   "harvestImmediately" : "false",
-  "id" : "930117057636685",
-  "lastUpdated" : "2023-02-14T22:01:33.329Z",
+  "id" : "734110994458146",
+  "lastUpdated" : "2023-02-14T23:04:12.755Z",
   "laxParsing" : "false",
   "logLevel" : "INFO",
   "mailLevel" : "WARN",
@@ -480,8 +561,8 @@ transfer-encoding: chunked
     "currentStatus" : "NEW",
     "description" : "Inventory storage at localhost",
     "enabled" : "true",
-    "id" : "250767295269321",
-    "idAsString" : "250767295269321",
+    "id" : "634323009732878",
+    "idAsString" : "634323009732878",
     "json" : {
       "folioAuthPath" : "bl-users/login",
       "folioTenant" : "diku",
@@ -499,12 +580,12 @@ transfer-encoding: chunked
   "transformation" : {
     "entityType" : "basicTransformation",
     "acl" : "diku",
-    "description" : "transformation pipeline with two XSLT steps",
+    "description" : "transformation pipeline with three XSLT steps",
     "enabled" : "true",
     "name" : "A transformation",
     "parallel" : "false",
     "stepAssociations" : [ {
-      "id" : "972322513182170",
+      "id" : "713325705981288",
       "position" : "1",
       "step" : {
         "entityType" : "xmlTransformationStep",
@@ -514,14 +595,30 @@ transfer-encoding: chunked
         "name" : "Copy XML",
         "outputFormat" : "XML",
         "script" : "<'script' omitted from nested displays>",
-        "id" : "873913596204614",
+        "id" : "926226260562339",
         "testData" : "",
         "testOutput" : ""
       },
-      "transformation" : "382256033318379"
+      "transformation" : "770158869141425"
     }, {
-      "id" : "448989508016711",
+      "id" : "570064169942393",
       "position" : "2",
+      "step" : {
+        "entityType" : "xmlTransformationStep",
+        "acl" : "diku",
+        "description" : "Minimal step",
+        "inputFormat" : "XML",
+        "name" : "New Second Step",
+        "outputFormat" : "XML",
+        "script" : "<'script' omitted from nested displays>",
+        "id" : "600615164767587",
+        "testData" : "",
+        "testOutput" : ""
+      },
+      "transformation" : "770158869141425"
+    }, {
+      "id" : "373552657153015",
+      "position" : "3",
       "step" : {
         "entityType" : "xmlTransformationStep",
         "acl" : "diku",
@@ -530,13 +627,13 @@ transfer-encoding: chunked
         "name" : "Copy XML Again",
         "outputFormat" : "XML",
         "script" : "<'script' omitted from nested displays>",
-        "id" : "194799646936121",
+        "id" : "823703256263144",
         "testData" : "",
         "testOutput" : ""
       },
-      "transformation" : "382256033318379"
+      "transformation" : "770158869141425"
     } ],
-    "id" : "382256033318379"
+    "id" : "770158869141425"
   },
   "allowCondReq" : "false",
   "passiveMode" : "false",
@@ -544,9 +641,10 @@ transfer-encoding: chunked
   "url" : "http://localhost:8080/test/marc-xml-files/",
   "type" : "xmlBulk"
 }
+
 ```
 
-If the configuration details are correct, this should complete the configurations required to run the harvest job. 
+If the configuration details are otherwise correct, this should complete the configurations required to run the harvest job. 
 
 ### Harvester logs and log history
 
