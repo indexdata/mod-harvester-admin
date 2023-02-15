@@ -107,6 +107,11 @@
       "enum": ["true", "false"],
       "description": "Whether or not to run harvest job from records cached in a previous job run."
     },
+    "storageBatchLimit": {
+      "type": "string",
+      "description": "Batch size: Number of records to send to storage at a time.",
+      "pattern": "^[0-9]*$"
+    },
     "recordLimit": {
       "type": "string",
       "description": "Maximum number of records to harvest.",
