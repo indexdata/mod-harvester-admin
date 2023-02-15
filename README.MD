@@ -89,7 +89,8 @@ This is an example of a Solr storage definition:
 Assuming the shell has `protocol`, `host`, `tenant` and `token` for a FOLIO session defined, a curl script to create the storage definition could be
 
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name" : "FOLIO Inventory Storage",
   "type" : "inventoryStorage",
