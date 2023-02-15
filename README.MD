@@ -210,7 +210,8 @@ The response on the GET above shows the stylesheet included in the step JSON, wi
 The following curl script would POST two steps and PUT the XSLTs. It uses `jq` to capture the IDs of the steps, which would not be necessary with the XSLT included in the step JSON.
 
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name": "Copy XML",
   "description" : "Minimal step",
@@ -220,9 +221,14 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
 }
 ' $protocol://$host/harvester-admin/steps
 
-STEP_ID_1=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
+STEP_ID_1=$(curl --silent \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" \
+$protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
 
-curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID_1/script?name=Copy+XML --data-binary '
+curl -i -w '\n' --http1.1 -X PUT \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml" \
+$protocol://$host/harvester-admin/steps/$STEP_ID_1/script?name=Copy+XML \
+--data-binary '
 <xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:template match="node()|@*">
@@ -233,7 +239,8 @@ curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token:
 </xsl:stylesheet>
 '
 
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name": "Copy XML Again",
   "description" : "Minimal step",
@@ -293,8 +300,7 @@ The option to POST a composite transformation object is a convenience when expor
 This curl script should create the transformation pipeline: 
 
 ```
-curl -i -w '\n' \
--H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
 -d '
 {
   "name" : "A transformation",
@@ -523,7 +529,8 @@ In the POST, the transformation and the storage can be referenced by name or by 
 This curl script should create the job configuration:
 
 ```
-curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name": "My Harvest Job",
   "type": "xmlBulk",
