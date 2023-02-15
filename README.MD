@@ -417,7 +417,7 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
 ' $protocol://$host/harvester-admin/tsas
 ```
 
-The resulting transformation pipeline would be:
+The resulting transformation pipeline would be something like:
 ```
 {
   "acl" : "diku",
