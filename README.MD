@@ -243,9 +243,13 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
 }
 ' $protocol://$host/harvester-admin/steps
 
-STEP_ID_2=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML+Again 2>&1 | jq -r -c '.transformationSteps[0].id')
+STEP_ID_2=$(curl --silent \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" \
+$protocol://$host/harvester-admin/steps?query=name=Copy+XML+Again 2>&1 | jq -r -c '.transformationSteps[0].id')
 
-curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID_2/script?name=Copy+XML+Again --data-binary '
+curl -i -w '\n' --http1.1 -X PUT \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml" \
+$protocol://$host/harvester-admin/steps/$STEP_ID_2/script?name=Copy+XML+Again --data-binary '
 <xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:template match="node()|@*">
@@ -289,7 +293,9 @@ The option to POST a composite transformation object is a convenience when expor
 This curl script should create the transformation pipeline: 
 
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name" : "A transformation",
   "description" : "transformation pipeline with two XSLT steps",
@@ -381,7 +387,9 @@ then the steps could be added through tsas afterwards. Likewise for the transfor
 
 Create the new step:
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "name": "New Second Step",
   "description" : "Minimal step",
@@ -391,9 +399,14 @@ curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" 
 }
 ' $protocol://$host/harvester-admin/steps
 
-STEP_ID=$(curl --silent -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token"  $protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
+STEP_ID=$(curl --silent \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" \
+$protocol://$host/harvester-admin/steps?query=name=Copy+XML 2>&1 | jq -r -c '.transformationSteps[0].id')
 
-curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml"  $protocol://$host/harvester-admin/steps/$STEP_ID/script?name=New+Second+Step --data-binary '
+curl -i -w '\n' --http1.1 -X PUT \
+-H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/xml" \
+$protocol://$host/harvester-admin/steps/$STEP_ID/script?name=New+Second+Step \
+--data-binary '
 <xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:template match="node()|@*">
@@ -407,7 +420,8 @@ curl -i -w '\n' --http1.1 -X PUT -H "x-okapi-tenant: $tenant" -H "x-okapi-token:
 
 Insert it in second position:
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
+-d '
 {
   "position" : "2",
   "step" : {
@@ -509,7 +523,7 @@ In the POST, the transformation and the storage can be referenced by name or by 
 This curl script should create the job configuration:
 
 ```
-curl -i -w '\n' -X POST -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
+curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" -d '
 {
   "name": "My Harvest Job",
   "type": "xmlBulk",
