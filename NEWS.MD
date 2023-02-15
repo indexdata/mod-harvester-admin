@@ -1,3 +1,8 @@
+## 0.2.7-SNAPSHOT
+
+* Allows `harvestable.storageBatchLimit` (MODHAADM-29)
+* Provides walk-through of harvest configuration in README (MODHAADM-22)
+
 ## 0.2.6-SNAPSHOT
 
 * Enforces unique names when no "id" in POSTs (MODHAADM-26)
