@@ -1,4 +1,4 @@
-## 0.2.8-SNAPSHOT
+## 0.2.9-SNAPSHOT
 
 * Allows `harvestable.storageBatchLimit` (MODHAADM-29)
 * Provides walk-through of harvest configuration in README (MODHAADM-22)
