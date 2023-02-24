@@ -11,10 +11,12 @@ import io.vertx.core.json.JsonObject;
  */
 public abstract class ProcessedHarvesterResponse {
   protected int statusCode;
+
   protected String errorMessage;
   protected String bodyAsString;
   protected JsonObject jsonObject = new JsonObject();
   protected String harvesterPath;
+  protected int recordCount = -1;
 
   public int statusCode() {
     return statusCode;
@@ -40,9 +42,12 @@ public abstract class ProcessedHarvesterResponse {
     return statusCode == 404;
   }
 
+  public boolean found() {
+    return statusCode != 404;
+  }
+
   public boolean wasNoContent() {
     return statusCode == 204;
   }
-
 
 }

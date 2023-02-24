@@ -14,7 +14,6 @@ import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.cros
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -45,14 +44,17 @@ import javax.xml.transform.TransformerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.dataaccess.dataconverters.JsonToHarvesterXml;
+import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponse;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseDelete;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGet;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGetById;
+import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGetUniqueByName;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponsePost;
 import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponsePut;
 import org.folio.harvesteradmin.dataaccess.statics.ApiPaths;
 import org.folio.harvesteradmin.dataaccess.statics.EntityRootNames;
 import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
+import org.folio.okapi.common.GenericCompositeFuture;
 import org.xml.sax.SAXException;
 
 
@@ -136,38 +138,44 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
-  private Future<ProcessedHarvesterResponseGetById> getConfigRecordByIdOrName(
+  private Future<ProcessedHarvesterResponse> getConfigRecordByIdOrName(
       String harvesterPath, String id, String name) {
-    Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
+    Promise<ProcessedHarvesterResponse> promise = Promise.promise();
     if (id == null || id.isEmpty()) {
       Map<String,String> identifierParam = Map.of("query", "name=" + name);
-      getConfigRecords(harvesterPath, buildQueryString(identifierParam)).onComplete(
-          recordsByName -> {
-            if (recordsByName.succeeded()) {
-              JsonObject recordsJson = recordsByName.result().jsonObject();
-              int recordsFoundByName = recordsJson.getInteger("totalRecords");
-              if (recordsFoundByName == 1) {
-                JsonObject briefJson =
-                    recordsJson.getJsonArray(
-                        mapToNameOfArrayOfEntities(harvesterPath)).getJsonObject(0);
-                String resolvedId = briefJson.getString("id");
-                getConfigRecordById(harvesterPath, resolvedId).onComplete(
-                    recordById -> promise.complete(recordById.result()));
-              } else {
-                promise.fail("Number of records found by name \""
-                    + name + "\" was " + recordsFoundByName + ". Expected 1.");
-              }
+      return getConfigRecords(harvesterPath, buildQueryString(identifierParam))
+          .compose(recordsByName -> {
+            JsonObject recordsJson = recordsByName.jsonObject();
+            int recordsFoundByName = recordsJson.getInteger("totalRecords");
+            if (recordsFoundByName == 1) {
+              JsonObject briefJson =
+                  recordsJson.getJsonArray(
+                      mapToNameOfArrayOfEntities(harvesterPath)).getJsonObject(0);
+              String resolvedId = briefJson.getString("id");
+              getConfigRecordById(harvesterPath, resolvedId).onComplete(
+                  recordById -> promise.complete(recordById.result()));
+            } else if (recordsFoundByName == 0) {
+              promise.complete(
+                  new ProcessedHarvesterResponseGetUniqueByName(
+                      recordsByName.jsonObject(),
+                      422,
+                      "Record with name \"" + name + "\" not found", recordsFoundByName));
             } else {
-              promise.fail("Lookup of records by name \"" + name + "\"failed: "
-                  + recordsByName.cause().getMessage());
+              promise.complete(
+                  new ProcessedHarvesterResponseGetUniqueByName(
+                      recordsByName.jsonObject(),
+                      422,
+                      "Found multiple records with name \"" + name + "\"", recordsFoundByName));
             }
-          }
-      );
+            return promise.future();
+          }).onFailure(recordsByName ->
+              promise.fail("Lookup of records by name \"" + name + "\"failed: "
+                  + recordsByName.getMessage()));
     } else {
       getConfigRecordById(harvesterPath, id).onComplete(
           recordById -> promise.complete(recordById.result()));
+      return promise.future();
     }
-    return promise.future();
   }
 
   /**
@@ -228,10 +236,11 @@ public class LegacyHarvesterStorage {
    * If the reference is by name, the method will update
    * `entity` with the id of the record with that name.
    */
-  public Future<ProcessedHarvesterResponsePost> checkReferencedEntities(
+  public Future<ProcessedHarvesterResponsePost> resolveReferencedEntities(
       String api, JsonObject entity) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
     List<String> constraintViolation = new ArrayList<>();
+    List<String> fatalError = new ArrayList<>();
     if (api.contains("harvestables")) {
       // check transformation and storage
       final String storageId = entity.getJsonObject("storage").getString("id");
@@ -241,50 +250,49 @@ public class LegacyHarvesterStorage {
       getConfigRecordByIdOrName(HARVESTER_STORAGES_PATH, storageId, storageName)
           .onComplete(storage -> {
             if (storage.succeeded()) {
-              if (storage.result().wasNotFound()) {
-                constraintViolation.add("No such storage found: "
-                    + (storageId == null ? storageName : storageId));
-              } else {
+              if (storage.result().wasOK()) {
                 if (storageId == null || storageId.isEmpty()) {
                   entity.getJsonObject("storage")
                       .put("id", storage.result().jsonObject().getString("id"));
                 }
+              } else {
+                constraintViolation.add(
+                    "Could not resolve references: " + storage.result().errorMessage());
               }
             } else {
-              promise.complete(
-                  new ProcessedHarvesterResponsePost(500,
-                      "Error looking up storage by id or name "
-                          + storage.cause().getMessage()));
+              fatalError.add("Error looking up storage by id or name "
+                  + storage.cause().getMessage());
             }
             getConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH,
                 transformationId, transformationName)
                 .onComplete(transformation -> {
                   if (transformation.succeeded()) {
-                    if (transformation.result().wasNotFound()) {
-                      constraintViolation.add("No such transformation found: "
-                          + (transformationId == null ? transformationName : transformationId));
-                    } else {
+                    if (transformation.result().wasOK()) {
                       if (transformationId == null || transformationId.isEmpty()) {
                         entity.getJsonObject("transformation")
                             .put("id", transformation.result().jsonObject().getString("id"));
                       }
+                    } else {
+                      constraintViolation.add(transformation.result().errorMessage());
+
+                    }
+                    if (constraintViolation.size() > 0) {
+                      promise.complete(
+                          new ProcessedHarvesterResponsePost(422, constraintViolation.toString())
+                      );
+                    } else {
+                      promise.complete(
+                          new ProcessedHarvesterResponsePost(200, "References OK")
+                      );
                     }
                   } else {
-                    promise.complete(
-                        new ProcessedHarvesterResponsePost(500,
-                            "Error looking up transformation by id or name "
-                                + transformation.cause().getMessage()));
-                  }
-                  if (constraintViolation.size() > 0) {
-                    promise.complete(
-                        new ProcessedHarvesterResponsePost(400, constraintViolation.toString())
-                    );
-                  } else {
-                    promise.complete(
-                        new ProcessedHarvesterResponsePost(200, "References OK")
-                    );
+                    fatalError.add("Error looking up transformation by id or name "
+                        + transformation.cause().getMessage());
                   }
                 });
+            if (fatalError.size()>0) {
+              promise.complete(new ProcessedHarvesterResponsePost(500,fatalError.toString()));
+            }
           });
     } else {
       promise.complete(
@@ -350,7 +358,7 @@ public class LegacyHarvesterStorage {
     if (!json.containsKey("id")) {
       json.put("id", getRandomFifteenDigitString());
     }
-    checkReferencedEntities(harvesterPath, json)
+    resolveReferencedEntities(harvesterPath, json)
         .onComplete(result -> {
           if (result.result().wasOK()) {
             try {
@@ -365,12 +373,10 @@ public class LegacyHarvesterStorage {
                     getConfigRecordById(harvesterPath, idFromLocation).onComplete(
                         // going to return 500, internal server error if not found,
                         // 201, Created if found
-                        lookUpNewlyCreatedRecord -> {
-                          promise.complete(
-                              new ProcessedHarvesterResponsePost(
-                                  ar, requestUri, harvesterPath,
-                                  lookUpNewlyCreatedRecord.result()));
-                        });
+                        lookUpNewlyCreatedRecord -> promise.complete(
+                            new ProcessedHarvesterResponsePost(
+                                ar, requestUri, harvesterPath,
+                                lookUpNewlyCreatedRecord.result())));
                   } else {
                     promise.complete(
                         new ProcessedHarvesterResponsePost(
@@ -582,7 +588,7 @@ public class LegacyHarvesterStorage {
         transformationJson.containsKey("stepAssociations") ? transformationJson.getJsonArray(
             "stepAssociations").copy() : new JsonArray();
     transformationJson.remove("stepAssociations");
-    List<Future> stepFutures = new ArrayList<>();
+    List<Future<ProcessedHarvesterResponse>> stepFutures = new ArrayList<>();
     for (Object arrayObject : stepsIdsJson) {
       JsonObject step = (JsonObject) arrayObject;
       String stepId = step.containsKey("step")
@@ -594,7 +600,7 @@ public class LegacyHarvesterStorage {
       stepFutures.add(getConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName));
     }
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    CompositeFuture.all(stepFutures).onComplete(steps -> {
+    GenericCompositeFuture.all(stepFutures).onComplete(steps -> {
       if (steps.succeeded()) {
         boolean allStepsFound = true;
         for (int h = 0; h < steps.result().size(); h++) {
@@ -883,12 +889,12 @@ public class LegacyHarvesterStorage {
                   HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records",null);
           JsonObject fileList = listResponse.jsonObject();
           JsonArray fileArray = fileList.getJsonArray("failed-records");
-          List<Future> failedRecordFutures = new ArrayList<>();
+          List<Future<ProcessedHarvesterResponseGetById>> failedRecordFutures = new ArrayList<>();
           for (Object o : fileArray) {
             JsonObject entry = (JsonObject) o;
             failedRecordFutures.add(getFailedRecord(entry));
           }
-          CompositeFuture.all(failedRecordFutures).onComplete(results -> {
+          GenericCompositeFuture.all(failedRecordFutures).onComplete(results -> {
             JsonObject response = new JsonObject();
             JsonArray failedRecords = new JsonArray();
             response.put("failed-records", failedRecords);
