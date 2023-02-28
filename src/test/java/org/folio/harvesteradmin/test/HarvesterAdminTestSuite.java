@@ -87,18 +87,14 @@ public class HarvesterAdminTestSuite {
     System.setProperty("port", String.valueOf(PORT_HARVESTER_ADMIN));
     vertx.deployVerticle(
         MainVerticle.class.getName(), new DeploymentOptions())
-        .onComplete(testContext.asyncAssertSuccess(outcome -> {
-          deleteSamplesFromLegacyHarvester();
-        }));
+        .onComplete(testContext.asyncAssertSuccess(outcome -> deleteSamplesFromLegacyHarvester()));
   }
 
   @After
   public void tearDown(TestContext context) {
     deleteSamplesFromLegacyHarvester();
     Async async = context.async();
-    vertx.close(context.asyncAssertSuccess(res -> {
-      async.complete();
-    }));
+    vertx.close(context.asyncAssertSuccess(res -> async.complete()));
   }
 
   private void deleteSamplesFromLegacyHarvester() {
@@ -369,7 +365,7 @@ public class HarvesterAdminTestSuite {
                 + "}"
         );
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
-    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 400);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 422);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
@@ -401,7 +397,7 @@ public class HarvesterAdminTestSuite {
                 + "}"
         );
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
-    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 400);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 422);
     getConfigRecord(THIS_HARVESTABLES_PATH, harvestableId.toString(), 404);
   }
 
