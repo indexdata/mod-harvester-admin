@@ -290,7 +290,7 @@ public class LegacyHarvesterStorage {
                         + transformation.cause().getMessage());
                   }
                 });
-            if (fatalError.size()>0) {
+            if (fatalError.size() > 0) {
               promise.complete(new ProcessedHarvesterResponsePost(500,fatalError.toString()));
             }
           });

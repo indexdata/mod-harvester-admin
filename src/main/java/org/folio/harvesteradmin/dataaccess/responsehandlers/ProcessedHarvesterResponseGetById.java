@@ -30,6 +30,7 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
               + "] failed to produce a JSON object";
           statusCode = 500;
         } else if (LegacyServiceConfig.filterByTenant
+            && !apiPath.contains("failed-records") // got no acl, but filter enforced via the job
             && (!tenant.equals((apiPath.contains("tsas") // tsas got no acl, check step's instead
             ? transformed.getJsonObject("step").getString("acl")
             : transformed.getString("acl"))))) {
