@@ -402,8 +402,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           if (harvestable.result().wasNotFound()) {
             responseText(routingContext, 404).end("No job found with ID " + harvestableId);
           } else if (harvestable.result().wasOK()) {
+            final JsonObject jobStatus =
+                (routingContext.body() != null && routingContext.body().asJsonObject() != null
+                    ? routingContext.body().asJsonObject() : new JsonObject());
             String harvestStartedDate =
-                harvestable.result().jsonObject().getString("lastHarvestStarted");
+                jobStatus.isEmpty()
+                    || jobStatus.getString(HarvestJobField.STARTED.propertyName()) == null
+                ? harvestable.result().jsonObject().getString("lastHarvestStarted")
+                : jobStatus.getString(HarvestJobField.STARTED.propertyName());
+            logger.info("Looking for logs by start date: " + harvestStartedDate);
             CompositeFuture.all(
                     legacyStorage.getJobLog(harvestableId, harvestStartedDate),
                     legacyStorage.getFailedRecords(harvestableId))
@@ -413,16 +420,16 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   Storage storage = new Storage(vertx, tenant);
                   HarvestJob job =
                       HarvestJob.fromHarvestableJson(harvestable.result().jsonObject());
-                  if (routingContext.body() != null
-                      && routingContext.body().asJsonObject() != null) {
+                  if (!jobStatus.isEmpty()) {
                     // Job status was included in request, overwrite pulled properties
-                    JsonObject jobStatus = routingContext.body().asJsonObject();
                     job.setFinished(jobStatus.getString(HarvestJobField.FINISHED.propertyName()));
                     if (jobStatus.containsKey(HarvestJobField.AMOUNT_HARVESTED.propertyName())) {
                       job.setAmountHarvested(
                           jobStatus.getString(HarvestJobField.AMOUNT_HARVESTED.propertyName()));
                     }
                     job.setMessage(jobStatus.getString(HarvestJobField.MESSAGE.propertyName()));
+                    job.setStarted(harvestStartedDate);
+                    job.setStatus(jobStatus.getString(HarvestJobField.STATUS.propertyName()));
                   }
                   storage.storeHarvestJob(job)
                           .onComplete(jobStored -> CompositeFuture.all(

@@ -324,6 +324,10 @@ public class HarvestJob extends StoredEntity {
     json.put(HarvestJobField.STARTED.propertyName(), started.toString());
   }
 
+  public void setStarted(String started) {
+    json.put(HarvestJobField.STARTED.propertyName(), started);
+  }
+
   public void setFinished(LocalDateTime finished) {
     setFinished(finished.toString());
   }
