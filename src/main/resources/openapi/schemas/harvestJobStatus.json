@@ -19,6 +19,10 @@
       "type": "string",
       "description": "ISO formatted timestamp for when the job finished."
     },
+    "started": {
+      "type": "string",
+      "description": "ISO formatted timestamp for when the job started."
+    },
     "amountHarvested": {
       "type": "string",
       "description": "The number of records harvested in the harvest run."
