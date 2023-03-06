@@ -1,3 +1,9 @@
+## 0.3.0-SNAPSHOT
+
+* Log history: Override Harvester's status, start-date (MODHAADM-30)
+* Bug-fix: Grant access to failed-records even with acl enabled (MODHAADM-33)
+* Bug-fix: Better error handling for requests with bad references (MODHAADM-31)
+
 ## 0.2.9-SNAPSHOT
 
 * Allows `harvestable.storageBatchLimit` (MODHAADM-29)
