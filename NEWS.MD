@@ -1,3 +1,7 @@
+## 0.3.1-SNAPSHOT
+
+* Requires Okapi 5.0.0 (without -SNAPSHOT)
+
 ## 0.3.0-SNAPSHOT
 
 * Log history: Override Harvester's status, start-date (MODHAADM-30)
