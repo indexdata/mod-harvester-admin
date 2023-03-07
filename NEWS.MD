@@ -1,3 +1,11 @@
+## 0.3.3-SNAPSHOT
+
+* Aligns POM version with build tag.
+
+## 0.3.2-SNAPSHOT
+
+* Exposes port 8081 in Docker container (was 8080)
+
 ## 0.3.1-SNAPSHOT
 
 * Requires Okapi 5.0.0 (without -SNAPSHOT)
