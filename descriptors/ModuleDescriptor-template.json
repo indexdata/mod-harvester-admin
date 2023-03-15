@@ -39,10 +39,22 @@
           "pathPattern": "/harvester-admin/harvestables/xml-bulk",
           "permissionsRequired": ["harvester-admin.harvestables.item.post"]
         },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/harvestables/oai-pmh",
+          "permissionsRequired": ["harvester-admin.harvestables.item.post"]
+        },{
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.item.put"]
+        },{
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/harvestables/oai-pmh/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.item.put"]
+        },{
           "methods": ["PUT"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
           "permissionsRequired": ["harvester-admin.harvestables.item.put"]
-        }, {
+        },{
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
           "permissionsRequired": ["harvester-admin.harvestables.item.delete"]

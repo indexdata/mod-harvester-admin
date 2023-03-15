@@ -68,6 +68,28 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/harvestables/oai-pmh:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create OAI-PMH harvest job configuration
+      operationId: postHarvestableOaiPmh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+        required: true
+      responses:
+        "204":
+          description: OAI-PMH harvest definition created
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /harvester-admin/harvestables/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
@@ -119,6 +141,66 @@ paths:
       responses:
         "204":
           description: Harvest job configuration deleted
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/xml-bulk/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: putHarvestableXmlBulk
+      description: Update bulk XML harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/oai-pmh/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: putHarvestableOaiPmh
+      description: Update OAI-PMH harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+        required: true
+      responses:
+        "204":
+          description: No content
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -967,6 +1049,8 @@ components:
       $ref: schemas/harvestablePostPut.json
     harvestableXmlBulkPostPut:
       $ref: schemas/harvestableXmlBulkPostPut.json
+    harvestableOaiPmhPostPut:
+      $ref: schemas/harvestableOaiPmhPostPut.json
     harvestableGet:
       $ref: schemas/harvestableGet.json
     storages:

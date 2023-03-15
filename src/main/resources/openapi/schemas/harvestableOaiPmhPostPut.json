@@ -203,13 +203,17 @@
       "type": "string",
       "description": "Assigned by API. The date and time when the most recent harvest job with this configuration completed."
     },
+    "initiallyHarvested": {
+      "type": "string",
+      "description": "Date and time, assigned by Harvester"
+    },
     "lastHarvestStarted": {
       "type": "string",
-      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration began."
+      "description": "Assigned by Harvester. The date and time when the most recent harvest job with this configuration began."
     },
     "lastUpdated": {
       "type": "string",
-      "description": "Assigned by API. The date and time when this definition was last modified."
+      "description": "Assigned by Harvester. The date and time when this definition was last modified."
     },
     "nextHarvestSchedule": {
       "type": "string",
@@ -246,6 +250,20 @@
       "type": "string",
       "description": "OAI-PMH only. PMH identifier for fetching the next batch of records."
     },
+    "clearRtOnError": {
+      "type": "string",
+      "description": "Clear the resumption token for harvests that complete in an error state. This is useful when server errors out and the last resumption token is no longer valid.",
+      "enum": ["true", "false"],
+      "default": "false"
+    },
+    "fromDate": {
+      "type": "string",
+      "description": "yyyy-MM-dd. If empty and no resumption token is set, the Harvester will harvest the full data set from the resource. When this field contains a value, upon completion of the job the Harvester will reset the value of this field to the day prior to the current run date, so subsequent runs will harvest only new records."
+    },
+    "untilDate": {
+      "type": "string",
+      "description": "yyyy-MM-dd. Upper date limit for selective harvesting. On consecutive runs the Harvester will clear this field making the date interval open-ended."
+    },
     "retryCount": {
       "type": "string",
       "description": "Indicates how many times Harvester should retry a failed OAI-PMH request.",
@@ -257,8 +275,27 @@
       "description": "Indicates how many seconds Harvester should wait before retrying a failed OAI-PMH request.",
       "pattern": "^[0-9]*$",
       "default": "60"
+    },
+    "allowErrors": {
+      "type": "string",
+      "description": "NA for OAI-PMH",
+      "default": "false",
+      "enum": ["true", "false"]
+    },
+    "json": {
+      "type": "object",
+      "description": "Custom configurations in JSON format (has no current applications)."
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "Applies to Solr but not FOLIO Inventory. Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
+      "enum": ["true", "false"]
+    },
+    "keepPartial": {
+      "type": "string",
+      "description": "Applies to Solr but not FOLIO Inventory. When true, partial records harvested during a failed harvest run will be retained in Solr.",
+      "enum": ["true", "false"]
     }
-
   },
   "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "url", "metadataPrefix", "oaiSetName"],
   "additionalProperties": false

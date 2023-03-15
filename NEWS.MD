@@ -1,5 +1,11 @@
 ## 0.3.3-SNAPSHOT
 
+* Provides below OAI-PMH and XML bulk specific APIs (MODHAADM-34)
+* POST /harvester-admin/harvestables/xml-bulk (MODHAADM-34)
+* POST /harvester-admin/harvestables/oai-pmh (MODHAADM-34)
+* PUT /harvester-admin/harvestables/xml-bulk/{id} (MODHAADM-34)
+* PUT /harvester-admin/harvestables/oai-pmh/{id} (MODHAADM-34)
+* Multiple schema fixes, particularly for OAI-PMH (MODHAADM-34)
 * Aligns POM version with build tag.
 
 ## 0.3.2-SNAPSHOT
