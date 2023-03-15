@@ -199,13 +199,17 @@
       "description": "The minimum severity of a job's completion status that will trigger email notification.",
       "enum": ["OK","WARN","ERROR"]
     },
+    "initiallyHarvested": {
+      "type": "string",
+      "description": "Date and time, assigned by Harvester"
+    },
     "lastHarvestFinished": {
       "type": "string",
-      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration completed."
+      "description": "Assigned by Harvester. The date and time when the most recent harvest job with this configuration completed."
     },
     "lastHarvestStarted": {
       "type": "string",
-      "description": "Assigned by API. The date and time when the most recent harvest job with this configuration began."
+      "description": "Assigned by Harvester. The date and time when the most recent harvest job with this configuration began."
     },
     "lastUpdated": {
       "type": "string",
@@ -240,11 +244,6 @@
       "default": "false",
       "enum": ["true", "false"]
     },
-    "overwrite": {
-      "type": "string",
-      "description": "Applies to storages that supports this (Solr, not FOLIO Inventory). Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
-      "enum": ["true", "false"]
-    },
     "allowCondReq": {
       "type": "string",
       "description": "Whether or not to filter on file date to only harvest new XML files",
@@ -253,7 +252,7 @@
     },
     "fromDate": {
       "type": "string",
-      "description": "Initial start date (yyyy-MM-dd) for incremental updates (when allowConfReq is 'true')"
+      "description": "Initial start date (yyyy-MM-dd) for incremental updates (when allowCondReq is 'true')"
     },
     "csvConfiguration": {
       "type": "string",
@@ -296,6 +295,20 @@
       "type": "string",
       "description": "Setting to split large XML files into chunks of `splitSize' number of records; to preserve memory during XSLT transformations.",
       "pattern": "^[0-9]*$"
+    },
+    "json": {
+      "type": "object",
+      "description": "Custom configurations in JSON format (has no current applications)."
+    },
+    "overwrite": {
+      "type": "string",
+      "description": "Applies to Solr but not FOLIO Inventory. Will delete all previously harvested data before beginning the next scheduled (or manually triggered) run, if set to true.",
+      "enum": ["true", "false"]
+    },
+    "keepPartial": {
+      "type": "string",
+      "description": "Applies to Solr but not FOLIO Inventory. When true, partial records harvested during a failed harvest run will be retained in Solr.",
+      "enum": ["true", "false"]
     }
   },
   "required": ["name", "type", "enabled", "harvestImmediately", "storage", "transformation", "url"],

@@ -64,10 +64,23 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("postHarvestableXmlBulk")
         .handler(ctx -> postConfigRecord(vertx, ctx))
         .failureHandler(this::routerExceptionResponse);
+    routerBuilder
+        .operation("postHarvestableOaiPmh")
+        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("putHarvestable")
-        .handler(ctx -> putConfigRecord(vertx, ctx));
+        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
+    routerBuilder
+        .operation("putHarvestableXmlBulk")
+        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
+    routerBuilder
+        .operation("putHarvestableOaiPmh")
+        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteHarvestable")
         .handler(ctx -> deleteConfigRecord(vertx, ctx));
@@ -197,7 +210,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     routerBuilder
         .operation("getIds")
-        .handler(ctx -> generateIds(ctx));
+        .handler(this::generateIds);
 
   }
 

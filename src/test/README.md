@@ -36,3 +36,13 @@ to this:
 
 To bring the service down again, do `vagrant halt`. To restart, `vagrant up` and `vagrant provision`. To uninstall the
 box, do `vagrant destroy`.
+
+## Troubleshooting
+
+Trying to run the test suite has caused this initialization error, and no tests were run: 
+
+`IllegalStateException: Could not connect to Ryuk at localhost:49170`
+
+It was resolved by restarting Docker:
+
+`$ sudo service docker restart`
