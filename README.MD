@@ -682,7 +682,7 @@ Pass-through API to return list of structured error reports for individual recor
 
 Pass-through API to retrieve a structured error report for an individual record that failed to load partially or fully.
 
-#### /harvester-admin/harvestables/{id}/log/store
+#### /harvester-admin/harvestables/{harvestable-id}/log/store
 
 End-point for requesting that mod-harvester-admin stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing the log history to mod-harvester-admin). 
 

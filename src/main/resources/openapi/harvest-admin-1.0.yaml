@@ -309,9 +309,9 @@ paths:
         "200":
           description: Harvest failed records list returned
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                type: object
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -344,9 +344,9 @@ paths:
         "200":
           description: failed record
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                type: object
         "400":
           $ref: "#/components/responses/trait_400"
         "404":

@@ -1,3 +1,7 @@
+## 0.3.5-SNAPSHOT
+* 
+* Fixes declared content type for two APIs (MODHAADM-40)
+
 ## 0.3.4-SNAPSHOT
 
 * Provides below OAI-PMH and XML bulk specific APIs (MODHAADM-34)
