@@ -311,7 +311,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/failedRecords"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -342,11 +342,11 @@ paths:
       description: Get a failed record for a harvest job
       responses:
         "200":
-          description: failed record
+          description: error report for failed record
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/failedRecord"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1075,3 +1075,7 @@ components:
       $ref: schemas/transformationStepAssociations.json
     harvestJobStatus:
       $ref: schemas/harvestJobStatus.json
+    failedRecord:
+      $ref: schemas/failedRecord.json
+    failedRecords:
+      $ref: schemas/failedRecords.json

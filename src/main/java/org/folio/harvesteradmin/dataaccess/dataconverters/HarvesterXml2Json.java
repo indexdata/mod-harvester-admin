@@ -51,7 +51,7 @@ public class HarvesterXml2Json {
     try {
       Document doc = xmlStringToXmlDocument(xml);
       if (doc.getDocumentElement().getNodeName().equals("failed-record")) {
-        return HarvesterXml2JsonFailedRecords.convertRecordToJson(doc);
+        return HarvesterXml2JsonFailedRecords.convertRecordToJson(doc.getDocumentElement());
       } else {
         return convertRecordToJson(doc);
       }
@@ -98,9 +98,11 @@ public class HarvesterXml2Json {
       if (doc != null) {
         stripWhiteSpaceNodes(doc);
         Node records = doc.getDocumentElement();
-        jsonObject.put(doc.getDocumentElement()
-                .getNodeName().replace("tranformation", "transformation"),
-            xmlRecords2jsonArray(records));
+        String arrayName = doc.getDocumentElement().getNodeName();
+        arrayName = arrayName.replace("tranformation", "transformation");
+        arrayName = arrayName.replace("failed-records", "failedRecords");
+        // arrayName = arrayName.replace("failed-records", "failedRecords");
+        jsonObject.put(arrayName, xmlRecords2jsonArray(records));
         int recordCount =
             Integer.parseInt(records.getAttributes().getNamedItem("count").getTextContent());
         jsonObject.put("totalRecords", recordCount);

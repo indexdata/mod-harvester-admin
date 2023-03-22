@@ -888,7 +888,7 @@ public class LegacyHarvesterStorage {
               new ProcessedHarvesterResponseGet(ar,
                   HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records",null);
           JsonObject fileList = listResponse.jsonObject();
-          JsonArray fileArray = fileList.getJsonArray("failed-records");
+          JsonArray fileArray = fileList.getJsonArray("failedRecords");
           List<Future<ProcessedHarvesterResponseGetById>> failedRecordFutures = new ArrayList<>();
           for (Object o : fileArray) {
             JsonObject entry = (JsonObject) o;
@@ -897,13 +897,13 @@ public class LegacyHarvesterStorage {
           GenericCompositeFuture.all(failedRecordFutures).onComplete(results -> {
             JsonObject response = new JsonObject();
             JsonArray failedRecords = new JsonArray();
-            response.put("failed-records", failedRecords);
+            response.put("failedRecords", failedRecords);
             for (int i = 0; i < results.result().list().size(); i++) {
               if (results.result().resultAt(i) != null) {
                 JsonObject record = ((ProcessedHarvesterResponseGetById) results
                     .result().resultAt(i)).jsonObject();
-                record.getJsonObject("failed-record").put("harvestableId", harvestableId);
-                failedRecords.add(record.getJsonObject("failed-record"));
+                record.put("harvestableId", harvestableId);
+                failedRecords.add(record);
               }
             }
             response.put("totalRecords", failedRecords.size());
@@ -961,9 +961,9 @@ public class LegacyHarvesterStorage {
           if (ar.result().bodyAsString() != null) {
             ProcessedHarvesterResponseGetById response =
                 new ProcessedHarvesterResponseGetById(ar, uri, "", "");
-            response.jsonObject().getJsonObject("failed-record")
+            response.jsonObject()
                 .put("timeStamp", entry.getJsonObject("file").getString("date"));
-            response.jsonObject().getJsonObject("failed-record")
+            response.jsonObject()
                 .put("recordNumber", entry.getJsonObject("file").getString("name"));
             promise.complete(response);
           } else {
