@@ -1,5 +1,9 @@
+## 0.3.6-SNAPSHOT
+
+* Changes property names to camelCase, failed-records (MODHAADM-41)
+
 ## 0.3.5-SNAPSHOT
-* 
+
 * Fixes declared content type for two APIs (MODHAADM-40)
 
 ## 0.3.4-SNAPSHOT
