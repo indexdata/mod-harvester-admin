@@ -448,7 +448,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                           .onComplete(jobStored -> CompositeFuture.all(
                               storage.storeLogStatements(job.getId(),logsResponse.bodyAsString()),
                               storage.storeFailedRecords(job.getId(),
-                                  failuresResponse.jsonObject().getJsonArray("failed-records"))
+                                  failuresResponse.jsonObject().getJsonArray("failedRecords"))
                           ).onComplete(
                               result -> {
                                 if (result.succeeded()) {
