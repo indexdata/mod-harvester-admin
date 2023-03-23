@@ -5,19 +5,33 @@ import static org.folio.harvesteradmin.dataaccess.dataconverters.JsonToHarvester
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.util.Map;
 import javax.xml.transform.TransformerException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 public class HarvesterXml2JsonFailedRecords extends HarvesterXml2Json {
 
+  private static final Map<String, String> fieldNameToPropName =
+      Map.of("failed-records", "failedRecords",
+          "failed-record", "failedRecord",
+          "record-errors","recordErrors",
+          "type-of-error", "typeOfError",
+          "type-of-record", "typeOfRecord",
+          "transformed-record", "transformedRecord");
+
+  private static String mapName(String fieldName) {
+    return fieldNameToPropName.getOrDefault(fieldName, fieldName);
+  }
+
   /**
    * Converts a failed-record XML to JSON.
    */
-  public static JsonObject convertRecordToJson(Document doc) {
-    if (doc != null) {
-      stripWhiteSpaceNodes(doc);
-      return recurseIntoNode(doc);
+  public static JsonObject convertRecordToJson(Element element) {
+    if (element != null) {
+      stripWhiteSpaceNodes(element);
+      return recurseIntoNode(element);
     } else {
       logger.error("XML-to-JSON converter for failed-record received a null XML document.");
       return new JsonObject();
@@ -29,10 +43,10 @@ public class HarvesterXml2JsonFailedRecords extends HarvesterXml2Json {
     for (Node child : iterable(node)) {
       if (hasChildElements(child)) {
         if (child.getNodeName().equals("record-errors")) {
-          if (!json.containsKey("record-errors")) {
-            json.put("record-errors", new JsonArray());
+          if (!json.containsKey("recordErrors")) {
+            json.put("recordErrors", new JsonArray());
           }
-          json.getJsonArray("record-errors").add(recurseIntoNode(child));
+          json.getJsonArray("recordErrors").add(recurseIntoNode(child));
         } else if (child.getNodeName().equals("original")) {
           try {
             json.put("original", writeXmlNodeToString(child));
@@ -40,13 +54,13 @@ public class HarvesterXml2JsonFailedRecords extends HarvesterXml2Json {
             json.put("original", te.getMessage());
           }
         } else {
-          json.put(child.getNodeName(), recurseIntoNode(child));
+          json.put(mapName(child.getNodeName()), recurseIntoNode(child));
         }
       } else {
         if (contentIsJson(child)) {
-          json.put(child.getNodeName(), new JsonObject(child.getTextContent()));
+          json.put(mapName(child.getNodeName()), new JsonObject(child.getTextContent()));
         } else {
-          json.put(child.getNodeName(), child.getTextContent());
+          json.put(mapName(child.getNodeName()), child.getTextContent());
         }
       }
     }

@@ -65,8 +65,8 @@ public class RecordFailure extends StoredEntity {
     recordFailure.timeStamp =
         legacyDate[5] + "-" + months.get(legacyDate[1]) + "-" + legacyDate[2] + " " + legacyDate[3];
     recordFailure.originalRecord = json.getString("original");
-    recordFailure.transformedRecord = json.getJsonObject("transformed-record");
-    recordFailure.recordErrors = json.getJsonArray("record-errors");
+    recordFailure.transformedRecord = json.getJsonObject("transformedRecord");
+    recordFailure.recordErrors = json.getJsonArray("recordErrors");
     return recordFailure;
   }
 
