@@ -1,5 +1,7 @@
 package org.folio.harvesteradmin.service;
 
+import static org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage.getIntOrDefault;
+import static org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage.pagingPlainText;
 import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
@@ -364,7 +366,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     return legacyStorage.getJobLog(routingContext)
         .onComplete(response -> {
           if (response.succeeded()) {
-            String log = response.result().bodyAsString();
+            int offset = getIntOrDefault(routingContext.request().getParam("offset"), 0);
+            int limit = getIntOrDefault(routingContext.request().getParam("limit"), 100000);
+            String log = pagingPlainText(response.result().bodyAsString(), offset, limit);
             responseText(
                 routingContext,
                 response.result().statusCode())
@@ -426,7 +430,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             logger.info("Looking for logs by start date: " + harvestStartedDate);
             CompositeFuture.all(
                     legacyStorage.getJobLog(harvestableId, harvestStartedDate),
-                    legacyStorage.getFailedRecords(harvestableId))
+                    legacyStorage.getFailedRecords(harvestableId, 0, 10000))
                 .onComplete(logResults -> {
                   HttpResponseImpl<Buffer> logsResponse = logResults.result().resultAt(0);
                   ProcessedHarvesterResponseGet failuresResponse = logResults.result().resultAt(1);
@@ -652,12 +656,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     if (params.queryParameter("count") != null) {
       count = Math.min(params.queryParameter("count").getInteger(),100);
     }
-    String response = "";
+    StringBuilder response = new StringBuilder();
     for (int i = 0; i < count; i++) {
-      response += LegacyHarvesterStorage.getRandomFifteenDigitString() + System.lineSeparator();
+      response
+          .append(LegacyHarvesterStorage.getRandomFifteenDigitString())
+          .append(System.lineSeparator());
     }
-    responseText(routingContext, 200)
-        .end(response);
+    responseText(routingContext, 200).end(response.toString());
     return Future.succeededFuture();
   }
 
