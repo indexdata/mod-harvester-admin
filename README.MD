@@ -49,7 +49,7 @@ back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FO
 keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more
 details regarding ID schemes below the API descriptions.
 
-### APIs
+### APIs for creating a harvest job configuration
 
 #### Overview
 
@@ -713,70 +713,80 @@ transfer-encoding: chunked
 If the configuration details are otherwise correct, this should complete the configurations required to run the harvest
 job.
 
-### Harvester logs and log history
+### APIs for storing and viewing harvest job logs and error reports.
 
-Legacy Harvester stores harvest job logs and potentially some error reports for the most recent harvest run with a given
-configuration. It is then possible to persist the job configuration with its logs and failed records in Harvester
-Admin's log history.
+Legacy Harvester keeps logs and error reports for the most recent harvest run with a given
+configuration. It only retains them until the configuration changes or the next job is run, but mod-harvester-admin is
+then able to retrieve the logs and store them in a harvest job history.
 
 The legacy Harvester can be configured to have Harvester Admin pull the current configuration and logs to the log
 history for a Harvest job when it finishes.
 
-There are thus two sets of APIs for retrieving configurations and logs; one for current configs and jobs, and another for historic
+#### Storing logs and error reports to log history
+
+The end-point for requesting that mod-harvester-admin stores a current harvest configuration with logs and
+record errors is `/harvester-admin/harvestables/{harvestable-id}/log/store`. The Harvester can be configured to invoke
+this API once a job completes, by providing the API path in the storage config's `json` property:
+
+```
+"json" : {
+    "folioAuthPath" : "bl-users/login",
+    ....
+    "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
+  }
+```
+
+This is all that's needed to get the log history populated.
+
+Just for completeness, there is an alternative way to store the logs on demand, but it will only make sense to use that
+if the Harvester is not configured to store them automatically.
+
+A client can use the request `GET /harvester-admin/harvestables/{id}/log/store` to ask mod-harvester-admin to pull the
+current harvest configuration plus the logs and failed records for a
+job, and store them in mod-harvester-admin's log history. Now, using this GET request is fine if the request
+is made a few seconds or more after a job completes, as would probably be the case if the request is made manually.
+However, the Harvester has an internal delay in writing the correct job status and finish time to the database, which
+means that the GET request risks pulling the information prematurely and get out-of-date information. Harvester thus
+needs to use the POST version, `POST /harvester-admin/harvestables/{id}/log/store`, because it allows Harvester to push
+the correct, up-to-date [status information in the POST body](src/main/resources/openapi/schemas/harvestJobStatus.json) to the history.
+
+#### View current and historic harvest job logs and error reports
+
+If the logs are saved to history, there are thus two sets of APIs for retrieving configurations and logs; one for
+current configs and jobs, and another for historic
 configs and jobs.
 
 Viewing the current logs will mostly be relevant when performing large harvest jobs, for example if migrating data to a
-new FOLIO Inventory. This will be long running jobs and through the APIs that are fetching current jobs and logs, it's possible to
+new FOLIO Inventory. This will be long running jobs and through the APIs that are fetching current jobs and logs, it's
+possible to
 follow the progress. For day to day updates on the other hand, the historic logs are probably more useful, at least if
 updates happens several times a day in which case the current logs will frequently be overwritten by new, current logs.
 
-|            | Current configs, logs, error reports.                                                                      | Historic configs, logs, error reports                                                                                                                                                                                                 |
-|------------|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| API        | `./harvestables`                                                                                           | `./previous-jobs`                                                                                                                                                                                                                     |
-| Content    | JSON array of harvestableBriefs.                                                                           | JSON array of previousJobs.                                                                                                                                                                                                           |
-|            |                                                                                                            |                                                                                                                                                                                                                                       |
-| API        | `./harvestables/:{recId}`                                                                                  | `./previous-jobs/:{uuid}`                                                                                                                                                                                                             |
-| Content    | JSON object with full job configuration including storage config and transformation steps.                 | JSON object with select properties from the full configuration.                                                                                                                                                                       |
-| Identifier | `id`, numeric, 15 digit if generated through Harvester Admin.                                              | `id`, a UUID                                                                                                                                                                                                                          |
-| Mutating?  | Yes, a running job might update properties of the config; an administrator could change the configuration. | No. It’s possible to store it for a running job but storing the same job  again will create a new previous-job entry. It makes sense to store it just for completed jobs, and that’s what the Harvester will do if configured for it. |
-|            |                                                                                                            |                                                                                                                                                                                                                                       |
-| API        |                                                                                                            |                                                                                                                                                                                                                                       |
+|            | Current configs, logs, error reports.                                                                                                                                                                       | Historic configs, logs, error reports                                                                                                                                                                                                 |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| API        | `./harvestables`                                                                                                                                                                                            | `./previous-jobs`                                                                                                                                                                                                                     |
+| Content    | [JSON array](src/main/resources/openapi/schemas/harvestables.json) of [harvestableBriefs](src/main/resources/openapi/schemas/harvestableBrief.json).                                                        | JSON array of [previousJobs](src/main/resources/openapi/schemas/previousJobs.json).                                                                                                                                                   |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}`                                                                                                                                                                                   | `./previous-jobs/:{uuid}`                                                                                                                                                                                                             |
+| Content    | [JSON object with full job configuration](src/main/resources/openapi/schemas/harvestableGet.json) including storage config and transformation steps.                                                        | [JSON object with select properties](src/main/resources/openapi/schemas/previousJob.json) from the full configuration.                                                                                                                |
+| Identifier | `id` (numeric), 15 digit if generated through Harvester Admin.                                                                                                                                              | `id` (UUID)                                                                                                                                                                                                                           |
+| Mutating?  | Yes, a running job might update properties of the config; an administrator could change the configuration.                                                                                                  | No. It’s possible to store it for a running job but storing the same job  again will create a new previous-job entry. It makes sense to store it just for completed jobs, and that’s what the Harvester will do if configured for it. |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/log`                                                                                                                                                                               | `./previous-jobs/:{uuid}/log`                                                                                                                                                                                                         |                                                                                                                                                                                                                                       |
+| Content    | Log4j log lines.                                                                                                                                                                                            | Parsed log4j log-lines, only format compliant lines included. The fields of the log lines are in table columns for easy searching etc but are concatenated in the response to look like the original log lines.                       | 
+| Identifier | There is no identifier for each log line.                                                                                                                                                                   | `id` Each line of the log has a UUID although there is currently no obvious use for that.                                                                                                                                             |
+| Mutating?  | Yes, the log file will grow as the job proceeds, it can roll over for very long jobs and will be overwritten by the next job.                                                                               | No, it's written once. A renewed request to store the log for the same job run would create a whole new job entry in history, with the same initial log lines as the existing history entry, plus some more.                          |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/failed-records`                                                                                                                                                                    | `./previous-jobs/:{uuid}/failed-records`                                                                                                                                                                                              |
+| Content    | [JSON array of error reports](src/main/resources/openapi/schemas/failedRecordsCurrentJob.json) for records that failed to update, wholly or partially, in the most recent run of the harvest configuration. | [JSON array of error reports](src/main/resources/openapi/schemas/failedRecordsPreviousJob.json) for records that failed to update, wholly or partially, in a previous job run.                                                        |
+| Mutating?  | Yes, the result set can grow as the job proceeds or be overwritten by the next job run.                                                                                                                     | No, it's written once. A renewed request to store the log for the same job run would create a whole new job entry in history, with all the same reports and potentially some more.                                                    |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/failed-record/:{recNum}`                                                                                                                                                           | `./previous-jobs/failed-records/:{uuid}`                                                                                                                                                                                              |
+| Content    | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordCurrentJob.json)                                                                                                 | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordPreviousJob.json)                                                                                                                          |
+| Identifier | `harvestableId` and `recordNumber`                                                                                                                                                                          | `id` (uuid)                                                                                                                                                                                                                           |
+| Mutating?  | Yes, the error report can disappear with next job run.                                                                                                                                                      | No. Unless the administrator decides do delete old logs and error reports.                                                                                                                                                            |
 
-#### /harvester-admin/harvestables/{harvestable-id}/log
-
-Pass-through API to return the most recent log-file for the harvestable in plain text.
-
-#### /harvester-admin/harvestables/{harvestable-id}/failed-records
-
-Pass-through API to return list of structured error reports for individual records, that failed to load partially or
-fully.
-
-#### /harvester-admin/harvestables/{harvestable-id}/failed-records/{record-number}
-
-Pass-through API to retrieve a structured error report for an individual record that failed to load partially or fully.
-
-#### /harvester-admin/harvestables/{harvestable-id}/log/store
-
-End-point for requesting that mod-harvester-admin stores a current harvest configuration with the most recent logs and
-record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if
-the harvester is configured for storing the log history to mod-harvester-admin).
-
-The API has two versions, GET and POST. Harvester needs the POST version. Other clients _could_ use the GET version but
-there is no need to if Harvester has already requested that the logs be pulled, using the POST.
-
-##### `GET /harvester-admin/harvestables/{id}/log/store`
-
-Requests that mod-harvester-admin pulls the current job configuration plus the logs and failed records, if any, for a
-completed job, and stores them in mod-harvester-admin's log history.
-
-##### `POST /harvester-admin/harvestables/{id}/log/store`
-
-The same as GET, except the POST body contains corrective data for the job's status message and finish time.
-
-The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status
-is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an
-outdated status if invoked immediately after the completion of the job; the POSTed data will correct the stale data as
-necessary.
+### Running harvest jobs
 
 #### /harvester-admin/job/run/{id}
 
@@ -787,21 +797,6 @@ harvestable object with `harvestImmediately` set to true and `lastUpdated` set t
 
 Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated`
 set to now for a running job.
-
-#### /harvester-admin/previous-jobs
-
-End-point that will get a list of previous jobs as stored in mod-harvester-admin
-through `/harvester-admin/harvestables/{id}/log/store` as described further above. This is a module native API; it will
-contain UUIDs for primary keys for example.
-
-#### /harvester-admin/previous-jobs/{job run's uuid}/log
-
-Gets the log for a job in job history. If the job run is the most recent and the harvestable was not updated since the
-run, then this log would be the same as the log retrieved through `/harvester-admin/harvestables/{harvestable-id}/log`
-
-#### /harvester-admin/previous-jobs/{job run's uuid}/failed-records
-
-Gets collection of error reports for failed records for a job in the job history.
 
 ### IDs for primary keys
 
