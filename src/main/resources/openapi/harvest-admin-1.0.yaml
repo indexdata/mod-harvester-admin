@@ -337,7 +337,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecords"
+                $ref: "#/components/schemas/failedRecordsCurrentJob"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -372,7 +372,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecord"
+                $ref: "#/components/schemas/failedRecordCurrentJob"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -464,6 +464,10 @@ paths:
       responses:
         "200":
           description: List of previous harvest jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/previousJobs"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -486,6 +490,10 @@ paths:
       responses:
         "200":
           description: A previous harvest job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/previousJob"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -554,6 +562,11 @@ paths:
       responses:
         "200":
           description: List of failed records for a previous harvest job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecordsPreviousJob"
+
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1101,7 +1114,15 @@ components:
       $ref: schemas/transformationStepAssociations.json
     harvestJobStatus:
       $ref: schemas/harvestJobStatus.json
-    failedRecord:
-      $ref: schemas/failedRecord.json
-    failedRecords:
-      $ref: schemas/failedRecords.json
+    previousJobs:
+      $ref: schemas/previousJobs.json
+    previousJob:
+      $ref: schemas/previousJob.json
+    failedRecordCurrentJob:
+      $ref: schemas/failedRecordCurrentJob.json
+    failedRecordsCurrentJob:
+      $ref: schemas/failedRecordsCurrentJob.json
+    failedRecordPreviousJob:
+      $ref: schemas/failedRecordPreviousJob.json
+    failedRecordsPreviousJob:
+      $ref: schemas/failedRecordsPreviousJob.json

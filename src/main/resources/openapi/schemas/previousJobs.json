@@ -1,0 +1,14 @@
+{
+  "description": "Result set of previous harvest job runs.",
+  "type": "object",
+  "properties": {
+    "previousJobs": {
+      "description": "List of previous jobs",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "previousJob.json"
+      }
+    }
+  }
+}

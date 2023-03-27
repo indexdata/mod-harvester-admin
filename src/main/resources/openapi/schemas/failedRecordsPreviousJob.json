@@ -1,0 +1,14 @@
+{
+  "description": "Set of failed-records error reports",
+  "type": "object",
+  "properties": {
+    "failedRecords": {
+      "description": "List of failed records created by a previous harvest job run.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "failedRecordPreviousJob.json"
+      }
+    }
+  }
+}
