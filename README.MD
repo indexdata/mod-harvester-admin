@@ -725,7 +725,7 @@ history for a Harvest job when it finishes.
 The end-point for requesting that mod-harvester-admin stores a current harvest configuration with logs and
 record errors is `/harvester-admin/harvestables/{harvestable-id}/log/store`. The Harvester can be configured to invoke
 this API once a job completes. This is in other words the legacy Harvester telling mod-harvester-admin to pull the 
-logs from the legacy Harvester. Harvester is instructed to do this by providing the API path in the storage config's 
+logs from the legacy Harvester. Harvester is instructed to initiate this process by providing the API path in the storage config's 
 `json` property like this:
 
 ```
@@ -746,8 +746,9 @@ current harvest configuration plus the logs and failed records for a
 job, and store them in mod-harvester-admin's log history. Now, using this GET request is fine if the request
 is made a few seconds or more after a job completes, as would probably be the case if the request is made manually.
 However, the Harvester has an internal delay in writing the correct job status and finish time to the database, which
-means that the GET request risks pulling the information prematurely and get out-of-date information. Harvester thus
-needs to use the POST version, `POST /harvester-admin/harvestables/{id}/log/store`, because it allows Harvester to push
+means that the GET request risks pulling the information prematurely and get out-of-date information, since the Harvester will 
+initiate it in milliseconds after the job finishes. Harvester thus
+needs to use the POST version instead, `POST /harvester-admin/harvestables/{id}/log/store`, because it allows Harvester to push
 the correct, up-to-date [status information in the POST body](src/main/resources/openapi/schemas/harvestJobStatus.json) to the history.
 
 #### View current and historic harvest job logs and error reports
