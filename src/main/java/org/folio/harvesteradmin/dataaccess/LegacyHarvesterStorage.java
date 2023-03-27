@@ -25,8 +25,10 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -855,6 +857,8 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponseGet> getFailedRecords(RoutingContext routingContext) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
+    int offset = getIntOrDefault(routingContext.request().getParam("offset"),0);
+    int limit = getIntOrDefault(routingContext.request().getParam("limit"),1000);
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
@@ -863,7 +867,8 @@ public class LegacyHarvesterStorage {
               new ProcessedHarvesterResponseGet(
                   new JsonObject(), 404, "No harvestable found with ID " + id));
         } else if (idLookup.result().wasOK()) {
-          getFailedRecords(id).onComplete(result -> promise.complete(result.result()));
+          getFailedRecords(id, offset, limit)
+              .onComplete(result -> promise.complete(result.result()));
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
               + HARVESTER_HARVESTABLES_PATH + "/" + id
@@ -880,7 +885,8 @@ public class LegacyHarvesterStorage {
   /**
    * Gets failed records.
    */
-  public Future<ProcessedHarvesterResponseGet> getFailedRecords(String harvestableId) {
+  public Future<ProcessedHarvesterResponseGet> getFailedRecords(
+      String harvestableId, int offset, int limit) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records")
         .send(ar -> {
@@ -890,9 +896,8 @@ public class LegacyHarvesterStorage {
           JsonObject fileList = listResponse.jsonObject();
           JsonArray fileArray = fileList.getJsonArray("failedRecords");
           List<Future<ProcessedHarvesterResponseGetById>> failedRecordFutures = new ArrayList<>();
-          for (Object o : fileArray) {
-            JsonObject entry = (JsonObject) o;
-            failedRecordFutures.add(getFailedRecord(entry));
+          for (int i = offset; i < Math.min(offset + limit, fileArray.size()); i++)  {
+            failedRecordFutures.add(getFailedRecord(fileArray.getJsonObject(i)));
           }
           GenericCompositeFuture.all(failedRecordFutures).onComplete(results -> {
             JsonObject response = new JsonObject();
@@ -1232,6 +1237,41 @@ public class LegacyHarvesterStorage {
     }
     request.putHeader(HEADER_CONTENT_TYPE, "application/xml");
     return request;
+  }
+
+  /**
+   * Parses string to int, returns default if parsing fails.
+   */
+  public static int getIntOrDefault(String number, int defaultInt) {
+    try {
+      return Integer.parseInt(number);
+    } catch (NumberFormatException | NullPointerException e) {
+      return defaultInt;
+    }
+  }
+
+  /**
+   * Applies offset and limit to lines of text.
+   */
+  public static String pagingPlainText(String linesOfText, int offset, int limit) {
+    if (linesOfText != null) {
+      BufferedReader bufReader = new BufferedReader(new StringReader(linesOfText));
+      try {
+        StringBuilder page = new StringBuilder();
+        String line;
+        for (int i = 0; i < offset + limit && ((line = bufReader.readLine()) != null); i++)  {
+          if (i >= offset) {
+            page.append(line).append(System.lineSeparator());
+          }
+        }
+        return page.toString();
+      } catch (IOException e) {
+        logger.error("Error reading lines of plain text: " + e.getMessage());
+        return null;
+      }
+    } else {
+      return null;
+    }
   }
 
 }

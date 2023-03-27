@@ -274,6 +274,19 @@ paths:
         description: Harvest configuration identifier
         schema:
           type: number
+      - in: query
+        name: offset
+        required: false
+        description: log file start line
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        description: max log file lines
+        schema:
+          type: string
+
     get:
       operationId: getJobLog
       description: Get log statements for a harvest job
@@ -302,6 +315,19 @@ paths:
         description: Harvest configuration identifier
         schema:
           type: number
+      - in: query
+        name: offset
+        required: false
+        description: result set start row
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        description: result set max rows
+        schema:
+          type: string
+
     get:
       operationId: getFailedRecords
       description: Get failed records for a harvest job
