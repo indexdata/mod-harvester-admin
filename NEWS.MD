@@ -1,3 +1,7 @@
+## 0.3.7-SNAPSHO
+
+* Supports paging (offset,limit) for legacy logs, failed records (MODHAADM-42)
+
 ## 0.3.6-SNAPSHOT
 
 * Changes property names to camelCase, failed-records (MODHAADM-41)
