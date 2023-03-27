@@ -726,7 +726,9 @@ history for a Harvest job when it finishes.
 
 The end-point for requesting that mod-harvester-admin stores a current harvest configuration with logs and
 record errors is `/harvester-admin/harvestables/{harvestable-id}/log/store`. The Harvester can be configured to invoke
-this API once a job completes, by providing the API path in the storage config's `json` property:
+this API once a job completes. This is in other words the legacy Harvester telling mod-harvester-admin to pull the 
+logs from the legacy Harvester. Harvester is instructed to do this by providing the API path in the storage config's 
+`json` property like this:
 
 ```
 "json" : {
@@ -738,7 +740,7 @@ this API once a job completes, by providing the API path in the storage config's
 
 This is all that's needed to get the log history populated.
 
-Just for completeness, there is an alternative way to store the logs on demand, but it will only make sense to use that
+Just for completeness, there is an alternative way to get the logs stored on demand, but it will only make sense to use that
 if the Harvester is not configured to store them automatically.
 
 A client can use the request `GET /harvester-admin/harvestables/{id}/log/store` to ask mod-harvester-admin to pull the
