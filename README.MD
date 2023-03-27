@@ -15,45 +15,58 @@ Harvest job definitions, scheduling, and transformation pipelines are configured
 an XML based REST service that gives clients access to read and update the configurations and the Harvester then has a
 JSF based admin UI for admins to create and update configurations through the REST API.
 
-Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients 
+Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients
 (like a Stripes UI) can then use for managing harvest jobs.
 
-Mod-harvester-admin is additionally able to persist the harvest job history, including the harvest configuration at the 
-time the job was run as well as the Log4J logs for the job and structured reports regarding failed records.  
+Mod-harvester-admin is additionally able to persist the harvest job history, including the harvest configuration at the
+time the job was run as well as the Log4J logs for the job and structured reports regarding failed records.
 
 ## Configuration
 
 The module's access to the legacy harvester service is configured by the following environment variables:
 
-* `harvester_protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also supported.
+* `harvester_protocol` -- the protocol by which to contact the legacy service. Default `http`; `https` is also
+  supported.
 * `harvester_host` -- the hostname or IP address on which the legacy service is running. Must be provided.
-* `harvester_port` -- the port on which to contact the harvester host. Defaults to 80 if the protocol is `http`, 443 if it is `https`.
+* `harvester_port` -- the port on which to contact the harvester host. Defaults to 80 if the protocol is `http`, 443 if
+  it is `https`.
 * `harvester_auth_basic_username` -- if provided, a username to submit as part of HTTP Basic authentication
-* `harvester_auth_basic_password` -- if provided, a username to submit as part of HTTP Basic authentication. If neither username nor password is provided, then HTTP Basic authentication is not used at all.
+* `harvester_auth_basic_password` -- if provided, a username to submit as part of HTTP Basic authentication. If neither
+  username nor password is provided, then HTTP Basic authentication is not used at all.
 
-In addition, if the `acl_filter_by_tenant` environment variable is set to the string value `"false"`, then tenant-filtering is turned off, and all tenants' harvesting jobs are available to any tenant. **Do not use this in production.**
+In addition, if the `acl_filter_by_tenant` environment variable is set to the string value `"false"`, then
+tenant-filtering is turned off, and all tenants' harvesting jobs are available to any tenant. **Do not use this in
+production.**
 
 ## Provided Interfaces
 
-Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through to/from the legacy Harvester APIs, and 
-secondly a number of APIs for retaining the harvest job history. 
+Mod-harvester-admin provides two sets of APIs, firstly the administration APIs that are passed through to/from the
+legacy Harvester APIs, and
+secondly a number of APIs for retaining the harvest job history.
 
-The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more details regarding ID schemes below the API descriptions.
+The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO
+back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary
+keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more
+details regarding ID schemes below the API descriptions.
 
-### APIs
+### APIs for creating a harvest job configuration
 
 #### Overview
 
-In order to configure a harvest job from scratch through the API, following API interactions are required: 
+In order to configure a harvest job from scratch through the API, following API interactions are required:
+
 1) Create the storage configuration to use for persisting harvested records.
-2) Create the transformation steps that the job will use to transform incoming records to the desired format before storage.
+2) Create the transformation steps that the job will use to transform incoming records to the desired format before
+   storage.
 3) Create the transformation pipeline. Possibly including the steps, otherwise do 4)
 4) If steps where not assigned in 3) then assign transformation steps to the pipeline in the desired order of execution.
-5) Finally, create the harvest job configuration referencing the newly created transformation pipeline and storage definition.
+5) Finally, create the harvest job configuration referencing the newly created transformation pipeline and storage
+   definition.
 
 #### 1) Create storage definition
 
-POST storage object to `/harvester-admin/storages`, for example a FOLIO inventory storage using Inventory Update's upsert-by-hrid API: 
+POST storage object to `/harvester-admin/storages`, for example a FOLIO inventory storage using Inventory Update's
+upsert-by-hrid API:
 
 ```
 {
@@ -86,7 +99,8 @@ This is an example of a Solr storage definition:
 }
 ```
 
-Assuming the shell has `protocol`, `host`, `tenant` and `token` for a FOLIO session defined, a curl script to create the storage definition could be
+Assuming the shell has `protocol`, `host`, `tenant` and `token` for a FOLIO session defined, a curl script to create the
+storage definition could be
 
 ```
 curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
@@ -110,7 +124,7 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
 ' $protocol://$host/harvester-admin/storages
 ```
 
-Response should be something like: 
+Response should be something like:
 
 ```
 HTTP/1.1 201 Created
@@ -139,11 +153,15 @@ transfer-encoding: chunked
   "type" : "inventoryStorage"
 }
 ```
+
 #### 2) Create transformation steps
 
-A pipeline can be composed of multiple steps and each step can be an XSLT transformation or a custom Java-based transformation.
+A pipeline can be composed of multiple steps and each step can be an XSLT transformation or a custom Java-based
+transformation.
 
-POST step objects to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as an XSLT document. 
+POST step objects to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be
+embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as
+an XSLT document.
 
 ```
 {
@@ -154,7 +172,9 @@ POST step objects to `/harvester-admin/steps`. It can include the transformation
   "type" : "XmlTransformStep"
 }
 ```
-Response: 
+
+Response:
+
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -175,7 +195,8 @@ transfer-encoding: chunked
 }
 ```
 
-Say the XSLT script has this content: 
+Say the XSLT script has this content:
+
 ```
 <xsl:stylesheet version="1.0"
  xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -187,9 +208,11 @@ Say the XSLT script has this content:
 </xsl:stylesheet>
 ```
 
-Then this XSLT can be PUT to `/harvester-admin/steps/{step-id}/script?name=Copy+XML`, here `/harvester-admin/steps/563244948367770/script`, and the result would be
+Then this XSLT can be PUT to `/harvester-admin/steps/{step-id}/script?name=Copy+XML`,
+here `/harvester-admin/steps/563244948367770/script`, and the result would be
 
-GET /harvester-admin/steps/563244948367770: 
+GET /harvester-admin/steps/563244948367770:
+
 ```
 {
   "acl" : "diku",
@@ -205,9 +228,11 @@ GET /harvester-admin/steps/563244948367770:
 }
 ```
 
-The response on the GET above shows the stylesheet included in the step JSON, with quotes escaped and line feeds inserted. Sending this object instead would have had the same effect as sending first the step and then the script.
+The response on the GET above shows the stylesheet included in the step JSON, with quotes escaped and line feeds
+inserted. Sending this object instead would have had the same effect as sending first the step and then the script.
 
-The following curl script would POST two steps and PUT the XSLTs. It uses `jq` to capture the IDs of the steps, which would not be necessary with the XSLT included in the step JSON.
+The following curl script would POST two steps and PUT the XSLTs. It uses `jq` to capture the IDs of the steps, which
+would not be necessary with the XSLT included in the step JSON.
 
 ```
 curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
@@ -268,12 +293,14 @@ $protocol://$host/harvester-admin/steps/$STEP_ID_2/script?name=Copy+XML+Again --
 '
 ```
 
-
 #### 3) Create the transformation pipeline
 
-The transformation pipeline can be created in two ways: Either create a minimal transformation object through `/harvester-admin/transformations` and subsequently assign steps to it through `/harvester-admin/tsas` _or_ post a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
+The transformation pipeline can be created in two ways: Either create a minimal transformation object
+through `/harvester-admin/transformations` and subsequently assign steps to it through `/harvester-admin/tsas` _or_ post
+a composite transformation object with all the steps already embedded to `/harvester-admin/transformations`.
 
-The option to POST a composite transformation object is a convenience when exporting/GETting the composite from one service and importing/POSTing it to another.
+The option to POST a composite transformation object is a convenience when exporting/GETting the composite from one
+service and importing/POSTing it to another.
 
 ```
 {
@@ -297,7 +324,7 @@ The option to POST a composite transformation object is a convenience when expor
 }
 ```
 
-This curl script should create the transformation pipeline: 
+This curl script should create the transformation pipeline:
 
 ```
 curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
@@ -325,6 +352,7 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
 ```
 
 The response should be something like
+
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -377,9 +405,11 @@ transfer-encoding: chunked
 
 #### 4) Assign transformation steps to the pipeline in the desired order of execution.
 
-In the example above, the steps where included with the POST of the pipeline but alternatively the steps could be added one by one using the `/harvester-admin/tsas` (transformation-step-associations) endpoint.
+In the example above, the steps where included with the POST of the pipeline but alternatively the steps could be added
+one by one using the `/harvester-admin/tsas` (transformation-step-associations) endpoint.
 
-Say, the transformation POST body was instead: 
+Say, the transformation POST body was instead:
+
 ```
 {
   "name" : "A transformation",
@@ -389,9 +419,12 @@ Say, the transformation POST body was instead:
   "type" : "basicTransformation"
 }
 ```
-then the steps could be added through tsas afterwards. Likewise for the transformation pipeline that was created with two steps. The following scripts will add a third step in second position. 
+
+then the steps could be added through tsas afterwards. Likewise for the transformation pipeline that was created with
+two steps. The following scripts will add a third step in second position.
 
 Create the new step:
+
 ```
 curl -i -w '\n' \
 -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
@@ -425,6 +458,7 @@ $protocol://$host/harvester-admin/steps/$STEP_ID/script?name=New+Second+Step \
 ```
 
 Insert it in second position:
+
 ```
 curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
 -d '
@@ -439,6 +473,7 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
 ```
 
 The resulting transformation pipeline would be something like:
+
 ```
 {
   "acl" : "diku",
@@ -500,15 +535,24 @@ The resulting transformation pipeline would be something like:
 }
 ```
 
-In order to fix the description of this transformation, take the JSON response above, change the description to "transformation pipeline with three XSLT steps" and PUT it to `/harvester-admin/transformations/770158869141425`. When doing that, the contents of each step, like the XSLT, is ignored, whereas the PUT would change the number and positions of steps if the PUT JSON changed any of that.
+In order to fix the description of this transformation, take the JSON response above, change the description to "
+transformation pipeline with three XSLT steps" and PUT it to `/harvester-admin/transformations/770158869141425`. When
+doing that, the contents of each step, like the XSLT, is ignored, whereas the PUT would change the number and positions
+of steps if the PUT JSON changed any of that.
 
 #### 5) Create the harvest job configuration
 
-Once the required storage definition and transformation pipeline are configured, a harvest job can be created that will use them.
+Once the required storage definition and transformation pipeline are configured, a harvest job can be created that will
+use them.
 
-The minimal harvestable JSON object that the service will accept would contain the `name` for the job, the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`; this boolean would not affect whether the job can be started on demand), whether the job should run immediately `harvestImmediately`, what `storage` and what `transformation` pipeline to use, and the `url` it should fetch data from. If the job is of type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`.
+The minimal harvestable JSON object that the service will accept would contain the `name` for the job,
+the `type` (`oaiPmh` or `xmlBulk`), whether the job is enabled to run as scheduled (`enabled`; this boolean would not
+affect whether the job can be started on demand), whether the job should run immediately `harvestImmediately`,
+what `storage` and what `transformation` pipeline to use, and the `url` it should fetch data from. If the job is of
+type `oaiPmh` the object should also contain the properties `oaiSetName` and `metadataPrefix`.
 
-In the POST, the transformation and the storage can be referenced by name or by ID. If both are present, the ID will be used and the name ignored. 
+In the POST, the transformation and the storage can be referenced by name or by ID. If both are present, the ID will be
+used and the name ignored.
 
 ```
 {
@@ -666,64 +710,108 @@ transfer-encoding: chunked
 
 ```
 
-If the configuration details are otherwise correct, this should complete the configurations required to run the harvest job. 
+If the configuration details are otherwise correct, this should complete the configurations required to run the harvest
+job.
 
-### Harvester logs and log history
+### APIs for storing and viewing harvest job logs and error reports.
 
-#### /harvester-admin/harvestables/{harvestable-id}/log
+Legacy Harvester keeps logs and error reports for the most recent harvest run with a given
+configuration. It only retains them until the configuration changes or the next job is run, but mod-harvester-admin is
+then able to retrieve the logs and store them in a harvest job history.
 
-Pass-through API to return the most recent log-file for the harvestable in plain text.
+The legacy Harvester can be configured to have Harvester Admin pull the current configuration and logs to the log
+history for a Harvest job when it finishes.
 
-#### /harvester-admin/harvestables/{harvestable-id}/failed-records
+#### Storing logs and error reports to log history
 
-Pass-through API to return list of structured error reports for individual records, that failed to load partially or fully.
+The end-point for requesting that mod-harvester-admin stores a current harvest configuration with logs and
+record errors is `/harvester-admin/harvestables/{harvestable-id}/log/store`. The Harvester can be configured to invoke
+this API once a job completes, by providing the API path in the storage config's `json` property:
 
-#### /harvester-admin/harvestables/{harvestable-id}/failed-records/{record-number}
+```
+"json" : {
+    "folioAuthPath" : "bl-users/login",
+    ....
+    "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
+  }
+```
 
-Pass-through API to retrieve a structured error report for an individual record that failed to load partially or fully.
+This is all that's needed to get the log history populated.
 
-#### /harvester-admin/harvestables/{harvestable-id}/log/store
+Just for completeness, there is an alternative way to store the logs on demand, but it will only make sense to use that
+if the Harvester is not configured to store them automatically.
 
-End-point for requesting that mod-harvester-admin stores a current harvest configuration with the most recent logs and record error reports. It should generally be invoked by Harvester, which would do it right after a job has completed (if the harvester is configured for storing the log history to mod-harvester-admin). 
+A client can use the request `GET /harvester-admin/harvestables/{id}/log/store` to ask mod-harvester-admin to pull the
+current harvest configuration plus the logs and failed records for a
+job, and store them in mod-harvester-admin's log history. Now, using this GET request is fine if the request
+is made a few seconds or more after a job completes, as would probably be the case if the request is made manually.
+However, the Harvester has an internal delay in writing the correct job status and finish time to the database, which
+means that the GET request risks pulling the information prematurely and get out-of-date information. Harvester thus
+needs to use the POST version, `POST /harvester-admin/harvestables/{id}/log/store`, because it allows Harvester to push
+the correct, up-to-date [status information in the POST body](src/main/resources/openapi/schemas/harvestJobStatus.json) to the history.
 
-The API has two versions, GET and POST. Harvester needs the POST version. Other clients _could_ use the GET version but there is no need to if Harvester has already requested that the logs be pulled, using the POST.
+#### View current and historic harvest job logs and error reports
 
-##### `GET /harvester-admin/harvestables/{id}/log/store` 
-Requests that mod-harvester-admin pulls the current job configuration plus the logs and failed records, if any, for a completed job, and stores them in mod-harvester-admin's log history. 
+If the logs are saved to history, there are thus two sets of APIs for retrieving configurations and logs; one for
+current configs and jobs, and another for historic
+configs and jobs.
 
-##### `POST /harvester-admin/harvestables/{id}/log/store`
-The same as GET, except the POST body contains corrective data for the job's status message and finish time.
+Viewing the current logs will mostly be relevant when performing large harvest jobs, for example if migrating data to a
+new FOLIO Inventory. This will be long running jobs and through the APIs that are fetching current jobs and logs, it's
+possible to
+follow the progress. For day to day updates on the other hand, the historic logs are probably more useful, at least if
+updates happens several times a day in which case the current logs will frequently be overwritten by new, current logs.
 
-The POST version is needed due to a time-lag in Harvester's internal persistence of a completed job's status. The status is only written to Harvester's database some time after the job finishes, so the GET will potentially retrieve an outdated status if invoked immediately after the completion of the job; the POSTed data will correct the stale data as necessary.    
+|            | Current configs, logs, error reports.                                                                                                                                                                       | Historic configs, logs, error reports                                                                                                                                                                                                 |
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| API        | `./harvestables`                                                                                                                                                                                            | `./previous-jobs`                                                                                                                                                                                                                     |
+| Content    | [JSON array](src/main/resources/openapi/schemas/harvestables.json) of [harvestableBriefs](src/main/resources/openapi/schemas/harvestableBrief.json).                                                        | JSON array of [previousJobs](src/main/resources/openapi/schemas/previousJobs.json).                                                                                                                                                   |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}`                                                                                                                                                                                   | `./previous-jobs/:{uuid}`                                                                                                                                                                                                             |
+| Content    | [JSON object with full job configuration](src/main/resources/openapi/schemas/harvestableGet.json) including storage config and transformation steps.                                                        | [JSON object with select properties](src/main/resources/openapi/schemas/previousJob.json) from the full configuration.                                                                                                                |
+| Identifier | `id` (numeric), 15 digit if generated through Harvester Admin.                                                                                                                                              | `id` (UUID)                                                                                                                                                                                                                           |
+| Mutating?  | Yes, a running job might update properties of the config; an administrator could change the configuration.                                                                                                  | No. It’s possible to store it for a running job but storing the same job  again will create a new previous-job entry. It makes sense to store it just for completed jobs, and that’s what the Harvester will do if configured for it. |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/log`                                                                                                                                                                               | `./previous-jobs/:{uuid}/log`                                                                                                                                                                                                         |                                                                                                                                                                                                                                       |
+| Content    | Log4j log lines.                                                                                                                                                                                            | Parsed log4j log-lines, only format compliant lines included. The fields of the log lines are in table columns for easy searching etc but are concatenated in the response to look like the original log lines.                       | 
+| Identifier | There is no identifier for each log line.                                                                                                                                                                   | `id` Each line of the log has a UUID although there is currently no obvious use for that.                                                                                                                                             |
+| Mutating?  | Yes, the log file will grow as the job proceeds, it can roll over for very long jobs and will be overwritten by the next job.                                                                               | No, it's written once. A renewed request to store the log for the same job run would create a whole new job entry in history, with the same initial log lines as the existing history entry, plus some more.                          |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/failed-records`                                                                                                                                                                    | `./previous-jobs/:{uuid}/failed-records`                                                                                                                                                                                              |
+| Content    | [JSON array of error reports](src/main/resources/openapi/schemas/failedRecordsCurrentJob.json) for records that failed to update, wholly or partially, in the most recent run of the harvest configuration. | [JSON array of error reports](src/main/resources/openapi/schemas/failedRecordsPreviousJob.json) for records that failed to update, wholly or partially, in a previous job run.                                                        |
+| Mutating?  | Yes, the result set can grow as the job proceeds or be overwritten by the next job run.                                                                                                                     | No, it's written once. A renewed request to store the log for the same job run would create a whole new job entry in history, with all the same reports and potentially some more.                                                    |
+|            |                                                                                                                                                                                                             |                                                                                                                                                                                                                                       |
+| API        | `./harvestables/:{recId}/failed-record/:{recNum}`                                                                                                                                                           | `./previous-jobs/failed-records/:{uuid}`                                                                                                                                                                                              |
+| Content    | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordCurrentJob.json)                                                                                                 | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordPreviousJob.json)                                                                                                                          |
+| Identifier | `harvestableId` and `recordNumber`                                                                                                                                                                          | `id` (uuid)                                                                                                                                                                                                                           |
+| Mutating?  | Yes, the error report can disappear with next job run.                                                                                                                                                      | No. Unless the administrator decides do delete old logs and error reports.                                                                                                                                                            |
 
-
+### Running harvest jobs
 
 #### /harvester-admin/job/run/{id}
 
-Convenience end-point to start a harvest job with the given harvest configuration ID. It is equivalent to PUTting a harvestable object with `harvestImmediately` set to true and `lastUpdated` set to now. 
+Convenience end-point to start a harvest job with the given harvest configuration ID. It is equivalent to PUTting a
+harvestable object with `harvestImmediately` set to true and `lastUpdated` set to now.
 
 #### /harvester-admin/job/stop/{id}
 
-Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated` set to now for a running job. 
-
-#### /harvester-admin/previous-jobs
-
-End-point that will get a list of previous jobs as stored in mod-harvester-admin through `/harvester-admin/harvestables/{id}/log/store` as described  further above. This is a module native API; it will contain UUIDs for primary keys for example. 
-
-#### /harvester-admin/previous-jobs/{job run's uuid}/log
-
-Gets the log for a job in job history. If the job run is the most recent and the harvestable was not updated since the run, then this log would be the same as the log retrieved through `/harvester-admin/harvestables/{harvestable-id}/log`
-
-#### /harvester-admin/previous-jobs/{job run's uuid}/failed-records
-
-Gets collection of error reports for failed records for a job in the job history.
-
-
+Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated`
+set to now for a running job.
 
 ### IDs for primary keys
 
-When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a POST, and it can be set to any numeric ID. However, a large random number is advised because multiple FOLIO tenants may be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas each tenant may only be able to see the records for that tenant through the API. The tenant cannot see which IDs are already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data through the API directly, outside a UI. A UI will probably depend entirely on the API generating the IDs internally.
+When posting configuration objects to the Harvester through mod-harvester-admin, objects will be assigned a 15-digit
+random number for its ID if no ID is provided in the posted JSON. Currently, the APIs allow the client to set ID in a
+POST, and it can be set to any numeric ID. However, a large random number is advised because multiple FOLIO tenants may
+be accessing the same legacy Harvester, and would thus write to the same primary key index for each object type whereas
+each tenant may only be able to see the records for that tenant through the API. The tenant cannot see which IDs are
+already taken by some other tenant, only that a collision occurred. This is most likely only a concern when posting data
+through the API directly, outside a UI. A UI will probably depend entirely on the API generating the IDs internally.
 
-The module has a convenience API `/harvester-admin/generate-ids` that will generate and return as plain text a 15-digit random number using the same logic as the module uses internally for creating primary keys. These IDs might be used to define the IDs client side before POSTing. Up to a hundred IDs can be generated at a time: `/harvester-admin/generate-ids?count=100`.    
+The module has a convenience API `/harvester-admin/generate-ids` that will generate and return as plain text a 15-digit
+random number using the same logic as the module uses internally for creating primary keys. These IDs might be used to
+define the IDs client side before POSTing. Up to a hundred IDs can be generated at a
+time: `/harvester-admin/generate-ids?count=100`.
 
-As mentioned, the new APIs on top of the module's own storage use the standard FOLIO identifier scheme of UUIDs, which will ensure uniqueness at any time (as long as no generated ID is reused of course).
+As mentioned, the new APIs on top of the module's own storage use the standard FOLIO identifier scheme of UUIDs, which
+will ensure uniqueness at any time (as long as no generated ID is reused of course).

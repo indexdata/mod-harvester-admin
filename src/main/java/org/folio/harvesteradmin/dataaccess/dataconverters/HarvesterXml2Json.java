@@ -101,7 +101,6 @@ public class HarvesterXml2Json {
         String arrayName = doc.getDocumentElement().getNodeName();
         arrayName = arrayName.replace("tranformation", "transformation");
         arrayName = arrayName.replace("failed-records", "failedRecords");
-        // arrayName = arrayName.replace("failed-records", "failedRecords");
         jsonObject.put(arrayName, xmlRecords2jsonArray(records));
         int recordCount =
             Integer.parseInt(records.getAttributes().getNamedItem("count").getTextContent());
