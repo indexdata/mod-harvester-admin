@@ -17,10 +17,7 @@ an XML based REST service that gives clients access to read and update the confi
 JSF based admin UI for admins to create and update configurations through the REST API.
 
 Mod-harvester-admin provides an alternative, FOLIO/JSON based interface to the configuration database that FOLIO clients
-(like a Stripes UI) can then use for managing harvest jobs.
-
-Mod-harvester-admin is additionally able to persist the harvest job history, including the harvest configuration at the
-time the job was run as well as the Log4J logs for the job and structured reports regarding failed records.
+(like a Stripes UI) can then use for managing harvest jobs and monitoring logs and error reporting. 
 
 ## Configuration
 
