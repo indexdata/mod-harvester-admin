@@ -4,7 +4,8 @@
 
 Harvester Admin is an Okapi service that can be put in front of a legacy software product
 called [localindices or Harvester](https://github.com/indexdata/localindices). Harvester Admin provides FOLIO based
-access to control the workings of the Harvester.
+access to control the workings of the Harvester, as well as a log history database that will retain harvest job logs
+and error reports beyond the short-lived logs that legacy Harvester provides. 
 
 The Harvester is a collection of modules that can read data from a variety of data sources like FTP servers, local file
 systems, OAI-PMH servers and web pages, transform those data through highly configurable XSLT based transformation
