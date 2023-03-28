@@ -1,0 +1,26 @@
+{
+  "description": "A single log4j log statement from a harvest job.",
+  "type": "object",
+  "properties": {
+    "id" : {
+      "description": "Unique identifier (UUID) for the log line.",
+      "type": "string"
+    },
+    "timeStamp" : {
+      "description": "Date and time the log statement was created.",
+      "type": "string"
+    },
+    "logLevel" :{
+      "description": "The log4j log level (INFO, DEBUG, etc).",
+      "type": "string"
+    },
+    "jobLabel" : {
+      "description": "Harvester's identification of the job that created the log line.",
+      "type": "string"
+    },
+    "line" : {
+      "description": "The logged statement.",
+      "type": "string"
+    }
+  }
+}

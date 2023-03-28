@@ -226,6 +226,31 @@ public class Storage {
   }
 
   /**
+   * Retrieves log for past harvest job.
+   */
+  public Future<JsonObject> getLogsAsJsonForPreviousJob(UUID id, SqlQuery queryFromCql) {
+    Promise<JsonObject> promise = Promise.promise();
+    final JsonArray array = new JsonArray();
+    String query = queryFromCql.withAdditionalWhereClause("harvest_job_id = #{id}").toString();
+    SqlTemplate.forQuery(pool.getPool(), query)
+        .mapTo(LogLine.entity().getRowMapper())
+        .execute(Collections.singletonMap("id", id))
+        .onSuccess(rows -> {
+          for (StoredEntity entity : rows) {
+            array.add(((LogLine) entity).asJson());
+          }
+          JsonObject json = new JsonObject();
+          json.put("logLines", array);
+          json.put("totalRecords", array.size());
+          promise.complete(json);
+        })
+        .onFailure(
+            rows -> promise.fail(rows.getMessage())
+        );
+    return promise.future();
+  }
+
+  /**
    * Retrieves failed records for past harvest job.
    */
   public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(

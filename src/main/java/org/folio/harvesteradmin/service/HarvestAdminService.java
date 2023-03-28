@@ -556,6 +556,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> getPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    String contentType = routingContext.request().getHeader("Accept");
+    logger.info("Request for previous logs in " + contentType + ".");
     UUID id = UUID.fromString(params.pathParameter("id").getString());
     String fromDateTime = routingContext.request().getParam("from");
     String untilDateTime = routingContext.request().getParam("until");
@@ -572,27 +574,51 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     SqlQuery queryFromCql = LogLine.entity()
         .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.log_statement))
         .withAdditionalWhereClause(timeRange);
-    return storage.getLogsForPreviousJob(id, queryFromCql)
-        .onComplete(jobLog -> {
-          if (jobLog.succeeded()) {
-            if (jobLog.result().length() == 0) {
-              storage.getPreviousJobById(id).onComplete(harvestJob -> {
-                if (harvestJob.result() == null) {
-                  responseText(routingContext, 404)
-                      .end("Found no previous job with ID " + id);
-                } else {
-                  responseText(routingContext, 200)
-                      .end("Previous job with ID " + id + ", "
-                          + harvestJob.result().getName() + ", has no logs.");
-                }
-              });
+    if (contentType != null && contentType.contains("json")) {
+      return storage.getLogsAsJsonForPreviousJob(id, queryFromCql)
+          .onComplete(jobLog -> {
+            if (jobLog.succeeded()) {
+              if (jobLog.result().size() == 0) {
+                storage.getPreviousJobById(id).onComplete(harvestJob -> {
+                  if (harvestJob.result() == null) {
+                    responseText(routingContext, 404)
+                        .end("Found no previous job with ID " + id);
+                  } else {
+                    responseText(routingContext, 200)
+                        .end("Previous job with ID " + id + ", "
+                            + harvestJob.result().getName() + ", has no logs.");
+                  }
+                });
+              } else {
+                responseJson(routingContext, 200).end(jobLog.result().encodePrettily());
+              }
             } else {
-              responseText(routingContext, 200).end(jobLog.result());
+              responseError(routingContext, 500, jobLog.cause().getMessage());
             }
-          } else {
-            responseError(routingContext, 500, jobLog.cause().getMessage());
-          }
-        }).mapEmpty();
+          }).mapEmpty();
+    } else {
+      return storage.getLogsForPreviousJob(id, queryFromCql)
+          .onComplete(jobLog -> {
+            if (jobLog.succeeded()) {
+              if (jobLog.result().length() == 0) {
+                storage.getPreviousJobById(id).onComplete(harvestJob -> {
+                  if (harvestJob.result() == null) {
+                    responseText(routingContext, 404)
+                        .end("Found no previous job with ID " + id);
+                  } else {
+                    responseText(routingContext, 200)
+                        .end("Previous job with ID " + id + ", "
+                            + harvestJob.result().getName() + ", has no logs.");
+                  }
+                });
+              } else {
+                responseText(routingContext, 200).end(jobLog.result());
+              }
+            } else {
+              responseError(routingContext, 500, jobLog.cause().getMessage());
+            }
+          }).mapEmpty();
+    }
   }
 
   private Future<Void> getFailedRecordsForPreviousJob(Vertx vertx, RoutingContext routingContext) {

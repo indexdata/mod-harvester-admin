@@ -1,5 +1,6 @@
 package org.folio.harvesteradmin.moduledata;
 
+import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
@@ -214,6 +215,19 @@ public class LogLine extends StoredEntity {
 
   public String toString() {
     return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);
+  }
+
+  /**
+   * Get log line as JSON.
+   */
+  public JsonObject asJson() {
+    JsonObject json = new JsonObject();
+    json.put("id", this.id.toString());
+    json.put("timeStamp", this.timeStamp);
+    json.put("logLevel", this.logLevel);
+    json.put("jobLabel", this.jobLabel);
+    json.put("line", this.line);
+    return json;
   }
 
 }

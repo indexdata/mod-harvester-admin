@@ -551,6 +551,13 @@ paths:
       responses:
         "200":
           description: Logs for a previous harvest job
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/logLines"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1137,6 +1144,8 @@ components:
       $ref: schemas/harvestJobStatus.json
     previousJobs:
       $ref: schemas/previousJobs.json
+    logLines:
+      $ref: schemas/logLines.json
     previousJob:
       $ref: schemas/previousJob.json
     failedRecordCurrentJob:
