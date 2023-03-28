@@ -18,8 +18,12 @@ paths:
               $ref: "#/components/schemas/harvestablePostPut"
         required: true
       responses:
-        "204":
+        "201":
           description: Harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -61,8 +65,13 @@ paths:
               $ref: "#/components/schemas/harvestableXmlBulkPostPut"
         required: true
       responses:
-        "204":
+        "201":
           description: XML bulk harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
+
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -83,8 +92,12 @@ paths:
               $ref: "#/components/schemas/harvestableOaiPmhPostPut"
         required: true
       responses:
-        "204":
+        "201":
           description: OAI-PMH harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -538,6 +551,13 @@ paths:
       responses:
         "200":
           description: Logs for a previous harvest job
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/logLines"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -613,8 +633,12 @@ paths:
               $ref: "#/components/schemas/storage"
         required: true
       responses:
-        "204":
+        "201":
           description: Storage definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/storage"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -712,8 +736,12 @@ paths:
               $ref: "#/components/schemas/transformationPostPut"
         required: true
       responses:
-        "204":
+        "201":
           description: Storage definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationGet"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -1116,6 +1144,8 @@ components:
       $ref: schemas/harvestJobStatus.json
     previousJobs:
       $ref: schemas/previousJobs.json
+    logLines:
+      $ref: schemas/logLines.json
     previousJob:
       $ref: schemas/previousJob.json
     failedRecordCurrentJob:
