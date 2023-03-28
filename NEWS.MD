@@ -1,4 +1,8 @@
-## 0.3.7-SNAPSHO
+## 0.3.8-SNAPSHOT
+
+* Supports both JSON and plain text responses for `./previous-jobs/{id}/log` (MODHAADM-45)
+
+## 0.3.7-SNAPSHOT
 
 * Supports paging (offset,limit) for legacy logs, failed records (MODHAADM-42)
 
