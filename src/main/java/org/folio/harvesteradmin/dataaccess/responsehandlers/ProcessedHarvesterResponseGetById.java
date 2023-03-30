@@ -45,9 +45,14 @@ public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterRespons
         errorMessage = apiPath + "/" + id + " not found";
       } else {
         statusCode = harvesterStatusCode;
-        errorMessage =
-            apiPath + "/" + id + " encountered error reported as (" + harvesterStatusCode + ") ["
-                + bodyAsString + "] by the harvester";
+        if (apiPath.contains("failed-records")) {
+          errorMessage = "Could not find " + apiPath;
+          statusCode = 404;
+        } else {
+          errorMessage =
+              apiPath + "/" + id + " encountered error reported as (" + harvesterStatusCode + ") ["
+                  + bodyAsString + "] by the harvester";
+        }
       }
     } else {
       statusCode = 500;

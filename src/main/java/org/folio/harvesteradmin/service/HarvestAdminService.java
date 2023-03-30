@@ -53,162 +53,231 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     routerBuilder
         .operation("getHarvestables")
-        .handler(ctx -> getConfigRecords(vertx, ctx));
+        .handler(ctx -> getConfigRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getHarvestable")
-        .handler(ctx -> getConfigRecordById(vertx, ctx))
+        .handler(ctx -> getConfigRecordById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postHarvestable")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postHarvestableXmlBulk")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postHarvestableOaiPmh")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("putHarvestable")
-        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .handler(ctx -> putConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putHarvestableXmlBulk")
-        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .handler(ctx -> putConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putHarvestableOaiPmh")
-        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .handler(ctx -> putConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteHarvestable")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx));
+        .handler(ctx -> deleteConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getJobLog")
-            .handler(ctx -> getJobLog(vertx, ctx));
+            .handler(ctx -> getJobLog(vertx, ctx)
+                .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getFailedRecords")
-        .handler(ctx -> getFailedRecords(vertx, ctx));
+        .handler(ctx -> getFailedRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getFailedRecord")
-        .handler(ctx -> getFailedRecord(vertx, ctx));
+        .handler(ctx -> getFailedRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("storeJobLog")
-        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx));
+        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("storeJobLogWithPostedStatus")
-        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx));
+        .handler(ctx -> pullJobAndSaveItsLogs(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getPreviousJobs")
         .handler(ctx -> getPreviousJobs(vertx, ctx)
-            .onFailure(cause -> HttpResponse.responseError(ctx, 500, cause.getMessage())));
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getPreviousJob")
-        .handler(ctx -> getPreviousJobById(vertx, ctx));
+        .handler(ctx -> getPreviousJobById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deletePreviousJob")
-        .handler(ctx -> deletePreviousJob(vertx, ctx));
+        .handler(ctx -> deletePreviousJob(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getPreviousJobLog")
-        .handler(ctx -> getPreviousJobLog(vertx, ctx));
+        .handler(ctx -> getPreviousJobLog(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getFailedRecordsForPreviousJob")
-        .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx));
+        .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getFailedRecordForPreviousJob")
-        .handler(ctx -> getFailedRecordForPreviousJob(vertx, ctx));
+        .handler(ctx -> getFailedRecordForPreviousJob(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getStorages")
-        .handler(ctx -> getConfigRecords(vertx, ctx));
+        .handler(ctx -> getConfigRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getStorage")
-        .handler(ctx -> getConfigRecordById(vertx, ctx));
+        .handler(ctx -> getConfigRecordById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postStorage")
-        .handler(ctx -> postConfigRecord(vertx, ctx));
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putStorage")
-            .handler(ctx -> putConfigRecord(vertx, ctx))
+            .handler(ctx -> putConfigRecord(vertx, ctx)
+                .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteStorage")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
+        .handler(ctx -> deleteConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getTransformations")
-        .handler(ctx -> getConfigRecords(vertx, ctx));
+        .handler(ctx -> getConfigRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getTransformation")
-        .handler(ctx -> getConfigRecordById(vertx, ctx));
+        .handler(ctx -> getConfigRecordById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postTransformation")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putTransformation")
-            .handler(ctx -> putConfigRecord(vertx, ctx));
+            .handler(ctx -> putConfigRecord(vertx, ctx)
+                .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteTransformation")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx))
+        .handler(ctx -> deleteConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getSteps")
-        .handler(ctx -> getConfigRecords(vertx, ctx));
+        .handler(ctx -> getConfigRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getStep")
-        .handler(ctx -> getConfigRecordById(vertx, ctx));
+        .handler(ctx -> getConfigRecordById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postStep")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putStep")
-        .handler(ctx -> putConfigRecord(vertx, ctx))
+        .handler(ctx -> putConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteStep")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx));
+        .handler(ctx -> deleteConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getScript")
-            .handler(ctx -> getScript(vertx, ctx));
+        .handler(ctx -> getScript(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putScript")
-        .handler(ctx -> putScript(vertx, ctx));
+        .handler(ctx -> putScript(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getTsas")
-        .handler(ctx -> getConfigRecords(vertx, ctx));
+        .handler(ctx -> getConfigRecords(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getTsa")
-        .handler(ctx -> getConfigRecordById(vertx, ctx));
+        .handler(ctx -> getConfigRecordById(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("postTsa")
-        .handler(ctx -> postConfigRecord(vertx, ctx))
+        .handler(ctx -> postConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("deleteTsa")
-        .handler(ctx -> deleteConfigRecord(vertx, ctx));
+        .handler(ctx -> deleteConfigRecord(vertx, ctx)
+            .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("startJob")
-        .handler(ctx -> startJob(vertx, ctx));
+        .handler(ctx -> startJob(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("stopJob")
-        .handler(ctx -> stopJob(vertx, ctx));
+        .handler(ctx -> stopJob(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
         .operation("getIds")
@@ -216,11 +285,20 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   }
 
+  private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
+    if (cause.getMessage().toLowerCase().contains("could not find")) {
+      HttpResponse.responseError(routingContext, 404, cause.getMessage());
+    } else {
+      HttpResponse.responseError(routingContext, 404, cause.getMessage());
+    }
+
+  }
+
   /**
    * Returns request validation exception, potentially with improved error message if problem was
    * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
    */
-  public void routerExceptionResponse(RoutingContext ctx) {
+  private void routerExceptionResponse(RoutingContext ctx) {
     String message = ctx.failure().getMessage();
     if (message != null && message.contains("No schema matches")) {
       SchemaValidation validation = SchemaValidation.validateJsonObject(
@@ -375,10 +453,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .end(log == null ? "No logs found for this job." : log);
           }
         })
-        .onFailure(failure -> {
-          int code = failure.getMessage().startsWith("Could not find") ? 404 : 500;
-          responseError(routingContext, code, failure.getMessage());
-        })
         .mapEmpty();
   }
 
@@ -405,7 +479,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
       } else {
         responseError(
-            routingContext, getResponse.result().statusCode(), getResponse.cause().getMessage());
+            routingContext, getResponse.result().statusCode(), getResponse.result().errorMessage());
       }
     })).mapEmpty();
   }
