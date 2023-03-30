@@ -47,7 +47,7 @@ public class PgColumn {
       case UUID:
         return new PgCqlFieldUuid();
       default:
-        return new PgCqlFieldText();
+        return new PgCqlFieldText().withExact().withLikeOps();
     }
   }
 }

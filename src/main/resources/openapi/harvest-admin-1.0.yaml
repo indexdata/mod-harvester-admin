@@ -447,7 +447,7 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL, supporting harvestable id, name, type and status in query terms
+          description: CQL query, supporting harvestableId, name, type and status in queries
           schema:
             type: string
         - in: query
