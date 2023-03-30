@@ -1,3 +1,9 @@
+## 0.3.9-SNAPSHOT
+
+* Bugfix: enables CQL operators for text fields (MODHAADM-47)
+* Declares and validates UUIDs in API paths (in OpenApi)  (MODHAADM-46)
+* Improves error responses for exceptions in the APIs 
+
 ## 0.3.8-SNAPSHOT
 
 * Supports both JSON and plain text responses for `./previous-jobs/{id}/log` (MODHAADM-45)
