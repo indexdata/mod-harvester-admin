@@ -286,7 +286,12 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
   private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
-    HttpResponse.responseError(routingContext, 500, cause.getMessage());
+    if (cause.getMessage().toLowerCase().contains("could not find")) {
+      HttpResponse.responseError(routingContext, 404, cause.getMessage());
+    } else {
+      HttpResponse.responseError(routingContext, 404, cause.getMessage());
+    }
+
   }
 
   /**
@@ -448,10 +453,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .end(log == null ? "No logs found for this job." : log);
           }
         })
-        .onFailure(failure -> {
-          int code = failure.getMessage().startsWith("Could not find") ? 404 : 500;
-          responseError(routingContext, code, failure.getMessage());
-        })
         .mapEmpty();
   }
 
@@ -478,7 +479,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
             routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
       } else {
         responseError(
-            routingContext, getResponse.result().statusCode(), getResponse.cause().getMessage());
+            routingContext, getResponse.result().statusCode(), getResponse.result().errorMessage());
       }
     })).mapEmpty();
   }

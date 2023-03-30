@@ -940,7 +940,7 @@ public class LegacyHarvesterStorage {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
         if (idLookup.result().wasNotFound()) {
-          promise.fail("Could not find harvestable with ID " + harvestableId);
+          promise.complete(idLookUpResponse);
         } else if (idLookup.result().wasOK()) {
           harvesterGetRequest(failedRecordUri)
               .send(ar ->  promise.complete(
