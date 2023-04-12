@@ -85,9 +85,11 @@ public abstract class StoredEntity {
    * @return translated string
    */
   private String jsonPropertiesToColumnNames(String clause) {
-    Map<String,PgColumn> prop2col = getFieldMap();
-    for (String property  : prop2col.keySet()) {
-      clause = clause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
+    if (clause != null) {
+      Map<String, PgColumn> prop2col = getFieldMap();
+      for (String property : prop2col.keySet()) {
+        clause = clause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
+      }
     }
     return clause;
   }
