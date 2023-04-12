@@ -7,14 +7,10 @@ import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Map;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 
 public abstract class StoredEntity {
-
-  Logger logger = LogManager.getLogger(StoredEntity.class);
 
   /**
    * Builds the Postgres DDL SQL for creating a table.
@@ -70,7 +66,6 @@ public abstract class StoredEntity {
         where = " WHERE " + whereClause;
       }
       String orderByClause = pgCqlQuery.getOrderByClause();
-      logger.info("OrderByClause: " + orderByClause);
       orderByClause = jsonPropertiesToColumnNames(orderByClause);
       if (orderByClause != null) {
         orderBy = " ORDER BY " + orderByClause;
