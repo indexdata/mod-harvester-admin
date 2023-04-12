@@ -794,12 +794,12 @@ updates happens several times a day in which case the current logs will frequent
 
 ### Running harvest jobs
 
-#### /harvester-admin/job/run/{id}
+#### /harvester-admin/jobs/run/{id}
 
 Convenience end-point to start a harvest job with the given harvest configuration ID. It is equivalent to PUTting a
 harvestable object with `harvestImmediately` set to true and `lastUpdated` set to now.
 
-#### /harvester-admin/job/stop/{id}
+#### /harvester-admin/jobs/stop/{id}
 
 Convenience end-point to stop a running harvest job. It is equivalent to PUTting a harvestable object with `lastUpdated`
 set to now for a running job.
