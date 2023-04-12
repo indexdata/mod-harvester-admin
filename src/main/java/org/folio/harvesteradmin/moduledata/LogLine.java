@@ -37,8 +37,8 @@ public class LogLine extends StoredEntity {
     SEQUENCE_NUMBER("sequenceNumber", "seq", PgColumn.Type.INTEGER, false, false),
     TIME_STAMP("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, false),
     LOG_LEVEL("logLevel", "log_level", PgColumn.Type.TEXT, false, true),
-    JOB_LABEL("jobLabel", "job_label", PgColumn.Type.TEXT, false, false),
-    LOG_STATEMENT("line", "statement", PgColumn.Type.TEXT, false, false)
+    JOB_LABEL("jobLabel", "job_label", PgColumn.Type.TEXT, false, true),
+    LOG_STATEMENT("line", "statement", PgColumn.Type.TEXT, false, true)
     ;
 
     private final String propertyName;
