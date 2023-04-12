@@ -66,19 +66,30 @@ public abstract class StoredEntity {
       PgCqlQuery pgCqlQuery = definition.parse(query.getString());
       String whereClause = pgCqlQuery.getWhereClause();
       if (whereClause != null) {
-        Map<String,PgColumn> prop2col = getFieldMap();
-        for (String property  : prop2col.keySet()) {
-          whereClause = whereClause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
-        }
+        whereClause = jsonPropertiesToColumnNames(whereClause);
         where = " WHERE " + whereClause;
       }
       String orderByClause = pgCqlQuery.getOrderByClause();
+      logger.info("OrderByClause: " + orderByClause);
+      orderByClause = jsonPropertiesToColumnNames(orderByClause);
       if (orderByClause != null) {
-        orderBy = " ORDER BY " + orderBy;
+        orderBy = " ORDER BY " + orderByClause;
       }
     }
     return new SqlQuery(select, from, where, orderBy, offset, limit);
   }
 
+  /**
+   * Crosswalk JSON property names to table column names.
+   * @param clause string containing names to translate
+   * @return translated string
+   */
+  private String jsonPropertiesToColumnNames(String clause) {
+    Map<String,PgColumn> prop2col = getFieldMap();
+    for (String property  : prop2col.keySet()) {
+      clause = clause.replaceAll(property.toLowerCase(), prop2col.get(property).name);
+    }
+    return clause;
+  }
 
 }
