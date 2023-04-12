@@ -1,3 +1,10 @@
+## 0.4.0-SNAPSHOT
+
+* Adds full-text query capability to PG text fields (MODHAADM-51)
+* Fixes bug in sorting logic (MODHAADM-52)
+* Adds previousJob.message to queryable fields (MODHAADM-50)
+* Adds logLine.line, logLine.jobLabel to queryable fields (MODHAADM-48) 
+
 ## 0.3.9-SNAPSHOT
 
 * Bugfix: enables CQL operators for text fields (MODHAADM-47)
