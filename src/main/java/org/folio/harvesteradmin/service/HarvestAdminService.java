@@ -35,6 +35,7 @@ import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
+import org.folio.tlib.postgres.PgCqlException;
 import org.folio.tlib.util.TenantUtil;
 
 public class HarvestAdminService implements RouterCreator, TenantInitHooks {
@@ -568,6 +569,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
       query = HarvestJob.entity()
           .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.harvest_job))
           .withAdditionalWhereClause(timeRange);
+    } catch (PgCqlException pce) {
+      responseText(routingContext, 400)
+          .end("Could not execute query to retrieve jobs: " + pce.getMessage());
+      return Future.succeededFuture();
     } catch (Exception e) {
       return Future.failedFuture(e.getMessage());
     }
@@ -750,7 +755,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     ).mapEmpty();
   }
 
-  private Future<Void> generateIds(RoutingContext routingContext) {
+  private void generateIds(RoutingContext routingContext) {
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     int count = 1;
     if (params.queryParameter("count") != null) {
@@ -763,7 +768,5 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           .append(System.lineSeparator());
     }
     responseText(routingContext, 200).end(response.toString());
-    return Future.succeededFuture();
   }
-
 }

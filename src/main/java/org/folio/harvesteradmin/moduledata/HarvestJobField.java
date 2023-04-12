@@ -15,7 +15,7 @@ public enum HarvestJobField implements Field {
   STARTED("started", "started", PgColumn.Type.TIMESTAMP, false, false),
   FINISHED("finished", "finished", PgColumn.Type.TIMESTAMP, true, false),
   AMOUNT_HARVESTED("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, false),
-  MESSAGE("message", "message", PgColumn.Type.TEXT, true, false);
+  MESSAGE("message", "message", PgColumn.Type.TEXT, true, true);
 
   private final JsonProperty property;
   private final PgColumn column;
