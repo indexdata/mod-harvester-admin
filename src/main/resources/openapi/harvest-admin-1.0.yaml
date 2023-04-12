@@ -547,7 +547,7 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL, supporting logLevel in query terms
+          description: CQL, supporting harvestJobId, logLevel, jobLabel, line in query terms
           schema:
             type: string
       responses:
