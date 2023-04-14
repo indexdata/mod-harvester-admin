@@ -84,6 +84,14 @@
           "permissionsRequired": ["harvester-admin.previous-jobs.collection.get"]
         }, {
           "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/failed-records",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/failed-records/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.item.get"]
+        },{
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}",
           "permissionsRequired": ["harvester-admin.previous-jobs.item.get"]
         },{
@@ -98,10 +106,6 @@
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
-        },{
-          "methods": ["GET"],
-          "pathPattern": "/harvester-admin/previous-jobs/failed-records/{id}",
-          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.item.get"]
         },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",

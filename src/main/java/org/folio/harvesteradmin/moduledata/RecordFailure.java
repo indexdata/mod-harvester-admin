@@ -2,7 +2,6 @@ package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
@@ -12,6 +11,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.tlib.postgres.PgCqlDefinition;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
 
 public class RecordFailure extends StoredEntity {
 
@@ -145,17 +146,18 @@ public class RecordFailure extends StoredEntity {
 
   @Override
   public PgCqlDefinition getQueryableFields() {
-    return null;
+    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
+    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
+    pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
+    return pgCqlDefinition;
   }
 
   @Override
   public Map<String, PgColumn> getFieldMap() {
-    return null;
-  }
-
-  @Override
-  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
-    return null;
+    Map<String, PgColumn> map = new HashMap<>();
+    map.put("recordNumber", new PgColumn("record_number", PgColumn.Type.TEXT, false, false));
+    map.put("timeStamp", new PgColumn("time_stamp", PgColumn.Type.TIMESTAMP, false, false));
+    return map;
   }
 
   /**

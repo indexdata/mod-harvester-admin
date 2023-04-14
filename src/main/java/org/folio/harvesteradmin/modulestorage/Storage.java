@@ -251,24 +251,21 @@ public class Storage {
   }
 
   /**
-   * Retrieves failed records for past harvest job.
+   * Retrieves failed records for past harvest jobs.
    */
-  public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(
-      UUID id, String offset, String limit) {
+  public Future<List<RecordFailure>> getFailedRecordsForPreviousJobs(
+          SqlQuery query) {
     List<RecordFailure> recordFailures = new ArrayList<>();
-    return SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * "
-                + "FROM " + schemaDotTable(Table.record_failure) + " "
-                + "WHERE harvest_job_id = #{id} "
-                + SqlQuery.limits(offset, limit))
+    return SqlTemplate.forQuery(pool.getPool(), query.getQueryWithLimits())
         .mapTo(RecordFailure.entity().getRowMapper())
-        .execute(Collections.singletonMap("id", id))
+        .execute(null)
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
             recordFailures.add((RecordFailure) entity);
           }
         }).map(recordFailures);
   }
+
 
   /**
    * Retrieves failed records for past harvest job.

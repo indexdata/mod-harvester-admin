@@ -17,6 +17,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.impl.HttpResponseImpl;
 import io.vertx.ext.web.openapi.RouterBuilder;
+import io.vertx.ext.web.validation.RequestParameter;
 import io.vertx.ext.web.validation.RequestParameters;
 import io.vertx.ext.web.validation.ValidationHandler;
 import java.util.List;
@@ -152,13 +153,18 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getFailedRecordsForPreviousJob")
-        .handler(ctx -> getFailedRecordsForPreviousJob(vertx, ctx)
+        .handler(ctx -> getFailedRecordsForPreviousJobs(vertx, ctx)
             .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("getFailedRecordForPreviousJob")
         .handler(ctx -> getFailedRecordForPreviousJob(vertx, ctx)
             .onFailure(cause -> exceptionResponse(cause, ctx)))
+        .failureHandler(this::routerExceptionResponse);
+    routerBuilder
+         .operation("getFailedRecordsForPreviousJobs")
+         .handler(ctx -> getFailedRecordsForPreviousJobs(vertx, ctx)
+             .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
 
     routerBuilder
@@ -700,36 +706,53 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     }
   }
 
-  private Future<Void> getFailedRecordsForPreviousJob(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> getFailedRecordsForPreviousJobs(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    String offset = routingContext.request().getParam("offset");
-    String limit = routingContext.request().getParam("limit");
-
     Storage storage = new Storage(vertx, tenant);
-    return storage.getFailedRecordsForPreviousJob(id, offset, limit).onComplete(
-        failuresList -> {
-          if (failuresList.succeeded()) {
-            JsonObject responseJson = new JsonObject();
-            JsonArray recordFailures = new JsonArray();
-            responseJson.put("failedRecords", recordFailures);
-            List<RecordFailure> failures = failuresList.result();
-            for (RecordFailure failure : failures) {
-              recordFailures.add(failure.asJson());
-            }
-            storage.getCount("SELECT COUNT(*) as total_records "
-                + "FROM " + storage.schemaDotTable(Storage.Table.record_failure) + " "
-                + "WHERE harvest_job_id = '" + id + "'").onComplete(count -> {
-                  responseJson.put("totalRecords", count.result());
-                  responseJson(routingContext, 200).end(responseJson.encodePrettily());
-                }
-            );
-          } else {
-            responseText(routingContext, 500)
-                .end("Problem retrieving jobs: " + failuresList.cause().getMessage());
+
+    SqlQuery queryFromCql = RecordFailure.entity()
+        .makeSqlFromCqlQuery(routingContext, storage.schemaDotTable(Storage.Table.record_failure));
+
+    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+    RequestParameter jobId = params.pathParameter("id");
+    RequestParameter from = params.queryParameter("from");
+    RequestParameter until = params.queryParameter("until");
+
+    String timeRange = null;
+    if (from != null && until != null) {
+      timeRange = " (time_stamp >= '" + from.getString()
+          + "'  AND time_stamp <= '" + until.getString() + "') ";
+    } else if (from != null) {
+      timeRange = " time_stamp >= '" + from.getString() + "' ";
+    } else if (until != null) {
+      timeRange = " time_stamp <= '" + until.getString() + "' ";
+    }
+
+    if (jobId != null) {
+      queryFromCql.withAdditionalWhereClause("harvest_job_id = '" + jobId + "'");
+    }
+    if (timeRange != null) {
+      queryFromCql.withAdditionalWhereClause(timeRange);
+    }
+
+    return storage.getFailedRecordsForPreviousJobs(queryFromCql).onComplete(
+      failuresList -> {
+        if (failuresList.succeeded()) {
+          JsonObject responseJson = new JsonObject();
+          JsonArray recordFailures = new JsonArray();
+          responseJson.put("failedRecords", recordFailures);
+          List<RecordFailure> failures = failuresList.result();
+          for (RecordFailure failure : failures) {
+            recordFailures.add(failure.asJson());
           }
+          storage.getCount(queryFromCql.getCountingSql()).onComplete(
+              count -> {
+                responseJson.put("totalRecords", count.result());
+                responseJson(routingContext, 200).end(responseJson.encodePrettily());
+              }
+          );
         }
+      }
     ).mapEmpty();
   }
 
