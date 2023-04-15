@@ -635,7 +635,7 @@ paths:
       - in: query
         name: query
         required: false
-        description: CQL query, supporting recordNumber in queries
+        description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
         schema:
           type: string
       - in: query
