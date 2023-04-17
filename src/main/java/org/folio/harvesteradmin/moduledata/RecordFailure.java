@@ -2,7 +2,6 @@ package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
@@ -12,10 +11,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.folio.harvesteradmin.modulestorage.Storage;
 import org.folio.tlib.postgres.PgCqlDefinition;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
 
+/** Logic for persisting in RECORD_FAILURE and retrieving from RECORD_FAILURE_VIEW.
+ *
+ */
 public class RecordFailure extends StoredEntity {
 
   private UUID id;
+  private Long harvestableId;
+  private String harvestableName;
   private UUID harvestJobId;
   private String recordNumber;
   private String timeStamp;
@@ -30,7 +37,10 @@ public class RecordFailure extends StoredEntity {
     time_stamp,
     record_errors,
     original_record,
-    transformed_record
+    transformed_record,
+    harvestable_id,  // view column
+    harvestable_name // view column
+
   }
 
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS";
@@ -87,11 +97,15 @@ public class RecordFailure extends StoredEntity {
         + ")";
   }
 
-  @Override
+  /**
+   * Maps rows from RECORD_FAILURE_VIEW to RecordFailure object.
+   */
   public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       RecordFailure recordFailure = new RecordFailure();
       recordFailure.id = row.getUUID(RecordFailure.Column.id.name());
+      recordFailure.harvestableId = row.getLong(Column.harvestable_id.name());
+      recordFailure.harvestableName = row.getString(Column.harvestable_name.name());
       recordFailure.harvestJobId = row.getUUID(Column.harvest_job_id.name());
       recordFailure.recordNumber = row.getString(Column.record_number.name());
       recordFailure.timeStamp = row.getLocalDateTime(Column.time_stamp.name()).toString();
@@ -100,8 +114,8 @@ public class RecordFailure extends StoredEntity {
       recordFailure.transformedRecord = row.getJsonObject(Column.transformed_record.name());
       return recordFailure;
     };
-  }
 
+  }
 
   @Override
   public String makeInsertTemplate(String schema) {
@@ -132,30 +146,37 @@ public class RecordFailure extends StoredEntity {
         recordFailure -> {
           RecordFailure entity = (RecordFailure) recordFailure;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(RecordFailure.Column.id.name(), entity.id);
+          parameters.put(Column.id.name(), entity.id);
           parameters.put(Column.harvest_job_id.name(), entity.harvestJobId);
           parameters.put(Column.record_number.name(), entity.recordNumber);
           parameters.put(Column.time_stamp.name(), entity.timeStamp);
           parameters.put(Column.original_record.name(), entity.originalRecord);
           parameters.put(Column.transformed_record.name(), entity.transformedRecord);
-          parameters.put(RecordFailure.Column.record_errors.name(), entity.recordErrors);
+          parameters.put(Column.record_errors.name(), entity.recordErrors);
           return parameters;
         });
   }
 
   @Override
   public PgCqlDefinition getQueryableFields() {
-    return null;
+    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
+    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
+    pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
+    pgCqlDefinition.addField(
+        "harvestableId", new PgCqlFieldNumber());
+    pgCqlDefinition.addField(
+        "harvestableName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
+    return pgCqlDefinition;
   }
 
   @Override
   public Map<String, PgColumn> getFieldMap() {
-    return null;
-  }
-
-  @Override
-  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
-    return null;
+    Map<String, PgColumn> map = new HashMap<>();
+    map.put("recordNumber", new PgColumn("record_number", PgColumn.Type.TEXT, false, false));
+    map.put("timeStamp", new PgColumn("time_stamp", PgColumn.Type.TIMESTAMP, false, false));
+    map.put("harvestableId", new PgColumn("harvestable_id", PgColumn.Type.BIGINT, true, false));
+    map.put("harvestableName", new PgColumn("harvestable_name", PgColumn.Type.TEXT, true, false));
+    return map;
   }
 
   /**
@@ -165,6 +186,8 @@ public class RecordFailure extends StoredEntity {
     JsonObject json = new JsonObject();
     json.put("id", id);
     json.put("harvestJobId", harvestJobId);
+    json.put("harvestableId", harvestableId);
+    json.put("harvestableName", harvestableName);
     json.put("recordNumber", recordNumber);
     json.put("timeStamp", timeStamp);
     json.put("recordErrors", recordErrors);

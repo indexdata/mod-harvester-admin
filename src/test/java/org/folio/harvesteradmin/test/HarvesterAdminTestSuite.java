@@ -646,7 +646,7 @@ public class HarvesterAdminTestSuite {
   @Test
   public void canGetPreviousJob () {
     tenantAction(TENANT, new JsonObject()
-            .put("module_to", "mod-harvester-admin-0.2.0-SNAPSHOT"));
+            .put("module_to", "mod-harvester-admin-0.4.0-SNAPSHOT"));
 
     RestAssured
         .given()
@@ -656,7 +656,7 @@ public class HarvesterAdminTestSuite {
         .log().ifValidationFails().statusCode(200).extract().response();
 
     tenantAction(TENANT, new JsonObject()
-        .put("module_from", "mod-harvester-admin-0.2.0-SNAPSHOT")
+        .put("module_from", "mod-harvester-admin-0.4.0-SNAPSHOT")
         .put("purge", true));
 
 

@@ -2,6 +2,22 @@
   "description": "An error report about an Inventory record set that had one or more errors during upsert or delete.",
   "type": "object",
   "properties": {
+    "id": {
+      "description": "Unique ID (uuid) for this error report.",
+      "type": "string"
+    },
+    "harvestJobId": {
+      "description": "Identifier (uuid) of the harvest job run creating the error report",
+      "type": "string"
+    },
+    "harvestableId": {
+      "description": "Identifier (numeric) of the harvest configuration (harvestable), by which the job was run.",
+      "type": "integer"
+    },
+    "harvestableName": {
+      "description": "Name of the harvest configuration (harvestable), by which the job was run.",
+      "type": "string"
+    },
     "recordErrors" : {
       "type": "array",
       "description": "List of errors encountered during upsert or delete.",
@@ -57,14 +73,6 @@
     "recordNumber": {
       "type": "string",
       "description": "The identifier assigned to this error report by Harvester"
-    },
-    "harvestJobId": {
-      "description": "Identifier (uuid) of the harvest job run creating the error report",
-      "type": "string"
-    },
-    "id": {
-      "description": "Unique ID (uuid) for this error report.",
-      "type": "string"
     }
   }
 }
