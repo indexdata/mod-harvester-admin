@@ -447,7 +447,7 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL query, supporting harvestableId, name, type, status, and message in queries
+          description: CQL query, supporting harvestableId, name, type, status, and message in queries, and the same fields plus started and finished in sorting
           schema:
             type: string
         - in: query
@@ -465,13 +465,13 @@ paths:
         - in: query
           name: from
           required: false
-          description: date range parameter on start-date
+          description: date range start parameter on finished date
           schema:
             type: string
         - in: query
           name: until
           required: false
-          description: date range parameter on start-date
+          description: date range end parameter on finished date
           schema:
             type: string
       responses:

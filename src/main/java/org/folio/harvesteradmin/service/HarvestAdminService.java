@@ -563,11 +563,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String untilDateTime = routingContext.request().getParam("until");
     String timeRange = null;
     if (fromDateTime != null && untilDateTime != null) {
-      timeRange = " (started >= '" + fromDateTime + "'  AND started <= '" + untilDateTime + "') ";
+      timeRange = " (finished >= '" + fromDateTime + "'  AND finished <= '" + untilDateTime + "') ";
     } else if (fromDateTime != null) {
-      timeRange = " started >= '" + fromDateTime + "' ";
+      timeRange = " finished >= '" + fromDateTime + "' ";
     } else if (untilDateTime != null) {
-      timeRange = " started <= '" + untilDateTime + "' ";
+      timeRange = " finished <= '" + untilDateTime + "' ";
     }
 
     SqlQuery query;

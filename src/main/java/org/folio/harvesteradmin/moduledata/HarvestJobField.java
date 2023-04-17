@@ -12,9 +12,9 @@ public enum HarvestJobField implements Field {
   TRANSFORMATION("transformation", "transformation", PgColumn.Type.TEXT, false, true),
   STORAGE("storage", "storage", PgColumn.Type.TEXT, false, true),
   STATUS("status", "status", PgColumn.Type.TEXT, true, true),
-  STARTED("started", "started", PgColumn.Type.TIMESTAMP, false, false),
-  FINISHED("finished", "finished", PgColumn.Type.TIMESTAMP, true, false),
-  AMOUNT_HARVESTED("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, false),
+  STARTED("started", "started", PgColumn.Type.TIMESTAMP, false, true),
+  FINISHED("finished", "finished", PgColumn.Type.TIMESTAMP, true, true),
+  AMOUNT_HARVESTED("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, true),
   MESSAGE("message", "message", PgColumn.Type.TEXT, true, true);
 
   private final JsonProperty property;
