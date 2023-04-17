@@ -1,3 +1,8 @@
+## 0.5.0-SNAPSHOT
+
+* Provides GET /harvester-admin/previous-jobs/failed-records API (MODHAADM-43)
+* Supports sorting of previous-jobs by `started`, `finished` and `amountHarvested` (MODHAADM-52)
+
 ## 0.4.0-SNAPSHOT
 
 * Adds full-text query capability to PG text fields (MODHAADM-51)

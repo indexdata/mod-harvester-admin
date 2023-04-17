@@ -447,7 +447,7 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL query, supporting harvestableId, name, type, status, and message in queries, and the same fields plus started and finished in sorting
+          description: CQL query, supporting harvestableId, name, type, status, message, and amountHarvested in queries, and the same fields plus started and finished in sorting
           schema:
             type: string
         - in: query
@@ -498,7 +498,7 @@ paths:
         - in: query
           name: query
           required: false
-          description: CQL query, supporting recordNumber in queries
+          description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
           schema:
             type: string
         - in: query
