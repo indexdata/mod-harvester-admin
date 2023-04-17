@@ -49,11 +49,11 @@ public abstract class StoredEntity {
 
     PgCqlDefinition definition = getQueryableFields();
 
-    String offset = routingContext.request().getParam("offset");
-    String limit = routingContext.request().getParam("limit");
-
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     RequestParameter query = params.queryParameter("query");
+    RequestParameter offset =  params.queryParameter("offset");
+    RequestParameter limit = params.queryParameter("limit");
+
     String select = "SELECT * ";
     String from = "FROM " + schemaDotTable;
     String where = "";

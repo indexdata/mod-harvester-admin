@@ -1,5 +1,7 @@
 package org.folio.harvesteradmin.moduledata;
 
+import io.vertx.ext.web.validation.RequestParameter;
+
 public class SqlQuery {
 
   private final String select;
@@ -13,13 +15,13 @@ public class SqlQuery {
    * Constructor.
    */
   public SqlQuery(String select, String from, String where, String orderBy,
-                  String offset, String limit) {
+                  RequestParameter offset, RequestParameter limit) {
     this.select = select;
     this.from = from;
     this.where = where != null ? where : "";
     this.orderBy = orderBy != null ? orderBy : "";
-    this.offset = offset;
-    this.limit = limit;
+    this.offset = offset != null ? offset.toString() : null;
+    this.limit = limit != null ? limit.toString() : null;
   }
 
   /**

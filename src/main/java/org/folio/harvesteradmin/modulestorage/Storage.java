@@ -1,6 +1,5 @@
 package org.folio.harvesteradmin.modulestorage;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -13,7 +12,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -34,7 +32,8 @@ public class Storage {
   public enum Table {
     harvest_job,
     log_statement,
-    record_failure
+    record_failure,
+    record_failure_view
   }
 
   /**
@@ -61,36 +60,9 @@ public class Storage {
   public Future<Void> init(JsonObject tenantAttributes) {
     if (!tenantAttributes.containsKey("module_to")) {
       return Future.succeededFuture(); // doing nothing for disable
+    } else {
+      return Schema.createDatabase(pool);
     }
-    final Promise<Void> promise = Promise.promise();
-    @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
-    for (StoredEntity entity : Arrays.asList(
-        HarvestJob.entity(),
-        LogLine.entity(),
-        RecordFailure.entity())) {
-      tables.add(pool.query(entity.makeCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    }
-    CompositeFuture.all(tables).onComplete(
-        creates -> {
-          if (creates.succeeded()) {
-            promise.complete();
-          } else {
-            promise.fail(creates.cause().getMessage());
-          }
-        });
-    return promise.future();
-
-    /* Template for processing parameters in init.
-      JsonArray parameters = tenantAttributes.getJsonArray("parameters");
-      if (parameters != null) {
-        for (int i = 0; i < parameters.size(); i++) {
-          JsonObject parameter = parameters.getJsonObject(i);
-          if ("loadSample".equals(parameter.getString("key"))
-              && "true".equals(parameter.getString("value"))) {
-          }
-        }
-      }
-    */
   }
 
   /**
@@ -251,24 +223,21 @@ public class Storage {
   }
 
   /**
-   * Retrieves failed records for past harvest job.
+   * Retrieves failed records for past harvest jobs.
    */
-  public Future<List<RecordFailure>> getFailedRecordsForPreviousJob(
-      UUID id, String offset, String limit) {
+  public Future<List<RecordFailure>> getFailedRecordsForPreviousJobs(
+          SqlQuery query) {
     List<RecordFailure> recordFailures = new ArrayList<>();
-    return SqlTemplate.forQuery(pool.getPool(),
-            "SELECT * "
-                + "FROM " + schemaDotTable(Table.record_failure) + " "
-                + "WHERE harvest_job_id = #{id} "
-                + SqlQuery.limits(offset, limit))
+    return SqlTemplate.forQuery(pool.getPool(), query.getQueryWithLimits())
         .mapTo(RecordFailure.entity().getRowMapper())
-        .execute(Collections.singletonMap("id", id))
+        .execute(null)
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
             recordFailures.add((RecordFailure) entity);
           }
         }).map(recordFailures);
   }
+
 
   /**
    * Retrieves failed records for past harvest job.
