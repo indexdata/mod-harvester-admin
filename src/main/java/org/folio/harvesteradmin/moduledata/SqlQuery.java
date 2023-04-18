@@ -10,6 +10,7 @@ public class SqlQuery {
   private final String orderBy;
   private final String offset;
   private final String limit;
+  private String defaultLimit = null;
 
   /**
    * Constructor.
@@ -41,7 +42,7 @@ public class SqlQuery {
         + from
         + where
         + orderBy
-        + limits(offset, limit);
+        + limits(offset, (limit == null ? defaultLimit : limit));
   }
 
   /**
@@ -58,10 +59,15 @@ public class SqlQuery {
     return this;
   }
 
+  public SqlQuery withDefaultLimit(String defaultLimit) {
+    this.defaultLimit = defaultLimit;
+    return this;
+  }
+
   /**
    * Applies offset and limit if any.
    */
-  public static String limits(String offset, String limit) {
+  private static String limits(String offset, String limit) {
     return
         (offset == null || offset.isEmpty() ? "" : " offset " + offset)
             + (limit == null || limit.isEmpty() ? "" : " limit " + limit);

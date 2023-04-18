@@ -711,8 +711,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     Storage storage = new Storage(vertx, tenant);
 
     SqlQuery queryFromCql = RecordFailure.entity().makeSqlFromCqlQuery(
-        routingContext, storage.schemaDotTable(Storage.Table.record_failure_view));
-
+        routingContext, storage.schemaDotTable(Storage.Table.record_failure_view))
+        .withDefaultLimit("100");
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
     RequestParameter jobId = params.pathParameter("id");
     RequestParameter from = params.queryParameter("from");
