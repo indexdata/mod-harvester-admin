@@ -1,4 +1,9 @@
-## 0.5.0-SNAPSHOT
+## 0.6.0-SNAPSHOT
+
+* Supports date ranges in CQL queries (MODHAADM-57)
+* Applies default limit 100 to GET previous-jobs (MODHAADM-56)
+
+5.0-SNAPSHOT
 
 * Provides GET /harvester-admin/previous-jobs/failed-records API (MODHAADM-43)
 * Supports sorting of previous-jobs by `started`, `finished` and `amountHarvested` (MODHAADM-52)
