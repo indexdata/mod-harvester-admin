@@ -3,6 +3,7 @@ package org.folio.harvesteradmin.moduledata;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldBase;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldTimestamp;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldUuid;
 
 public class PgColumn {
@@ -46,6 +47,8 @@ public class PgColumn {
         return new PgCqlFieldNumber();
       case UUID:
         return new PgCqlFieldUuid();
+      case TIMESTAMP:
+        return new PgCqlFieldTimestamp();
       default:
         return new PgCqlFieldText().withExact().withLikeOps().withFullText();
     }
