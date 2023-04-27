@@ -14,6 +14,8 @@ import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldText;
+import org.folio.tlib.postgres.cqlfield.PgCqlFieldTimestamp;
+
 
 /** Logic for persisting in RECORD_FAILURE and retrieving from RECORD_FAILURE_VIEW.
  *
@@ -162,10 +164,10 @@ public class RecordFailure extends StoredEntity {
     PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
     pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
     pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
-    pgCqlDefinition.addField(
-        "harvestableId", new PgCqlFieldNumber());
+    pgCqlDefinition.addField("harvestableId", new PgCqlFieldNumber());
     pgCqlDefinition.addField(
         "harvestableName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
+    pgCqlDefinition.addField("timeStamp", new PgCqlFieldTimestamp());
     return pgCqlDefinition;
   }
 
