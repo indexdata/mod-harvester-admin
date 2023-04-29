@@ -10,8 +10,12 @@ lint: schemalint examplelint apilint
 schemalint:
 	ajv compile -s schemas/harvestableXmlBulkPostPut.json
 	ajv compile -s schemas/harvestableOaiPmhPostPut.json
-	# ajv doesn't seem to be able to handle $ref at all, so we can't validate the uber-schema
+	ajv compile -s schemas/harvestableConnectorPostPut.json
+	ajv compile -s schemas/harvestableSTatusPostPut.json
+	# ajv doesn't seem to be able to handle $ref at all, so it can't validate the uber-schema
 	# ajv compile -s schemas/harvestablePostPut.json
+	# But z-schema can!
+	z-schema schemas/harvestablePostPut.json
 
 examplelint:
 	ajv test -s schemas/harvestableBrief.json -d example/harvestableBrief.json --valid
@@ -19,6 +23,7 @@ examplelint:
 	ajv test -s schemas/harvestableOaiPmhPostPut.json -d example/oaiPmh.json --valid
 	ajv test -s schemas/harvestableConnectorPostPut.json -d example/connector.json --valid
 	ajv test -s schemas/harvestableStatusPostPut.json -d example/status.json --valid
+	z-schema schemas/harvestablePostPut.json example/[xocs]*
 
 apilint: harvest-admin-1.0.yaml
 	api_lint.py -t OAS -d .
