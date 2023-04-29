@@ -174,6 +174,6 @@
   "recurse" : "false",
   "splitAt" : "1",
   "splitSize" : "200",
-  "url" : "ftp://fandm:ldaFcaO66Oij@ftp.folio.indexdata.com/incoming/ne",
+  "url" : "ftp://fandm:PW-HERE@ftp.folio.indexdata.com/incoming/ne",
   "type" : "xmlBulk"
 }
