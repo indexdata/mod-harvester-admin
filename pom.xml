@@ -4,7 +4,7 @@
 
     <groupId>org.folio</groupId>
   <artifactId>mod-harvester-admin</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.0.0</okapi.version>
@@ -445,7 +445,7 @@
         <url>https://github.com/indexdata/mod-harvester-admin</url>
         <connection>scm:git:git://github.com:indexdata/mod-harvester-admin.git</connection>
         <developerConnection>scm:git:git@github.com:indexdata/mod-harvester-admin.git</developerConnection>
-        <tag>v1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
   <issueManagement>
