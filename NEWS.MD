@@ -1,4 +1,4 @@
-## 1.0.0-SNAPSHOT
+## 1.0.0 2023-05-01
 
 * Adds schema for connector and status harvestables to support saving these (MODHAADM-58)
 * Log history: Allow `status.finished` to be undefined (MODHAADM-49)
