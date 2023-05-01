@@ -161,7 +161,9 @@ public class HarvestJob extends StoredEntity {
           parameters.put(HarvestJobField.STORAGE.columnName(), entity.getStorage());
           parameters.put(HarvestJobField.STATUS.columnName(), entity.getStatus());
           parameters.put(HarvestJobField.STARTED.columnName(), entity.getStarted());
-          parameters.put(HarvestJobField.FINISHED.columnName(), entity.getFinished());
+          if (entity.getFinished() != null) {
+            parameters.put(HarvestJobField.FINISHED.columnName(), entity.getFinished());
+          }
           if (entity.getAmountHarvested() != null) {
             parameters.put(
                 HarvestJobField.AMOUNT_HARVESTED.columnName(), entity.getAmountHarvested());
