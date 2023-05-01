@@ -443,6 +443,13 @@
         </repository>
     </repositories>
 
+    <scm>
+        <url>https://github.com/indexdata/mod-harvester-admin</url>
+        <connection>scm:git:git://github.com:indexdata/mod-harvester-admin.git</connection>
+        <developerConnection>scm:git:git@github.com:indexdata/mod-harvester-admin.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
   <issueManagement>
     <system>JIRA</system>
     <url>https://issues.folio.org/projects/MODHAADM</url>
