@@ -3,7 +3,9 @@
   "type": "object",
   "oneOf": [
     {"$ref": "harvestableXmlBulkPostPut.json"},
-    {"$ref": "harvestableOaiPmhPostPut.json"}
+    {"$ref": "harvestableOaiPmhPostPut.json"},
+    {"$ref": "harvestableConnectorPostPut.json"},
+    {"$ref": "harvestableStatusPostPut.json"}
   ]
 }
 

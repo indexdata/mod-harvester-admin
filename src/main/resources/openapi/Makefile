@@ -1,17 +1,31 @@
-harvester-admin-0.1.yaml: harvester-admin-0.1.yaml.m4
-	rm -rf $@
-	m4 $? > $@
-	chmod 444 $@
+# It seems the M4 file was removed in commit 63ccb575c9d26275c8e4b1b8f6c6abbd1ab81ac4
+#
+# harvester-admin-0.1.yaml: harvester-admin-0.1.yaml.m4
+# 	rm -rf $@
+# 	m4 $? > $@
+# 	chmod 444 $@
 
 lint: schemalint examplelint apilint
 
 schemalint:
-	ajv compile -s "schema/*.json"
+	ajv compile -s schemas/harvestableXmlBulkPostPut.json
+	ajv compile -s schemas/harvestableOaiPmhPostPut.json
+	ajv compile -s schemas/harvestableConnectorPostPut.json
+	ajv compile -s schemas/harvestableSTatusPostPut.json
+	# ajv doesn't seem to be able to handle $ref at all, so it can't validate the uber-schema
+	# ajv compile -s schemas/harvestablePostPut.json
+	# But z-schema can!
+	z-schema schemas/harvestablePostPut.json
 
 examplelint:
-	ajv test -s schema/harvestableBrief.json -d example/harvestable.json --valid
+	ajv test -s schemas/harvestableBrief.json -d example/harvestableBrief.json --valid
+	ajv test -s schemas/harvestableXmlBulkPostPut.json -d example/xmlBulk.json --valid
+	ajv test -s schemas/harvestableOaiPmhPostPut.json -d example/oaiPmh.json --valid
+	ajv test -s schemas/harvestableConnectorPostPut.json -d example/connector.json --valid
+	ajv test -s schemas/harvestableStatusPostPut.json -d example/status.json --valid
+	z-schema schemas/harvestablePostPut.json example/[xocs]*
 
-apilint: harvester-admin-0.1.yaml
+apilint: harvest-admin-1.0.yaml
 	api_lint.py -t OAS -d .
 
 doc:
