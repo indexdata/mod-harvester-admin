@@ -33,5 +33,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["finished", "message"]
+  "required": ["status", "message"]
 }
