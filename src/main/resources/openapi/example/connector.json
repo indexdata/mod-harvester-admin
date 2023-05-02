@@ -37,7 +37,7 @@
       "folioAuthPath" : "bl-users/login",
       "folioTenant" : "diku",
       "folioUsername" : "diku_admin",
-      "folioPassword" : "admin",
+      "folioPassword" : "PW-HERE",
       "inventoryUpsertPath" : "inventory-upsert-hrid",
       "marcStoragePath" : "marc-records"
     },
@@ -59,7 +59,7 @@
     "id" : "2",
     "label" : "CF Repo (default)",
     "name" : "cf.repo.url.1",
-    "value" : "https://idtest:idtest36@cfrepo.indexdata.com/repo.pl/idtest/"
+    "value" : "https://idtest:PW-HERE@cfrepo.indexdata.com/repo.pl/idtest/"
   },
   "engineParameters" : "",
   "initData" : "",
