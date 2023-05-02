@@ -44,7 +44,7 @@
       "folioAuthPath" : "bl-users/login",
       "folioTenant" : "harvester",
       "folioUsername" : "harvester_admin",
-      "folioPassword" : "uF5zw61mOXOCV",
+      "folioPassword" : "PW-HERE",
       "inventoryUpsertPath" : "inventory-upsert-hrid",
       "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
       "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
