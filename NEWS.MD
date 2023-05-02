@@ -1,3 +1,9 @@
+## 1.0.0 2023-05-01
+
+* Adds schema for connector and status harvestables to support saving these (MODHAADM-58)
+* Log history: Allow `status.finished` to be undefined (MODHAADM-49)
+* Supports query, sort-by timeStamp of failedRecord of previousJob (MODHAADM-59)
+
 ## 0.6.0-SNAPSHOT
 
 * Supports date ranges in CQL queries (MODHAADM-57)
