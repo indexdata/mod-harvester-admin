@@ -44,8 +44,7 @@ jobs:
           MOD_DESCRIPTOR: './target/ModuleDescriptor.json'
       - name: Login ModuleDescriptor registry
         id: login-md-registry
-        # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@master
+        uses: cyberman54/curl@v1
         with:
           url: "${{ env.FOLIO_MD_REGISTRY }}/authn/login"
           method: "POST"
@@ -93,8 +92,7 @@ jobs:
           path: ${{ env.MODULE_DESCRIPTOR }}
       - name: Publish ModuleDescriptor to MD registry
         id: result-md-registry
-        # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@master
+        uses: cyberman54/curl@v1
         with:
           url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules"
           method: "POST"
