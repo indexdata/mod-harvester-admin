@@ -1,14 +1,18 @@
 name: release-maven
 
+# IMAGE_NAME: string; The name of the module.
+#  'indexdata/mod-harvester-admin'
+
+env:
+  FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
+  CONTAINER_REGISTRY: 'ghcr.io'
+  IMAGE_NAME: 'indexdata/mod-harvester-admin'
+
 on:
   push:
     tags:
 #      - '[vV][0-9]+.[0-9]+.[0-9]+'  # i.e. release tag only
       - '[vV][0-9]+.[0-9]+.[0-9]+*'  # i.e. allow snapshot tag
-env:
-  FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
-  CONTAINER_REGISTRY: 'ghcr.io'
-  IMAGE_NAME: 'indexdata/mod-harvester-admin'
 
 jobs:
   release-maven:
