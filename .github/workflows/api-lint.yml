@@ -2,11 +2,29 @@ name: api-lint
 
 # https://dev.folio.org/guides/api-lint/
 
+# API_TYPES: string: The space-separated list of types to consider.
+# One or more of 'RAML OAS'.
+# e.g. 'OAS'
+#
+# API_DIRECTORIES: string: The space-separated list of directories to search
+# for API description files.
+# e.g. 'src/main/resources/openapi'
+# NOTE: -- Also add each separate path to each of the "on: paths:" sections.
+# e.g. 'src/main/resources/openapi/**'
+#
+# API_EXCLUDES: string: The space-separated list of directories and files
+# to exclude from traversal, in addition to the default exclusions.
+# e.g. ''
+#
+# API_WARNINGS: boolean: Whether to cause Warnings to be displayed,
+# and to fail the workflow.
+# e.g. false
+
 env:
   API_TYPES: 'OAS'
   API_DIRECTORIES: 'src/main/resources/openapi'
   API_EXCLUDES: ''
-  API_WARNINGS: 'false'
+  API_WARNINGS: false
 
 on:
   push:
