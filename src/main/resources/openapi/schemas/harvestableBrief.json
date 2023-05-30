@@ -1,0 +1,72 @@
+{
+  "description": "brief harvest job definition record",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "unique ID for the job definition"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name assigned to job"
+    },
+    "currentStatus": {
+      "type": "string",
+      "enum": [
+        "NEW",
+        "OK",
+        "WARN",
+        "ERROR",
+        "RUNNING",
+        "FINISHED",
+        "KILLED"
+      ],
+      "description": "Indicates the state of the job"
+    },
+    "enabled": {
+      "type": "string",
+      "enum": [
+        "true",
+        "false"
+      ],
+      "description": "Indicates if the job is scheduled for running"
+    },
+    "storageUrl": {
+      "type": "string",
+      "description": "address of the storage service where the results of a harvest run should be persisted"
+    },
+    "lastHarvestFinished": {
+      "type": "string",
+      "description": "the date and time when the most recent harvest job with this configuration completed"
+    },
+    "lastHarvestStarted": {
+      "type": "string",
+      "description": "the date and time when the most recent harvest job with this configuration began"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "description": "the date and time when this definition was last modified"
+    },
+    "nextHarvestSchedule": {
+      "type": "string",
+      "description": "the date and time when a job with this definition should be run (if job is enabled)"
+    },
+    "jobClass": {
+      "type": "string",
+      "enum": [
+        "XmlBulkResource",
+        "OaiPmhResource",
+        "HarvestConnectorResource"
+      ],
+      "description": "indicates the type of source from which the job would harvest and thus the kind of processing the Harvester would perform for running the job"
+    },
+    "amountHarvested": {
+      "type": "string",
+      "description": "Number of records harvested in last run. It seems this should really be an integer, but string is what the WSAPI gives us"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message summarising results of last run"
+    }
+  }
+}

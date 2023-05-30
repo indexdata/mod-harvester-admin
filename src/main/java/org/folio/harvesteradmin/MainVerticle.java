@@ -1,111 +1,42 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.folio.harvesteradmin;
-
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.statics.Config;
+import io.vertx.core.http.HttpServerOptions;
+import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.service.HarvestAdminService;
+import org.folio.okapi.common.Config;
+import org.folio.tlib.RouterCreator;
+import org.folio.tlib.api.HealthApi;
+import org.folio.tlib.api.Tenant2Api;
+import org.folio.tlib.postgres.TenantPgPool;
 
-import static org.folio.harvesteradmin.statics.ApiPaths.*;
 
-/**
- * Main point of entry for the harvester-admin service
- *
- * @author ne
- */
-@SuppressWarnings( "SpellCheckingInspection" )
-public class MainVerticle extends AbstractVerticle
-{
-
-  private final Logger logger = LogManager.getLogger( "harvester-admin" );
-
-  public static String getTenant( RoutingContext ctx )
-  {
-    return ctx.request().getHeader( "x-okapi-tenant" );
-  }
-
+public class MainVerticle extends AbstractVerticle {
   @Override
-  public void start( Promise<Void> promise )
-  {
-    Config config = new Config();
-    if ( config.isHarvesterConfigOkay() )
-    {
-      logger.info( config.toString() );
-    }
-    RequestDispatcher requestDispatcher = new RequestDispatcher( vertx );
-    JobLauncher jobLauncher = new JobLauncher( vertx );
-    ScriptHandler scriptHandler = new ScriptHandler( vertx );
+  public void start(Promise<Void> promise) {
 
-    Router router = Router.router( vertx );
-    router.put( "/*" ).handler( BodyHandler.create() ); // Tell vertx we want the whole PUT body in the handler
-    router.post( "/*" ).handler( BodyHandler.create() );
+    TenantPgPool.setModule("mod-harvester-admin"); // Postgres - schema separation
 
-    router.get( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_HARVESTABLES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_HARVESTABLES_PATH ).handler( requestDispatcher::handleDelete );
+    // listening port
+    final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8081", config()));
+    new LegacyServiceConfig();
 
-    router.get( THIS_STORAGES_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_STORAGES_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STORAGES_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_STORAGES_PATH ).handler( requestDispatcher::handleDelete );
-
-    router.get( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_TRANSFORMATIONS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_TRANSFORMATIONS_PATH ).handler( requestDispatcher::handleDelete );
-
-    router.get( THIS_STEPS_PATH ).handler( requestDispatcher::handleGet );
-    router.get( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleGetById );
-    router.put( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handlePut );
-    router.post( THIS_STEPS_PATH ).handler( requestDispatcher::handlePost );
-    router.delete( THIS_STEPS_ID_PATH ).handler( requestDispatcher::handleDeleteById );
-    router.delete( THIS_STEPS_PATH ).handler( requestDispatcher::handleDelete );
-    router.get(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handleGetScript);
-    router.put(THIS_STEPS_ID_SCRIPT_PATH).handler(scriptHandler::handlePutScript);
-
-    router.get(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handleGet);
-    router.get(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handleGetById);
-    router.put(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handlePut);
-    router.post(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handlePost);
-    router.delete(THIS_TRANSFORMATIONS_STEPS_ID_PATH).handler(requestDispatcher::handleDeleteById);
-    router.delete(THIS_TRANSFORMATIONS_STEPS_PATH).handler(requestDispatcher::handleDelete);
-
-    router.put(THIS_RUN_JOB_ID_PATH).handler(jobLauncher::startJob);
-    router.put(THIS_STOP_JOB_ID_PATH).handler(jobLauncher::stopJob);
-
-    vertx.createHttpServer().requestHandler(router).listen(Config.servicePort, result -> {
-      if (result.succeeded()) {
-        if (config.isHarvesterConfigOkay()) {
-          logger.info("Succeeded in starting the listener for Harvester admin service");
-          promise.complete();
-        } else
-        {
-          logger.error( "There was a problem configuring the connection to Harvester" );
-          promise.fail( "Could not configure the access to Harvester" );
-        }
-      }
-      else
-      {
-        logger.error( "Harvester admin service failed: " + result.cause().getMessage() );
-        promise.fail( result.cause() );
-      }
-    } );
+    HarvestAdminService harvestAdminService = new HarvestAdminService();
+    RouterCreator[] routerCreators = {
+        harvestAdminService,
+        new Tenant2Api(harvestAdminService),
+        new HealthApi(),
+    };
+    HttpServerOptions so = new HttpServerOptions()
+        .setHandle100ContinueAutomatically(true);
+    RouterCreator.mountAll(vertx, routerCreators)
+        .compose(router ->
+            vertx.createHttpServer(so)
+                .requestHandler(router)
+                .listen(port).mapEmpty())
+        .<Void>mapEmpty()
+        .onComplete(promise);
   }
-}
 
+}

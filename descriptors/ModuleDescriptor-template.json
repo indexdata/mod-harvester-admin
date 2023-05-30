@@ -3,8 +3,24 @@
   "name": "Harvester Admin Module",
   "provides": [
     {
+      "id": "_tenant",
+      "version": "2.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
+        }, {
+          "methods": ["GET","DELETE"],
+          "pathPattern": "/_/tenant/{id}",
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
       "id": "harvester-admin",
-      "version": "0.1",
+      "version": "1.0",
       "handlers": [
         {
           "methods": ["GET"],
@@ -19,10 +35,26 @@
           "pathPattern": "/harvester-admin/harvestables",
           "permissionsRequired": ["harvester-admin.harvestables.item.post"]
         }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/harvestables/xml-bulk",
+          "permissionsRequired": ["harvester-admin.harvestables.item.post"]
+        },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/harvestables/oai-pmh",
+          "permissionsRequired": ["harvester-admin.harvestables.item.post"]
+        },{
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.item.put"]
+        },{
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/harvestables/oai-pmh/{id}",
+          "permissionsRequired": ["harvester-admin.harvestables.item.put"]
+        },{
           "methods": ["PUT"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
           "permissionsRequired": ["harvester-admin.harvestables.item.put"]
-        }, {
+        },{
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/harvestables/{id}",
           "permissionsRequired": ["harvester-admin.harvestables.item.delete"]
@@ -31,6 +63,50 @@
           "pathPattern": "/harvester-admin/harvestables",
           "permissionsRequired": ["harvester-admin.harvestables.collection.delete"]
         }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/log",
+          "permissionsRequired": ["harvester-admin.harvestables.log.get"]
+        }, {
+          "methods": ["GET", "POST"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/log/store",
+          "permissionsRequired": ["harvester-admin.harvestables.log.store"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.harvestables.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/harvestables/{id}/failed-records/{num}",
+          "permissionsRequired": ["harvester-admin.harvestables.failed-records.item.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs",
+          "permissionsRequired": ["harvester-admin.previous-jobs.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/failed-records",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/failed-records/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.item.get"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.item.get"]
+        },{
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.previous-jobs.item.delete"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
+          "permissionsRequired": ["harvester-admin.previous-jobs.log.get"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
           "permissionsRequired": ["harvester-admin.storages.collection.get"]
@@ -73,166 +149,84 @@
         }, {
           "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/transformations/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": [ "harvester-admin.transformations.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/transformations",
-          "permissionsRequired": [
-            "harvester-admin.transformations.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations.collection.delete"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.collection.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.collection.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/steps/{id}",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/steps",
-          "permissionsRequired": [
-            "harvester-admin.steps.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.collection.delete"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/steps/{id}/script",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.get"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/steps/{id}/script",
-          "permissionsRequired": [
-            "harvester-admin.steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.steps.item.put"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.collection.get"
-          ]
-        },
-        {
-          "methods": [
-            "GET"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.get"]
+        }, {
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.get"
-          ]
-        },
-        {
-          "methods": [
-            "POST"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.get"]
+        }, {
+          "methods": ["POST"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.post"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.post"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.put"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/tsas/{id}",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.item.delete"
-          ]
-        },
-        {
-          "methods": [
-            "DELETE"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.delete"]
+        }, {
+          "methods": ["DELETE"],
           "pathPattern": "/harvester-admin/tsas",
-          "permissionsRequired": [
-            "harvester-admin.transformations-steps.collection.delete"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.delete"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/jobs/run/{id}",
-          "permissionsRequired": [
-            "harvester-admin.run-jobs"
-          ]
-        },
-        {
-          "methods": [
-            "PUT"
-          ],
+          "permissionsRequired": ["harvester-admin.run-jobs"]
+        }, {
+          "methods": ["PUT"],
           "pathPattern": "/harvester-admin/jobs/stop/{id}",
-          "permissionsRequired": [
-            "harvester-admin.stop-jobs"
-          ]
+          "permissionsRequired": ["harvester-admin.stop-jobs"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/generate-ids",
+          "permissionsRequired": []
         }
       ]
     }
   ],
+  "requires": [],
   "permissionSets": [
     {
       "permissionName": "harvester-admin.harvestables.collection.get",
@@ -263,6 +257,51 @@
       "permissionName": "harvester-admin.harvestables.item.delete",
       "displayName": "harvester admin - delete individual harvestable",
       "description": "delete individual harvestable from storage"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.log.get",
+      "displayName": "harvester admin - view harvest job logs",
+      "description": "get log statements for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.log.store",
+      "displayName": "harvester admin - stores a copy of the most recent legacy log for a job",
+      "description": "store copy of log statements for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.failed-records.collection.get",
+      "displayName": "harvester admin - view list of failed records for harvest job",
+      "description": "get list of failed records for harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.harvestables.failed-records.item.get",
+      "displayName": "harvester admin - view a failed record from a harvest job",
+      "description": "display a failed record from a harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.collection.get",
+      "displayName": "harvester admin - view info about finished harvest jobs",
+      "description": "view info about past harvest jobs"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.item.get",
+      "displayName": "harvester admin - view info about a finished harvest job ",
+      "description": "view info about a finished harvest job"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.item.delete",
+      "displayName": "harvester admin - delete a previous job run with all its logs",
+      "description": "delete the history of a previous job run with its logs and failed records, if any"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.log.get",
+      "displayName": "harvester admin - view past harvest job logs",
+      "description": "get log statements for past harvest jobs"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.failed-records.collection.get",
+      "displayName": "harvester admin - view failed records for a past harvest job",
+      "description": "get failed records for past harvest jobs"
     },
     {
       "permissionName": "harvester-admin.storages.collection.get",
@@ -437,11 +476,43 @@
         "harvester-admin.transformations-steps.item.put",
         "harvester-admin.transformations-steps.item.delete",
         "harvester-admin.run-jobs",
-        "harvester-admin.stop-jobs"
+        "harvester-admin.stop-jobs",
+        "harvester-admin.harvestables.log.get",
+        "harvester-admin.harvestables.log.store",
+        "harvester-admin.harvestables.failed-records.collection.get",
+        "harvester-admin.harvestables.failed-records.item.get",
+        "harvester-admin.previous-jobs.collection.get",
+        "harvester-admin.previous-jobs.item.get",
+        "harvester-admin.previous-jobs.item.delete",
+        "harvester-admin.previous-jobs.log.get",
+        "harvester-admin.previous-jobs.failed-records.collection.get",
+        "harvester-admin.previous-jobs.failed-records.item.get"
       ]
     }
   ],
   "launchDescriptor": {
-    "dockerImage": "${artifactId}:${version}"
+    "dockerImage": "${artifactId}:${version}",
+    "dockerPull": false,
+    "dockerArgs": {
+      "HostConfig": {
+        "Memory": 536870912,
+        "PortBindings": { "8081/tcp": [ { "HostPort": "%p" } ] }
+      }
+    },
+    "env": [
+      { "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0"
+      },
+      { "name": "DB_HOST", "value": "postgres" },
+      { "name": "DB_PORT", "value": "5432" },
+      { "name": "DB_USERNAME", "value": "folio_admin" },
+      { "name": "DB_PASSWORD", "value": "folio_admin" },
+      { "name": "DB_DATABASE", "value": "okapi_modules" },
+      { "name": "DB_MAXPOOLSIZE", "value": "5" },
+      { "name": "harvester_protocol", "value": "http" },
+      { "name": "harvester_host", "value": "localhost" },
+      { "name": "harvester_port", "value": "8080" },
+      { "name": "acl_filter_by_tenant", "value": false }
+    ]
   }
 }

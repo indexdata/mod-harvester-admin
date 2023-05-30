@@ -1,0 +1,1246 @@
+openapi: 3.0.0
+info:
+  title: Harvester Admin API
+  version: v0.1
+paths:
+  /harvester-admin/harvestables:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create harvest job configuration
+      operationId: postHarvestable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestablePostPut"
+        required: true
+      responses:
+        "201":
+          description: Harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    get:
+      description: Get brief harvest job definitions
+      operationId: getHarvestables
+      parameters:
+      - in: query
+        name: query
+        required: false
+        description: CQL
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Harvest job definitions returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestables"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/xml-bulk:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create bulk XML harvest job configuration
+      operationId: postHarvestableXmlBulk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+        required: true
+      responses:
+        "201":
+          description: XML bulk harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
+
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/oai-pmh:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create OAI-PMH harvest job configuration
+      operationId: postHarvestableOaiPmh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+        required: true
+      responses:
+        "201":
+          description: OAI-PMH harvest definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    get:
+      operationId: getHarvestable
+      description: Get harvest configuration
+      responses:
+        "200":
+          description: Harvest configuration returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/harvestableGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putHarvestable
+      description: Update harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestablePostPut"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteHarvestable
+      description: Delete a harvest job configuration
+      responses:
+        "204":
+          description: Harvest job configuration deleted
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/xml-bulk/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: putHarvestableXmlBulk
+      description: Update bulk XML harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/oai-pmh/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: putHarvestableOaiPmh
+      description: Update OAI-PMH harvest configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/jobs/run/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: startJob
+      description: Starts a harvest job immediately if possible
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: schemas/jobStarted.json
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/jobs/stop/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    put:
+      operationId: stopJob
+      description: Stops a harvest job
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: schemas/jobStopped.json
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
+  /harvester-admin/harvestables/{id}/log:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+      - in: query
+        name: offset
+        required: false
+        description: log file start line
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        description: max log file lines
+        schema:
+          type: string
+
+    get:
+      operationId: getJobLog
+      description: Get log statements for a harvest job
+      responses:
+        "200":
+          description: Harvest log statements returned
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/failed-records:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+      - in: query
+        name: offset
+        required: false
+        description: result set start row
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        description: result set max rows
+        schema:
+          type: string
+
+    get:
+      operationId: getFailedRecords
+      description: Get failed records for a harvest job
+      responses:
+        "200":
+          description: Harvest failed records list returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecordsCurrentJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/failed-records/{num}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+      - in: path
+        name: num
+        required: true
+        description: number of a failed record
+        schema:
+          type: string
+
+    get:
+      operationId: getFailedRecord
+      description: Get a failed record for a harvest job
+      responses:
+        "200":
+          description: error report for failed record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecordCurrentJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/harvestables/{id}/log/store:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    post:
+      description: Takes submitted job status, pulls the job config, and stores a copy of its most recent logs
+      operationId: storeJobLogWithPostedStatus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/harvestJobStatus"
+        required: true
+      responses:
+        "200":
+          description: Harvest log statements stored in module storage
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    get:
+      operationId: storeJobLog
+      description: Pulls the current job config from Harvester and stores a copy of the most recent log for that job
+      responses:
+        "200":
+          description: Harvest log statements stored in module storage
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    get:
+      operationId: getPreviousJobs
+      description: Retrieves list of previous harvest jobs
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL query, supporting harvestableId, name, type, status, message, and amountHarvested in queries, and the same fields plus started and finished in sorting
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: date range start parameter on finished date
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: date range end parameter on finished date
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of previous harvest jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/previousJobs"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/failed-records:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    get:
+      operationId: getFailedRecordsForPreviousJobs
+      description: Retrieves the failed records of previous harvest jobs
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: date range parameter on error report timestamp
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: date range parameter on error report timestamp
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of failed records for previous harvest jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecordsPreviousJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest job identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPreviousJob
+      description: Retrieves details of a previous harvest job
+      responses:
+        "200":
+          description: A previous harvest job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/previousJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deletePreviousJob
+      description: Delete a previous job run with all its logs
+      responses:
+        "200":
+          description: Job run and logs deleted
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
+  /harvester-admin/previous-jobs/{id}/log:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest job identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPreviousJobLog
+      description: Retrieves the log of a previous harvest job
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL, supporting harvestJobId, logLevel, jobLabel, line in query terms
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Logs for a previous harvest job
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/logLines"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/{id}/failed-records:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest job identifier
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: query
+        required: false
+        description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
+        schema:
+          type: string
+      - in: query
+        name: from
+        required: false
+        description: date range parameter on error report timestamp
+        schema:
+          type: string
+      - in: query
+        name: until
+        required: false
+        description: date range parameter on error report timestamp
+        schema:
+          type: string
+      - in: query
+        name: offset
+        required: false
+        description: result set start row
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        description: result set max rows
+        schema:
+          type: string
+
+    get:
+      operationId: getFailedRecordsForPreviousJob
+      description: Retrieves the failed records of a previous harvest job
+      responses:
+        "200":
+          description: List of failed records for a previous harvest job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failedRecordsPreviousJob"
+
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/previous-jobs/failed-records/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: UUID of the failed-record object
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getFailedRecordForPreviousJob
+      description: Retrieves a failed record of a previous harvest job
+      responses:
+        "200":
+          description: A failed record object
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/storages:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create storage configuration
+      operationId: postStorage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/storage"
+        required: true
+      responses:
+        "201":
+          description: Storage definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/storage"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    get:
+      description: Get brief storage definitions
+      operationId: getStorages
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Storage definitions returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/storages"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/storages/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Storage definition identifier
+        schema:
+          type: integer
+    get:
+      operationId: getStorage
+      description: Get storage definition
+      responses:
+        "200":
+          description: Storage definitions returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/storage"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putStorage
+      description: Update storage definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/storage"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteStorage
+      description: Delete a storage definition
+      responses:
+        "204":
+          description: Storage definition deleted
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/transformations:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create transformation pipeline
+      operationId: postTransformation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationPostPut"
+        required: true
+      responses:
+        "201":
+          description: Storage definition created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    get:
+      description: Get brief transformation definitions
+      operationId: getTransformations
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transformation pipelines returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformations"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/transformations/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Transformation pipeline identifier
+        schema:
+          type: integer
+    get:
+      operationId: getTransformation
+      description: Get transformation pipeline
+      responses:
+        "200":
+          description: Transformation pipelines returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putTransformation
+      description: Update transformation pipeline
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteTransformation
+      description: Delete a transformation pipeline
+      responses:
+        "204":
+          description: Transformation pipeline deleted
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/steps:
+    get:
+      operationId: getSteps
+      description: Get brief transformation step definition records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/steps"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    post:
+      operationId: postStep
+      description: Create new transformation step definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/step"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteSteps
+      description: Delete all transformation step definitions
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/steps/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Step identifier
+        schema:
+          type: string
+    get:
+      operationId: getStep
+      description: Get detailed transformation step definition record
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putStep
+      description: Update a transformation step definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/step"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteStep
+      description: Delete a transformation step definition
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/steps/{id}/script:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Step identifier
+        schema:
+          type: string
+    get:
+      operationId: getScript
+      description: Get transformation step script
+      responses:
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/script"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putScript
+      description: Update a transformation step script
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/script"
+      responses:
+        "204":
+          description: OK, no content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/tsas:
+    get:
+      operationId: getTsas
+      description: Get transformation step associations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociations"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    post:
+      operationId: postTsa
+      description: Create new transformation step association
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationStepAssociation"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteTsas
+      description: Delete all transformation step associations
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/tsas/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Association identifier
+        schema:
+          type: string
+    get:
+      operationId: getTsa
+      description: Get a transformation step association
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: putTsa
+      description: Update a transformation step association
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationStepAssociation"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteTsa
+      description: Delete a transformation step association
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/generate-ids:
+    parameters:
+      - in: query
+        name: count
+        required: false
+        description: integer, max 100
+        schema:
+          type: integer
+    get:
+      operationId: getIds
+      description: Get up to 100 random 15 digit numbers
+      responses:
+        "200":
+          description: 15 digit numbers separated by newline
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  responses:
+    trait_400:
+      description: Bad request
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Invalid JSON in request
+        application/json:
+          schema:
+            type: object
+            example: {"error":"Invalid JSON in request"}
+    trait_404:
+      description: Bad request
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Not found
+    trait_500:
+      description: Internal error
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: Internal server error, contact administrator
+  schemas:
+    harvestables:
+      $ref: schemas/harvestables.json
+    harvestablePostPut:
+      $ref: schemas/harvestablePostPut.json
+    harvestableXmlBulkPostPut:
+      $ref: schemas/harvestableXmlBulkPostPut.json
+    harvestableOaiPmhPostPut:
+      $ref: schemas/harvestableOaiPmhPostPut.json
+    harvestableGet:
+      $ref: schemas/harvestableGet.json
+    storages:
+      $ref: schemas/storages.json
+    storage:
+      $ref: schemas/storage.json
+    transformations:
+      $ref: schemas/transformations.json
+    transformationGet:
+      $ref: schemas/transformationGet.json
+    transformationPostPut:
+      $ref: schemas/transformationPostPut.json
+    steps:
+      $ref: schemas/steps.json
+    step:
+      $ref: schemas/step.json
+    script:
+      $ref: schemas/script.json
+    transformationStepAssociation:
+      $ref: schemas/transformationStepAssociation.json
+    transformationStepAssociations:
+      $ref: schemas/transformationStepAssociations.json
+    harvestJobStatus:
+      $ref: schemas/harvestJobStatus.json
+    previousJobs:
+      $ref: schemas/previousJobs.json
+    logLines:
+      $ref: schemas/logLines.json
+    previousJob:
+      $ref: schemas/previousJob.json
+    failedRecordCurrentJob:
+      $ref: schemas/failedRecordCurrentJob.json
+    failedRecordsCurrentJob:
+      $ref: schemas/failedRecordsCurrentJob.json
+    failedRecordPreviousJob:
+      $ref: schemas/failedRecordPreviousJob.json
+    failedRecordsPreviousJob:
+      $ref: schemas/failedRecordsPreviousJob.json

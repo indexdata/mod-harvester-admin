@@ -7,7 +7,7 @@ name: k8s-deploy-latest
 
 env:
   K8S_NAMESPACE: 'harvester-dev'
-  K8S_DEPLOYMENT: 'mod-harvester-admin-0-1-0-snapshot'
+  K8S_DEPLOYMENT: 'mod-harvester-admin'
 
 on:
   workflow_dispatch
