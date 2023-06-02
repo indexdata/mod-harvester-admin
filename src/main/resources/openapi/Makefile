@@ -12,6 +12,7 @@ schemalint:
 	ajv compile -s schemas/harvestableOaiPmhPostPut.json
 	ajv compile -s schemas/harvestableConnectorPostPut.json
 	ajv compile -s schemas/harvestableSTatusPostPut.json
+	ajv compile -s schemas/storage.json
 	# ajv doesn't seem to be able to handle $ref at all, so it can't validate the uber-schema
 	# ajv compile -s schemas/harvestablePostPut.json
 	# But z-schema can!
@@ -23,7 +24,12 @@ examplelint:
 	ajv test -s schemas/harvestableOaiPmhPostPut.json -d example/oaiPmh.json --valid
 	ajv test -s schemas/harvestableConnectorPostPut.json -d example/connector.json --valid
 	ajv test -s schemas/harvestableStatusPostPut.json -d example/status.json --valid
-	z-schema schemas/harvestablePostPut.json example/[xocs]*
+	ajv test -s schemas/storage.json -d example/storage-badType.json --invalid
+	ajv test -s schemas/storage.json -d example/storage-inventory-without-json.json --invalid
+	ajv test -s schemas/storage.json -d example/storage-inventory-with-json.json --valid
+	ajv test -s schemas/storage.json -d example/storage-solr-without-json.json --valid
+	ajv test -s schemas/storage.json -d example/storage-solr-with-json.json --invalid
+	z-schema schemas/harvestablePostPut.json example/xmlBulk.json example/oaiPmh.json example/connector.json example/status.json
 
 apilint: harvest-admin-1.0.yaml
 	api_lint.py -t OAS -d .
