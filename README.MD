@@ -42,6 +42,9 @@ Mod-harvester-admin provides two sets of APIs, firstly the administration APIs t
 legacy Harvester APIs, and
 secondly a number of APIs for retaining the harvest job history.
 
+Refer to the [source API description](src/main/resources/openapi)
+and to the generated [API documentation](https://s3.amazonaws.com/indexdata-docs/api/mod-harvester-admin/harvest-admin-1.0.html).
+
 The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO
 back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary
 keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more

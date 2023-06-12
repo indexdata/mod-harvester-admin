@@ -1,0 +1,9 @@
+{
+  "id": "366408625752912",
+  "name": "Folio Inventory Storage, harvester",
+  "description": "NE@Index Data: FOLIO Inventory Storage",
+  "enabled": "true",
+  "acl": "SYSTEM-SUPPLIED READONLY STRING",
+  "url": "http://lui.indexdata.com/solr4/missing",
+  "type": "inventoryStorage"
+}
