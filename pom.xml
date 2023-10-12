@@ -4,7 +4,7 @@
 
     <groupId>org.folio</groupId>
   <artifactId>mod-harvester-admin</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.2.0-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.0.0</okapi.version>

@@ -1,3 +1,7 @@
+## 1.1.0 2023-10-12
+
+* Tighten `storage` schema: property `json` required for `inventoryStorage` (MODHAADM-73) 
+
 ## 1.0.0 2023-05-01
 
 * Adds schema for connector and status harvestables to support saving these (MODHAADM-58)
