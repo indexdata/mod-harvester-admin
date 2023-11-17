@@ -28,6 +28,7 @@ env:
   AWS_S3_ACCESS_KEY: ${{ secrets.INDEXDATA_S3_SECRET_ACCESS_KEY }}
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main, master ]
     paths:
