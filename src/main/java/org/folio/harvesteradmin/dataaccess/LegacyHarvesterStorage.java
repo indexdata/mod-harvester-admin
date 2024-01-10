@@ -14,6 +14,8 @@ import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.cros
 import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -140,7 +142,7 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
-  private Future<ProcessedHarvesterResponse> getConfigRecordByIdOrName(
+  private Future<ProcessedHarvesterResponse> getUniqueConfigRecordByIdOrName(
       String harvesterPath, String id, String name) {
     Promise<ProcessedHarvesterResponse> promise = Promise.promise();
     if (id == null || id.isEmpty()) {
@@ -160,13 +162,13 @@ public class LegacyHarvesterStorage {
               promise.complete(
                   new ProcessedHarvesterResponseGetUniqueByName(
                       recordsByName.jsonObject(),
-                      422,
+                      404,
                       "Record with name \"" + name + "\" not found", recordsFoundByName));
             } else {
               promise.complete(
                   new ProcessedHarvesterResponseGetUniqueByName(
                       recordsByName.jsonObject(),
-                      422,
+                      404,
                       "Found multiple records with name \"" + name + "\"", recordsFoundByName));
             }
             return promise.future();
@@ -249,7 +251,7 @@ public class LegacyHarvesterStorage {
       final String transformationId = entity.getJsonObject("transformation").getString("id");
       final String storageName = entity.getJsonObject("storage").getString("name");
       final String transformationName = entity.getJsonObject("transformation").getString("name");
-      getConfigRecordByIdOrName(HARVESTER_STORAGES_PATH, storageId, storageName)
+      getUniqueConfigRecordByIdOrName(HARVESTER_STORAGES_PATH, storageId, storageName)
           .onComplete(storage -> {
             if (storage.succeeded()) {
               if (storage.result().wasOK()) {
@@ -265,7 +267,7 @@ public class LegacyHarvesterStorage {
               fatalError.add("Error looking up storage by id or name "
                   + storage.cause().getMessage());
             }
-            getConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH,
+            getUniqueConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH,
                 transformationId, transformationName)
                 .onComplete(transformation -> {
                   if (transformation.succeeded()) {
@@ -278,7 +280,7 @@ public class LegacyHarvesterStorage {
                       constraintViolation.add(transformation.result().errorMessage());
 
                     }
-                    if (constraintViolation.size() > 0) {
+                    if (!constraintViolation.isEmpty()) {
                       promise.complete(
                           new ProcessedHarvesterResponsePost(422, constraintViolation.toString())
                       );
@@ -292,7 +294,7 @@ public class LegacyHarvesterStorage {
                         + transformation.cause().getMessage());
                   }
                 });
-            if (fatalError.size() > 0) {
+            if (!fatalError.isEmpty()) {
               promise.complete(new ProcessedHarvesterResponsePost(500,fatalError.toString()));
             }
           });
@@ -408,8 +410,12 @@ public class LegacyHarvesterStorage {
     String harvesterPath = mapToHarvesterPath(routingContext);
     JsonObject jsonToPut = routingContext.body().asJsonObject();
     String id = routingContext.request().getParam("id");
-    if (harvesterPath != null && harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
-      jsonToPut.put("lastUpdated", iso_instant.format(Instant.now()));
+    if (harvesterPath != null) {
+      if (harvesterPath.equals(HARVESTER_TRANSFORMATIONS_PATH)) {
+        return putTransformation(routingContext);
+      } else if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
+        jsonToPut.put("lastUpdated", iso_instant.format(Instant.now()));
+      }
     }
     return putConfigRecord(routingContext, harvesterPath, jsonToPut, id);
   }
@@ -580,12 +586,41 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
-
-
-  private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(
-      RoutingContext routingContext) {
+  private Future<ProcessedHarvesterResponsePut> putTransformation(RoutingContext routingContext) {
     JsonObject transformationJson = routingContext.body().asJsonObject();
-    logger.debug("About to POST-then-PUT " + transformationJson.encodePrettily());
+    logger.debug("About to PUT " + transformationJson.encodePrettily());
+    List<Future<ProcessedHarvesterResponse>> stepFutures = getStepLookupFutures(transformationJson);
+    Promise<ProcessedHarvesterResponsePut> promise = Promise.promise();
+    GenericCompositeFuture.all(stepFutures).onComplete(steps -> {
+      if (steps.succeeded()) {
+        boolean allStepsFound = true;
+        for (int h = 0; h < steps.result().size(); h++) {
+          ProcessedHarvesterResponse stepResponse = steps.result().resultAt(h);
+          if (stepResponse.statusCode() == NOT_FOUND) {
+            allStepsFound = false;
+            promise.complete(new ProcessedHarvesterResponsePut(422,
+                "Uniquely referenced step not found, cannot store transformation pipeline: "
+                    + stepResponse.errorMessage()));
+            break;
+          }
+        }
+        if (allStepsFound) {
+          expandAssociatedSteps(steps, transformationJson);
+          putConfigRecord(
+              routingContext,
+              HARVESTER_TRANSFORMATIONS_PATH,
+              transformationJson,
+              transformationJson.getString("id")).onComplete(response ->
+                  promise.complete(response.result())
+          );
+        }
+      }
+    });
+    return promise.future();
+  }
+
+  private List<Future<ProcessedHarvesterResponse>> getStepLookupFutures(
+      JsonObject transformationJson) {
     JsonArray stepsIdsJson =
         transformationJson.containsKey("stepAssociations") ? transformationJson.getJsonArray(
             "stepAssociations").copy() : new JsonArray();
@@ -599,19 +634,32 @@ public class LegacyHarvesterStorage {
       String stepName = step.containsKey("step")
           ? step.getJsonObject("step").getString("name")
           : step.getString("stepName");
-      stepFutures.add(getConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName));
+      stepFutures.add(getUniqueConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName));
     }
+    return stepFutures;
+  }
+
+  /**
+   * Checks that referenced steps exist, POSTs the transformation without the steps,
+   * creates schema compliant step associations in the transformation object,
+   * PUTs the transformation, checks that a transformation with the given ID exists.
+   * @return response structure
+   */
+  private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(
+      RoutingContext routingContext) {
+    JsonObject transformationJson = routingContext.body().asJsonObject();
+    logger.debug("About to POST-then-PUT " + transformationJson.encodePrettily());
+    List<Future<ProcessedHarvesterResponse>> stepFutures = getStepLookupFutures(transformationJson);
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
     GenericCompositeFuture.all(stepFutures).onComplete(steps -> {
       if (steps.succeeded()) {
         boolean allStepsFound = true;
         for (int h = 0; h < steps.result().size(); h++) {
-          ProcessedHarvesterResponseGetById stepResponse = steps.result().resultAt(h);
+          ProcessedHarvesterResponse stepResponse = steps.result().resultAt(h);
           if (stepResponse.statusCode() == NOT_FOUND) {
-            logger.info("Step not found: " + stepResponse.errorMessage());
             allStepsFound = false;
             promise.complete(new ProcessedHarvesterResponsePost(422,
-                "Referenced step not found, cannot store transformation pipeline: "
+                "Uniquely referenced step not found, cannot store transformation pipeline: "
                     + stepResponse.errorMessage()));
             break;
           }
@@ -625,21 +673,7 @@ public class LegacyHarvesterStorage {
                     if (transformationPost.succeeded()
                         && transformationPost.result().statusCode() == CREATED) {
                       JsonObject createdTransformation = transformationPost.result().jsonObject();
-                      createdTransformation.put("stepAssociations", new JsonArray());
-                      for (int i = 0; i < steps.result().size(); i++) {
-                        ProcessedHarvesterResponseGetById stepResponse = steps.result().resultAt(i);
-                        final JsonObject stepJson = stepResponse.jsonObject();
-                        JsonObject tsaJson = new JsonObject();
-                        tsaJson.put("id", getRandomFifteenDigitString());
-                        tsaJson.put("position", Integer.toString(i + 1));
-                        tsaJson.put("step", new JsonObject());
-                        tsaJson.getJsonObject("step")
-                            .put("entityType",
-                                typeToEmbeddedTypeMap.get(stepJson.getString("type")));
-                        tsaJson.getJsonObject("step").put("id", stepJson.getString("id"));
-                        tsaJson.put("transformation", createdTransformation.getString("id"));
-                        createdTransformation.getJsonArray("stepAssociations").add(tsaJson);
-                      }
+                      expandAssociatedSteps(steps, createdTransformation);
                       putConfigRecord(
                           routingContext,
                           HARVESTER_TRANSFORMATIONS_PATH,
@@ -687,6 +721,25 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
+  private static void expandAssociatedSteps(AsyncResult<CompositeFuture> steps,
+                                            JsonObject createdTransformation) {
+    createdTransformation.put("stepAssociations", new JsonArray());
+    for (int i = 0; i < steps.result().size(); i++) {
+      ProcessedHarvesterResponse stepResponse = steps.result().resultAt(i);
+      final JsonObject stepJson = stepResponse.jsonObject();
+      JsonObject tsaJson = new JsonObject();
+      tsaJson.put("id", getRandomFifteenDigitString());
+      tsaJson.put("position", Integer.toString(i + 1));
+      tsaJson.put("step", new JsonObject());
+      tsaJson.getJsonObject("step")
+          .put("entityType",
+              typeToEmbeddedTypeMap.get(stepJson.getString("type")));
+      tsaJson.getJsonObject("step").put("id", stepJson.getString("id"));
+      tsaJson.put("transformation", createdTransformation.getString("id"));
+      createdTransformation.getJsonArray("stepAssociations").add(tsaJson);
+    }
+  }
+
   private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(
       RoutingContext routingContext) {
     JsonObject incomingTsa = routingContext.body().asJsonObject();
@@ -695,7 +748,7 @@ public class LegacyHarvesterStorage {
     String stepId = incomingTsa.getJsonObject("step").getString("id");
     String stepName = incomingTsa.getJsonObject("step").getString("name");
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    getConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH, transId, transName).onComplete(
+    getUniqueConfigRecordByIdOrName(HARVESTER_TRANSFORMATIONS_PATH, transId, transName).onComplete(
         theTransformation -> {
           if (theTransformation.failed()) {
             promise.complete(
@@ -710,7 +763,7 @@ public class LegacyHarvesterStorage {
                     + transId + " not found."));
           } else {
             JsonObject transformationFound = theTransformation.result().jsonObject();
-            getConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName).onComplete(
+            getUniqueConfigRecordByIdOrName(HARVESTER_STEPS_PATH, stepId, stepName).onComplete(
                 theStep -> {
                   if (!theStep.result().found()) {
                     promise.complete(
