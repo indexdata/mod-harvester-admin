@@ -6,6 +6,11 @@
       "type": "string",
       "description": "Unique record identifier."
     },
+    "acl": {
+      "type": "string",
+      "description": "System controlled access control string.",
+      "readOnly": true
+    },
     "name": {
       "type": "string",
       "description": "Name of the transformation pipeline."
