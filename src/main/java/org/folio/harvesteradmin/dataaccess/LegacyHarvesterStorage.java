@@ -499,8 +499,9 @@ public class LegacyHarvesterStorage {
                 new ProcessedHarvesterResponseDelete(
                     400,
                     "Cannot delete " + harvesterPath + "/" + id
-                        + " due to " + check.result() + " dependent record"
-                        + (check.result() == 1 ? "" : "s")));
+                        + " due to " + check.result() + " other configuration"
+                        + (check.result() == 1 ? "" : "s")
+                        + " referencing it."));
           }
         });
     return promise.future();
@@ -580,6 +581,16 @@ public class LegacyHarvesterStorage {
               promise.complete(-1);
             }
           });
+    } else if (api.contains("steps")) {
+      getConfigRecords(HARVESTER_TSAS_PATH, "query=step.id=" + id)
+          .onComplete(harvestables -> {
+            if (harvestables.succeeded()) {
+              promise.complete(harvestables.result().jsonObject().getInteger("totalRecords"));
+            } else {
+              promise.complete(-1);
+            }
+          });
+
     } else {
       promise.complete(0);
     }
