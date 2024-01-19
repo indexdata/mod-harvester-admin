@@ -84,7 +84,7 @@ upsert-by-hrid API:
     "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
     "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
   },
-  "url" : "http://okapi:9130/",
+  "url" : "http://okapi:9130/"
 }
 ``` 
 
