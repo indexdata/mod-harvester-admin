@@ -82,7 +82,7 @@ jobs:
       - name: Login to dev Okapi instance
         #if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
         id: login-okapi
-        uses: cyberman54/curl@master
+        uses: cyberman54/curl@v1.3
         with:
           url: "${{ env.OKAPI_URL }}/authn/login"
           method: "POST"
@@ -124,7 +124,7 @@ jobs:
         if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
         id: result-okapi
         # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@master
+        uses: cyberman54/curl@v1.3
         with:
           url: "${{ env.OKAPI_URL }}/_/proxy/modules"
           method: "POST"
