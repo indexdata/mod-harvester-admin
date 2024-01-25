@@ -17,7 +17,7 @@ jobs:
       - name: Login ModuleDescriptor registry
         id: login-md-registry
         # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@v1.3
+        uses: cyberman54/curl@v1
         with:
           url: "${{ env.FOLIO_MD_REGISTRY }}/authn/login"
           method: "POST"
@@ -40,7 +40,7 @@ jobs:
       - name: Get the list of modules
         id: result-md-registry
         # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@v1.3
+        uses: cyberman54/curl@v1
         with:
           url: "${{ env.FOLIO_MD_REGISTRY }}/_/proxy/modules?latest=1"
           method: "GET"
