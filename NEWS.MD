@@ -1,3 +1,11 @@
+## 1.2.0 2024-03-21
+
+* [MODHAADM-87](https://issues.folio.org/browse/MODHAADM-87) XML-bulk harvestables: Allow GET fields in PUT 
+* [MODHAADM-69](https://issues.folio.org/browse/MODHAADM-69) Respond with error 400 on attempt to delete a step in use
+* [MODHAADM-68](https://issues.folio.org/browse/MODHAADM-68) Fixes to schema for POST/PUT of steps, transformations 
+* [MODHAADM-88](https://issues.folio.org/browse/MODHAADM-88) Dependency upgrades, i.e. to Vert.x 4.5.3
+
+
 ## 1.1.0 2023-10-12
 
 * Tighten `storage` schema: property `json` required for `inventoryStorage` (MODHAADM-73) 
