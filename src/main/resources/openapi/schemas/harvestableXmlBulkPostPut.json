@@ -238,6 +238,18 @@
       "enum": ["xmlBulk"],
       "description": "Indicates bulk XML job."
     },
+    "retryCount": {
+      "type": "string",
+      "description": "Obsolete but allowed for XML bulk.",
+      "pattern": "^[0-9]*$",
+      "default": "2"
+    },
+    "retryWait": {
+      "type": "string",
+      "description": "Obsolete but allowed for XML bulk.",
+      "pattern": "^[0-9]*$",
+      "default": "60"
+    },
     "allowErrors": {
       "type": "string",
       "description": "Whether or not to continue despite harvest record errors.",
