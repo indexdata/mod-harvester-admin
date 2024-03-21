@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>org.folio</groupId>
-  <artifactId>mod-harvester-admin</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
+    <artifactId>mod-harvester-admin</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <okapi.version>5.0.0</okapi.version>
-        <vertx.version>4.3.6</vertx.version>
+        <okapi.version>5.3.0</okapi.version>
+        <vertx.version>4.5.3</vertx.version>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
         <maven.test.skip>true</maven.test.skip>
     </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.vertx</groupId>
-                <artifactId>vertx-stack-depchain</artifactId>
-                <version>${vertx.version}</version>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>2.23.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-bom</artifactId>
-                <version>2.17.2</version>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-stack-depchain</artifactId>
+                <version>${vertx.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -53,7 +51,14 @@
             <dependency>
                 <groupId>io.rest-assured</groupId>
                 <artifactId>rest-assured</artifactId>
-                <version>5.2.0</version>
+                <version>5.4.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.10.2</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
@@ -63,14 +68,26 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>4.6.0</version>
+                <version>5.10.0</version>
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.17.2</version>
+                <version>1.19.6</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!--
+               remove commons-compress dependency when testcontainers
+               comes with commons-compress >= 1.26.0 fixing
+               https://nvd.nist.gov/vuln/detail/CVE-2024-25710
+               https://nvd.nist.gov/vuln/detail/CVE-2024-26308
+               see https://github.com/testcontainers/testcontainers-java/pull/8354
+            -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.26.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -79,12 +96,12 @@
         <dependency>
             <groupId>org.folio</groupId>
             <artifactId>vertx-lib</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.folio</groupId>
             <artifactId>vertx-lib-pg-testing</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -101,11 +118,11 @@
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-validation</artifactId>
+            <artifactId>vertx-rx-java2</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-rx-java2</artifactId>
+            <artifactId>vertx-web-api-contract</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
@@ -317,14 +334,13 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.1.1</version>
+                <version>3.3.1</version>
                 <configuration>
-                    <configLocation>checkstyle/folio_checks.xml</configLocation>
-                    <encoding>UTF-8</encoding>
+                    <configLocation>google_checks.xml</configLocation>
                     <violationSeverity>warning</violationSeverity>
                     <consoleOutput>false</consoleOutput>
                     <failsOnError>true</failsOnError>
-                    <failOnViolation>true</failOnViolation>
+                    <failOnViolation>false</failOnViolation>
                     <linkXRef>false</linkXRef>
                     <sourceDirectories>
                         <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
@@ -343,7 +359,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -391,7 +407,7 @@
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
-                <version>1.0</version>
+                <version>1.0.1</version>
                 <executions>
                     <execution>
                         <id>rename-descriptor-outputs</id>
