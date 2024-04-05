@@ -54,7 +54,13 @@ jobs:
       - name: Maven build
         run: mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report
 
-      - name: SQ analyze
+      - name: Set up JDK 17 for SQ
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'temurin' # Alternative distribution options are available.
+
+      - name: SQ analyze (Need Java 17)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
