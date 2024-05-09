@@ -24,13 +24,17 @@ jobs:
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
-          OK -S ${{ env.OK_SESSION }} -x
+          echo "F_HOST_VAR=${{ env.OK_SESSION }}_FOLIOHOST" >> $GITHUB_ENV
+          echo "F_HOST=${{ !env.F_HOST_VAR }}" >> $GITHUB_ENV
+          # OK -S ${{ env.OK_SESSION }} -x
       - name: Set some variables
         run: |
           echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
       - name: Report some variables
         run: |
           echo "REPO_NAME=${{ env.REPO_NAME }}"
+          echo "F_HOST_VAR=${{ env.F_HOST_VAR }}"
+          echo "F_HOST=${{ env.F_HOST }}"
       - name: Do OK login and operations
         run: |
           cd okclient && source ./ok.sh
