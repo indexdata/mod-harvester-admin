@@ -6,6 +6,8 @@ env:
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ DEVOPS-3370-okclient-3 ]
 
 jobs:
   test-login-registry-okclient:
@@ -25,7 +27,7 @@ jobs:
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
           echo "F_HOST_VAR=${{ env.OK_SESSION }}_FOLIOHOST" >> $GITHUB_ENV
-          echo "F_HOST=${{ !env.F_HOST_VAR }}" >> $GITHUB_ENV
+          echo "F_HOST=${!env.F_HOST_VAR}" >> $GITHUB_ENV
           # OK -S ${{ env.OK_SESSION }} -x
       - name: Set some variables
         run: |
