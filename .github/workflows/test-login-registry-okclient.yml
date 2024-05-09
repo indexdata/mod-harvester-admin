@@ -6,8 +6,6 @@ env:
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ DEVOPS-3370-okclient-2 ]
 
 jobs:
   test-login-registry-okclient:
