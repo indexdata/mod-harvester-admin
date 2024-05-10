@@ -27,7 +27,7 @@ jobs:
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
           echo "F_HOST_VAR=${{ env.OK_SESSION }}_FOLIOHOST" >> $GITHUB_ENV
-          # echo "F_HOST=${{ !env.F_HOST_VAR }" >> $GITHUB_ENV
+          # echo "F_HOST=${{ !env.F_HOST_VAR }}" >> $GITHUB_ENV
           declare -n F_HOST_NAMEREF=${{ env.OK_SESSION }}_FOLIOHOST
           echo "F_HOST=$F_HOST_NAMEREF" >> $GITHUB_ENV
           # OK -S ${{ env.OK_SESSION }} -x
