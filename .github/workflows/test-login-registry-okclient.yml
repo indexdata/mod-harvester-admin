@@ -47,6 +47,9 @@ jobs:
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
+          OK -S ${{ env.OK_SESSION }} '_/proxy/modules?filter=mod-harvester-admin&latest=1'
+          declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
+          echo "Response status: $NAMEREF_STATUS"
           for id in $(OK -S ${{ env.OK_SESSION }} _/proxy/modules?latest=1 -j '.[].id'); do
             printf "%s\n" "$id"
           done
