@@ -30,7 +30,7 @@ jobs:
           # echo "F_HOST=${{ !env.F_HOST_VAR }}" >> $GITHUB_ENV
           declare -n F_HOST_NAMEREF=${{ env.OK_SESSION }}_FOLIOHOST
           echo "F_HOST=$F_HOST_NAMEREF" >> $GITHUB_ENV
-          # OK -S ${{ env.OK_SESSION }} -x
+          OK -S ${{ env.OK_SESSION }} -x
       - name: Set some variables
         run: |
           echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
@@ -42,15 +42,19 @@ jobs:
       - name: Do OK login and operations
         run: |
           cd okclient && source ./ok.sh
+          echo "Do login ..."
           OK -S ${{ env.OK_SESSION }} \
             -h ${{ env.FOLIO_MD_REGISTRY }} \
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
-          OK -S ${{ env.OK_SESSION }} '_/proxy/modules?filter=mod-harvester-admin&latest=1'
+          echo "Do a request and report the response status ..."
+          OK -S ${{ env.OK_SESSION }} "_/proxy/modules?filter=${{env.REPO_NAME}}&latest=1"
           declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
           echo "Response status: $NAMEREF_STATUS"
+          echo "Do another request and process the response with jq ..."
           for id in $(OK -S ${{ env.OK_SESSION }} _/proxy/modules?latest=1 -j '.[].id'); do
             printf "%s\n" "$id"
           done
+          echo "Do logout ..."
           OK -S ${{ env.OK_SESSION }} -x
