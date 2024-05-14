@@ -6,8 +6,6 @@ env:
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ DEVOPS-3370-okclient-3 ]
 
 jobs:
   test-login-registry-okclient:
@@ -26,10 +24,6 @@ jobs:
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
-          echo "F_HOST_VAR=${{ env.OK_SESSION }}_FOLIOHOST" >> $GITHUB_ENV
-          # echo "F_HOST=${{ !env.F_HOST_VAR }}" >> $GITHUB_ENV
-          declare -n F_HOST_NAMEREF=${{ env.OK_SESSION }}_FOLIOHOST
-          echo "F_HOST=$F_HOST_NAMEREF" >> $GITHUB_ENV
           OK -S ${{ env.OK_SESSION }} -x
       - name: Set some variables
         run: |
@@ -37,8 +31,6 @@ jobs:
       - name: Report some variables
         run: |
           echo "REPO_NAME=${{ env.REPO_NAME }}"
-          echo "F_HOST_VAR=${{ env.F_HOST_VAR }}"
-          echo "F_HOST=${{ env.F_HOST }}"
       - name: Do OK login and operations
         run: |
           cd okclient && source ./ok.sh
