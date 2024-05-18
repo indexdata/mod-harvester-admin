@@ -113,15 +113,18 @@ jobs:
         if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
         run: |
           source okclient/ok.sh
+          echo "Do login ..."
           OK -S ${{ env.OK_SESSION }} \
             -h ${{ env.OKAPI_URL }} \
             -t "supertenant" \
             -u ${{ env.OKAPI_SECRET_USER }} \
             -p ${{ env.OKAPI_SECRET_PASSWORD }}
-          OK -S ${{ env.OK_SESSION }} /_/proxy/modules \
+          echo "Post the MD and report the response status ..."
+          OK -S ${{ env.OK_SESSION }} _/proxy/modules \
             -X post -f ${{ env.MODULE_DESCRIPTOR }}
           declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
           echo "Response status: $NAMEREF_STATUS"
+          echo "Do logout ..."
           OK -S ${{ env.OK_SESSION }} -x
 
       - name: Print module version to job summary
