@@ -21,6 +21,7 @@ jobs:
           cd okclient && source ./ok.sh
           OK -S ${{ env.OK_SESSION }} \
             -v \
+            -o '-v' \
             -h ${{ env.FOLIO_MD_REGISTRY }} \
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
