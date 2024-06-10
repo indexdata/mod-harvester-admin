@@ -19,8 +19,6 @@ jobs:
         # So do not proceed with other workflow steps if not available.
         run: |
           cd okclient && source ./ok.sh
-          echo "Show context ..."
-          OK -v
           echo "Do login ..."
           OK -S ${{ env.OK_SESSION }} \
             -v \
