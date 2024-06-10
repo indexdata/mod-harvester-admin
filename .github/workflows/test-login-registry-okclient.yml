@@ -19,6 +19,7 @@ jobs:
         # So do not proceed with other workflow steps if not available.
         run: |
           cd okclient && source ./ok.sh
+          echo "Do login ..."
           OK -S ${{ env.OK_SESSION }} \
             -v \
             -o '-v' \
@@ -26,7 +27,9 @@ jobs:
             -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
             -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
+          echo "Show context ..."
           OK -S ${{ env.OK_SESSION }} -v
+          echo "Do logout ..."
           OK -S ${{ env.OK_SESSION }} -x
       - name: Set some variables
         run: |
