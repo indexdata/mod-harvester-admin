@@ -14,7 +14,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Prepare okclient
-        run: git clone https://github.com/indexdata/okclient
+        run: |
+          git clone https://github.com/indexdata/okclient
+          git checkout change-session-var-handling-2
+          echo "BASH_VERSION: $BASH_VERSION"
       - name: Ensure login ModuleDescriptor registry
         # So do not proceed with other workflow steps if not available.
         run: |
