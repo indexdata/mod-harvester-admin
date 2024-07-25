@@ -11,6 +11,7 @@ env:
   OKAPI_URL: 'https://harvester-dev-okapi.folio-dev.indexdata.com'
   OKAPI_SECRET_USER: "${{ secrets.HARVESTER_DEV_OKAPI_USER }}"
   OKAPI_SECRET_PASSWORD: "${{ secrets.HARVESTER_DEV_OKAPI_PASSWORD }}"
+  OK_SESSION: 'session1'
 
 jobs:
   mvn-dev-build-deploy:
@@ -26,6 +27,20 @@ jobs:
         with:
           java-version: 17
           distribution: 'temurin' # Alternative distribution options are available.
+
+      - name: Prepare okclient
+        run: git clone https://github.com/indexdata/okclient
+
+      - name: Ensure OK and FOLIO login
+        # So do not proceed with other workflow steps if not available.
+        run: |
+          source okclient/ok.sh
+          OK -S ${{ env.OK_SESSION }} \
+            -h ${{ env.OKAPI_URL }} \
+            -t "supertenant" \
+            -u ${{ env.OKAPI_SECRET_USER }} \
+            -p ${{ env.OKAPI_SECRET_PASSWORD }}
+          OK -S ${{ env.OK_SESSION }} -x
 
       - name: Gather some variables
         run: |
@@ -79,27 +94,6 @@ jobs:
         with:
           path: ${{ env.MODULE_DESCRIPTOR }}
 
-      - name: Login to dev Okapi instance
-        #if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
-        id: login-okapi
-        uses: cyberman54/curl@v1.3
-        with:
-          url: "${{ env.OKAPI_URL }}/authn/login"
-          method: "POST"
-          accept: 201
-          timeout: 5000
-          retries: 3
-          headers: |
-            {
-              "content-type": "application/json",
-              "x-okapi-tenant": "supertenant"
-            }
-          body: |
-            {
-              "username": "${{ env.OKAPI_SECRET_USER }}",
-              "password": "${{ env.OKAPI_SECRET_PASSWORD }}"
-            }
-
       - name: Login to Index Data Docker Hub account
         if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
         uses: docker/login-action@v3
@@ -115,28 +109,23 @@ jobs:
           push: true
           tags: indexdata/${{ env.MODULE_NAME }}:${{ env.MODULE_VERSION }},indexdata/${{ env.MODULE_NAME }}:latest
 
-      - name: Get the Okapi login token
-        if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
-        run: |
-          echo "OKAPI_TOKEN=${{ fromJSON(steps.login-okapi.outputs.response).headers['x-okapi-token'] }}" >> $GITHUB_ENV
-
       - name: Publish ModuleDescriptor to Okapi
         if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
-        id: result-okapi
-        # uses: indiesdev/curl@v1.1
-        uses: cyberman54/curl@v1.3
-        with:
-          url: "${{ env.OKAPI_URL }}/_/proxy/modules"
-          method: "POST"
-          accept: 201
-          timeout: 10000
-          headers: |
-            {
-              "content-type": "application/json",
-              "x-okapi-tenant": "supertenant",
-              "x-okapi-token": "${{ env.OKAPI_TOKEN }}"
-            }
-          body: ${{ steps.moduleDescriptor.outputs.content }}
+        run: |
+          source okclient/ok.sh
+          echo "Do login ..."
+          OK -S ${{ env.OK_SESSION }} \
+            -h ${{ env.OKAPI_URL }} \
+            -t "supertenant" \
+            -u ${{ env.OKAPI_SECRET_USER }} \
+            -p ${{ env.OKAPI_SECRET_PASSWORD }}
+          echo "Post the MD and report the response status ..."
+          OK -S ${{ env.OK_SESSION }} _/proxy/modules \
+            -X post -f ${{ env.MODULE_DESCRIPTOR }}
+          declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
+          echo "Response status: $NAMEREF_STATUS"
+          echo "Do logout ..."
+          OK -S ${{ env.OK_SESSION }} -x
 
       - name: Print module version to job summary
         run: |

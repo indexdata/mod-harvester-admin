@@ -7,7 +7,7 @@ public class SqlQuery {
   private final String select;
   private final String from;
   private String where;
-  private final String orderBy;
+  private String orderBy;
   private final String offset;
   private final String limit;
   private String defaultLimit = null;
@@ -40,8 +40,8 @@ public class SqlQuery {
   public String getQueryWithLimits() {
     return select
         + from
-        + where
-        + orderBy
+        + (where.isEmpty() ? "" : " WHERE " + where)
+        + (orderBy.isEmpty() ? "" : " ORDER BY " + orderBy)
         + limits(offset, (limit == null ? defaultLimit : limit));
   }
 
@@ -51,9 +51,20 @@ public class SqlQuery {
   public SqlQuery withAdditionalWhereClause(String clause) {
     if (clause != null && !clause.isEmpty()) {
       if (where.isEmpty()) {
-        where = " where (" + clause + ")";
+        where = " (" + clause + ")";
       } else {
         where += " AND " + "(" + clause + ") ";
+      }
+    }
+    return this;
+  }
+
+  public SqlQuery withAdditionalOrderByField(String clause) {
+    if (clause != null && !clause.isEmpty()) {
+      if (orderBy.isEmpty()) {
+        orderBy = clause;
+      } else {
+        orderBy += ", " + clause;
       }
     }
     return this;
