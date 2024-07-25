@@ -1,6 +1,7 @@
 package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
@@ -212,6 +213,12 @@ public class LogLine extends StoredEntity {
     return pgCqlDefinition;
   }
 
+  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
+    SqlQuery sql = super.makeSqlFromCqlQuery(routingContext, schemaDotTable);
+    sql.withAdditionalOrderByField(LogLineField.TIME_STAMP.columnName());
+    sql.withAdditionalOrderByField(LogLineField.SEQUENCE_NUMBER.columnName());
+    return sql;
+  }
 
   public String toString() {
     return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);
