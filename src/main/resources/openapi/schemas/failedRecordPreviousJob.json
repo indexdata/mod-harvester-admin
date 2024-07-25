@@ -34,7 +34,7 @@
                 "description": "Short context description"
               },
               "typeOfError": {
-                "type": "string",
+                "type": "object",
                 "description": "Error category."
               },
               "typeOfRecord": {

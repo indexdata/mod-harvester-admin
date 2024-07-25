@@ -82,6 +82,19 @@ public class RecordFailure extends StoredEntity {
     return recordFailure;
   }
 
+  public static RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
+    RecordFailure recordFailure = new RecordFailure();
+    recordFailure.id = UUID.fromString(json.getString("id"));
+    recordFailure.harvestJobId = harvestJobId;
+    recordFailure.recordNumber = json.getString("recordNumber");
+    recordFailure.timeStamp = json.getString("timeStamp").replace("T", " ");
+    recordFailure.originalRecord = json.getString("originalRecord");
+    recordFailure.transformedRecord = json.getJsonObject("transformedRecord");
+    recordFailure.recordErrors = json.getJsonArray("recordErrors");
+    return recordFailure;
+
+  }
+
   /**
    * CREATE TABLE statement.
    */
@@ -105,7 +118,7 @@ public class RecordFailure extends StoredEntity {
   public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       RecordFailure recordFailure = new RecordFailure();
-      recordFailure.id = row.getUUID(RecordFailure.Column.id.name());
+      recordFailure.id = row.getUUID(Column.id.name());
       recordFailure.harvestableId = row.getLong(Column.harvestable_id.name());
       recordFailure.harvestableName = row.getString(Column.harvestable_name.name());
       recordFailure.harvestJobId = row.getUUID(Column.harvest_job_id.name());

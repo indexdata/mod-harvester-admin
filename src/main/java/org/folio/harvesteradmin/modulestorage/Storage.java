@@ -11,6 +11,7 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -121,20 +122,16 @@ public class Storage {
     }
   }
 
+
   /**
    * Stores failed records.
    */
-  public Future<Void> storeFailedRecords(UUID harvestJobId, JsonArray failedRecords) {
+  public Future<Void> storeFailedRecords(UUID harvestJobId, List<StoredEntity> failedRecords) {
     if (failedRecords != null && ! failedRecords.isEmpty()) {
-      List<StoredEntity> list = new ArrayList<>();
-      for (Object rec : failedRecords) {
-        JsonObject failedRecord = (JsonObject) rec;
-        list.add(RecordFailure.fromLegacyHarvesterJson(harvestJobId, failedRecord));
-      }
-      return SqlTemplate.forUpdate(pool.getPool(),
+        return SqlTemplate.forUpdate(pool.getPool(),
           RecordFailure.entity().makeInsertTemplate(pool.getSchema()))
           .mapFrom(RecordFailure.entity().getTupleMapper())
-          .executeBatch(list)
+          .executeBatch(failedRecords)
           .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
           .mapEmpty();
 
@@ -143,6 +140,7 @@ public class Storage {
       return Future.succeededFuture();
     }
   }
+
 
   /**
    * Gets previous jobs from module's storage.
@@ -181,7 +179,8 @@ public class Storage {
   public Future<String> getLogsForPreviousJob(UUID id, SqlQuery queryFromCql) {
     Promise<String> promise = Promise.promise();
     final StringBuilder log = new StringBuilder();
-    String query = queryFromCql.withAdditionalWhereClause("harvest_job_id = #{id}").toString();
+    String query = queryFromCql
+            .withAdditionalWhereClause("harvest_job_id = #{id}").toString();
     SqlTemplate.forQuery(pool.getPool(), query)
         .mapTo(LogLine.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))
@@ -274,7 +273,7 @@ public class Storage {
       if (previousJob.result() == null) {
         promise.fail("No job history found with job ID " + id + ". Nothing deleted.");
       } else {
-        logger.info("Found job " + previousJob.result().getId());
+        logger.info("Found job to delete: " + previousJob.result().getId());
         SqlTemplate.forUpdate(pool.getPool(),
                 "DELETE FROM " + schemaDotTable(Table.log_statement)
                     + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID + " = #{id} ")
@@ -314,6 +313,57 @@ public class Storage {
       }
     });
     return promise.future();
+  }
+
+  public Future<Void> purgePreviousJobsByAge (LocalDateTime untilDate) {
+      Promise<Void> promise = Promise.promise();
+      SqlTemplate.forUpdate(pool.getPool(),
+                      "DELETE FROM " + schemaDotTable(Table.log_statement)
+                              + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID +
+                              "    IN (SELECT " + HarvestJobField.ID +
+                              "        FROM " + schemaDotTable(Table.harvest_job) +
+                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
+              .execute(Collections.singletonMap("untilDate", untilDate))
+              .onComplete(deletedLogs -> {
+                  if (deletedLogs.succeeded()) {
+                      SqlTemplate.forUpdate(pool.getPool(),
+                                      "DELETE FROM " + schemaDotTable(Table.record_failure)
+                                              + " WHERE " + RecordFailure.Column.harvest_job_id +
+                                              "    IN (SELECT " + HarvestJobField.ID +
+                                              "        FROM " + schemaDotTable(Table.harvest_job) +
+                                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
+                              .execute(Collections.singletonMap("untilDate", untilDate))
+                              .onComplete(deletedFailedRecords -> {
+                                  if (deletedFailedRecords.succeeded()) {
+                                      SqlTemplate.forUpdate(pool.getPool(),
+                                                      "DELETE FROM " + schemaDotTable(Table.harvest_job) +
+                                                      "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} ")
+                                              .execute(Collections.singletonMap("untilDate", untilDate))
+                                              .onComplete(deletedJobRun -> {
+                                                  if (deletedJobRun.succeeded()) {
+                                                      promise.complete();
+                                                  } else {
+                                                      logger.error("Purge of previous jobs failed." + deletedJobRun.cause().getMessage());
+                                                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
+                                                              + deletedJobRun.cause().getMessage());
+                                                  }
+                                              });
+                                  } else {
+                                      logger.error("Purge of failed records failed." + deletedFailedRecords.cause().getMessage());
+                                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
+                                              + " because deletion of its failed records failed: "
+                                              + deletedFailedRecords.cause().getMessage());
+                                  }
+                              });
+                  } else {
+                      logger.error("Purge of log statements failed." + deletedLogs.cause().getMessage());
+                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
+                              + " because deletion of its logs failed: "
+                              + deletedLogs.cause().getMessage());
+                  }
+              });
+      return promise.future();
+
   }
 
   /**

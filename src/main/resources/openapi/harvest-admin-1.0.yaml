@@ -485,6 +485,27 @@ paths:
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
+    post:
+      description: Create job log samples for test purposes etc, for example by import from another FOLIO instance.
+      operationId: postPreviousJob
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/previousJob"
+        required: true
+      responses:
+        "201":
+          description: Job log created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/previousJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
 
   /harvester-admin/previous-jobs/failed-records:
     parameters:
@@ -620,6 +641,25 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+    post:
+      operationId: postPreviousJobLog
+      description: Backdoor for creating logs of a previous harvest job without running a job
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "201":
+          description: Logs for a previous harvest job created
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /harvester-admin/previous-jobs/{id}/failed-records:
     parameters:
       - $ref: headers/okapi-tenant.yaml
@@ -632,40 +672,41 @@ paths:
         schema:
           type: string
           format: uuid
-      - in: query
-        name: query
-        required: false
-        description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
-        schema:
-          type: string
-      - in: query
-        name: from
-        required: false
-        description: date range parameter on error report timestamp
-        schema:
-          type: string
-      - in: query
-        name: until
-        required: false
-        description: date range parameter on error report timestamp
-        schema:
-          type: string
-      - in: query
-        name: offset
-        required: false
-        description: result set start row
-        schema:
-          type: string
-      - in: query
-        name: limit
-        required: false
-        description: result set max rows
-        schema:
-          type: string
 
     get:
       operationId: getFailedRecordsForPreviousJob
       description: Retrieves the failed records of a previous harvest job
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL query, supporting recordNumber, harvestableId, harvestableName in queries
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: date range parameter on error report timestamp
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: date range parameter on error report timestamp
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
       responses:
         "200":
           description: List of failed records for a previous harvest job
@@ -680,6 +721,24 @@ paths:
           $ref: "#/components/responses/trait_404"
         "500":
           $ref: "#/components/responses/trait_500"
+
+    post:
+      description: Create failed record samples without running a job, for example to import from another FOLIO instance.
+      operationId: postFailedRecords
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/failedRecordsPreviousJob"
+        required: true
+      responses:
+        "201":
+          description: Failed record entries created
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
 
   /harvester-admin/previous-jobs/failed-records/{id}:
     parameters:
@@ -1169,6 +1228,14 @@ paths:
             text/plain:
               schema:
                 type: string
+
+  /harvester-admin/purge-aged-logs:
+    post:
+      operationId: purgeAgedLogs
+      description: Delete old harvest logs from storage
+      responses:
+        "201":
+          description: No content
 
 components:
   responses:
