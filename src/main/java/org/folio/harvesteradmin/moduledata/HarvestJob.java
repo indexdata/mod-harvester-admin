@@ -58,7 +58,7 @@ public class HarvestJob extends StoredEntity {
   /**
    * Test purposes: For importing harvest job samples without running jobs to create them first
    * @param harvestJobJson Could be harvest job JSON exported from another service
-   * @return
+   * @return POJO
    */
   public static HarvestJob fromHarvestJobJson(JsonObject harvestJobJson) {
     HarvestJob harvestJob = new HarvestJob();
