@@ -8,9 +8,9 @@ on:
 
 env:
   PUBLISH_BRANCH: 'master'
-  OKAPI_URL: 'https://harvester-dev-okapi.folio-dev.indexdata.com'
-  OKAPI_SECRET_USER: "${{ secrets.HARVESTER_DEV_OKAPI_USER }}"
-  OKAPI_SECRET_PASSWORD: "${{ secrets.HARVESTER_DEV_OKAPI_PASSWORD }}"
+  OKAPI_URL: 'https://snapshot-dev-okapi.folio-dev.indexdata.com'
+  OKAPI_SECRET_USER: "${{ secrets.SNAPSHOT_DEV_OKAPI_USER }}"
+  OKAPI_SECRET_PASSWORD: "${{ secrets.SNAPSHOT_DEV_OKAPI_PASSWORD }}"
   OK_SESSION: 'session1'
 
 jobs:

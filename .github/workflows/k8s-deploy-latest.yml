@@ -6,8 +6,8 @@
 name: k8s-deploy-latest
 
 env:
-  K8S_NAMESPACE: 'harvester-dev'
-  K8S_DEPLOYMENT: 'mod-harvester-admin'
+  K8S_NAMESPACE: 'snapshot-dev'
+  K8S_DEPLOYMENT: 'mod-harvester-admin-dev'
 
 on:
   workflow_dispatch
@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - name: Deploy latest to K8s
-        uses: actions-hub/kubectl@v1.21.2
+        uses: actions-hub/kubectl@v1.29.3
         env: 
-          KUBE_CONFIG: ${{ secrets.HARVESTER_DEV_SA_KUBECONFIG }}
+          KUBE_CONFIG: ${{ secrets.SNAPSHOT_DEV_SA_KUBECONFIG }}
         with:
           args:
             -n ${{ env.K8S_NAMESPACE }} rollout restart deployment ${{ env.K8S_DEPLOYMENT }}
