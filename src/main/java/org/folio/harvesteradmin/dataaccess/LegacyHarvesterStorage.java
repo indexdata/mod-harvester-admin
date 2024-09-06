@@ -910,11 +910,10 @@ public class LegacyHarvesterStorage {
   public Future<HttpResponse<Buffer>> getJobLog(String harvestableId, String fromDate) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
     harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from="
-        + fromDate.substring(0,Math.min(fromDate.length(),19)))
-        .send(ar -> promise.complete(ar.result()));
+            + URLEncoder.encode(fromDate,StandardCharsets.UTF_8))
+            .send(ar -> promise.complete(ar.result()));
     return promise.future();
   }
-
   /**
    * Gets failed records.
    */
