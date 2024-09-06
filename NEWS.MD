@@ -1,3 +1,7 @@
+## 1.2.1 2024-09-06
+
+* [MODHAADM-94](https://issues.folio.org/browse/MODHAADM-94) Observes Harvester's timezone when fetching logs for latest harvest run.
+
 ## 1.2.0 2024-03-21
 
 * [MODHAADM-87](https://issues.folio.org/browse/MODHAADM-87) XML-bulk harvestables: Allow GET fields in PUT 
