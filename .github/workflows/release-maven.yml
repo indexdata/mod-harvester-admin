@@ -74,7 +74,7 @@ jobs:
             org.opencontainers.image.vendor=Index Data LLC
             org.opencontainers.image.documentation=https://github.com/indexdata/localindices/tree/master/doc
       - name: Build and publish Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
