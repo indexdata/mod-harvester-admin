@@ -888,7 +888,7 @@ public class LegacyHarvesterStorage {
           } else {
             String from = fromParameter != null && !fromParameter.isEmpty()
                 ? fromParameter
-                : lastStarted.substring(0, 19);
+                : lastStarted;
             getJobLog(id, from).onComplete(ar -> promise.complete(ar.result()));
           }
         } else {
