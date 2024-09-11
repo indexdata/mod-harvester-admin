@@ -1,13 +1,13 @@
-package org.folio.harvesteradmin.dataaccess.dataconverters;
+package org.folio.harvesteradmin.legacydata.dataconverters;
 
-import static org.folio.harvesteradmin.dataaccess.dataconverters.JsonToHarvesterXml.writeXmlNodeToString;
+import static org.folio.harvesteradmin.legacydata.dataconverters.JsonToHarvesterXml.writeXmlNodeToString;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import javax.xml.transform.TransformerException;
-import org.w3c.dom.Document;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 

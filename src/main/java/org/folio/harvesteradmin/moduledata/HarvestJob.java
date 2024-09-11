@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.folio.harvesteradmin.modulestorage.Storage;
+
+import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
@@ -98,7 +99,7 @@ public class HarvestJob extends StoredEntity {
         .forEach(field -> columnsDdl.append(field.pgColumn().getColumnDdl()).append(","));
     columnsDdl.deleteCharAt(columnsDdl.length() - 1); // remove ending comma
 
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.harvest_job
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.harvest_job
         + "("
         + columnsDdl
         + ")";
@@ -108,7 +109,7 @@ public class HarvestJob extends StoredEntity {
    * INSERT INTO statement.
    */
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Storage.Table.harvest_job
+    return "INSERT INTO " + schema + "." + Tables.harvest_job
         + " ("
         + HarvestJobField.ID + ", "
         + HarvestJobField.HARVESTABLE_ID.columnName() + ", "

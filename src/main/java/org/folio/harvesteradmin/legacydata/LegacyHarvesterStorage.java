@@ -1,17 +1,17 @@
-package org.folio.harvesteradmin.dataaccess;
+package org.folio.harvesteradmin.legacydata;
 
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STEPS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STORAGES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TSAS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.harvesterPathByRequestPath;
-import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.mapToNameOfArrayOfEntities;
-import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.mapToNameOfRootOfEntity;
-import static org.folio.harvesteradmin.dataaccess.statics.EntityRootNames.typeToEmbeddedTypeMap;
-import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.crosswalkCqlFieldNames;
-import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.crosswalkRequestParameterNames;
-import static org.folio.harvesteradmin.dataaccess.statics.RequestParameters.supportedGetRequestParameters;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STEPS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STORAGES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TSAS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.harvesterPathByRequestPath;
+import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfArrayOfEntities;
+import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfRootOfEntity;
+import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.typeToEmbeddedTypeMap;
+import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.crosswalkCqlFieldNames;
+import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.crosswalkRequestParameterNames;
+import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.AsyncResult;
@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,17 +46,18 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.dataaccess.dataconverters.JsonToHarvesterXml;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponse;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseDelete;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGet;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGetById;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponseGetUniqueByName;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponsePost;
-import org.folio.harvesteradmin.dataaccess.responsehandlers.ProcessedHarvesterResponsePut;
-import org.folio.harvesteradmin.dataaccess.statics.ApiPaths;
-import org.folio.harvesteradmin.dataaccess.statics.EntityRootNames;
-import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.legacydata.dataconverters.JsonToHarvesterXml;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponse;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseDelete;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseGet;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseGetById;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseGetUniqueByName;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponsePost;
+import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponsePut;
+import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
+import org.folio.harvesteradmin.legacydata.statics.EntityRootNames;
+import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.GenericCompositeFuture;
 import org.xml.sax.SAXException;
 
@@ -338,7 +338,7 @@ public class LegacyHarvesterStorage {
     } else {
       JsonObject jsonToPost = routingContext.body().asJsonObject();
       if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
-        jsonToPost.put("lastUpdated", iso_instant.format(Instant.now()));
+        jsonToPost.put("lastUpdated", iso_instant.format(SettableClock.getInstant()));
         JsonObject transformationReference = jsonToPost.getJsonObject("transformation");
         if (!transformationReference.containsKey("entityType")) {
           transformationReference.put("entityType", "basicTransformation");
@@ -414,7 +414,7 @@ public class LegacyHarvesterStorage {
       if (harvesterPath.equals(HARVESTER_TRANSFORMATIONS_PATH)) {
         return putTransformation(routingContext);
       } else if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
-        jsonToPut.put("lastUpdated", iso_instant.format(Instant.now()));
+        jsonToPut.put("lastUpdated", iso_instant.format(SettableClock.getInstant()));
       }
     }
     return putConfigRecord(routingContext, harvesterPath, jsonToPut, id);

@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.moduledata;
+package org.folio.harvesteradmin.moduledata.database;
 
 import io.vertx.ext.web.validation.RequestParameter;
 

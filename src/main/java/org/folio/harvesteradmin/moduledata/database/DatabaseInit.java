@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.modulestorage;
+package org.folio.harvesteradmin.moduledata.database;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -14,11 +14,11 @@ import org.folio.harvesteradmin.moduledata.RecordFailure;
 import org.folio.harvesteradmin.moduledata.StoredEntity;
 import org.folio.tlib.postgres.TenantPgPool;
 
-public class Schema {
+public class DatabaseInit {
 
-  private static final Logger logger = LogManager.getLogger(Storage.class);
+  private static final Logger logger = LogManager.getLogger(ModuleStorageAccess.class);
 
-  /**
+    /**
    * Creates tables and views.
    */
   public static Future<Void> createDatabase(TenantPgPool pool) {
@@ -65,8 +65,8 @@ public class Schema {
    */
   public static String createRecordFailureView(String schema) {
     String ddl;
-    ddl = "CREATE OR REPLACE VIEW " + schema + ".record_failure_view "
-        + "AS SELECT rf.id AS id, "
+    ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.record_failure_view
+        + " AS SELECT rf.id AS id, "
         + "          rf.harvest_job_Id AS harvest_job_id, "
         + "          hj.harvestable_id AS harvestable_id, "
         + "          hj.harvestable_name AS harvestable_name, "

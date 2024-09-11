@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.folio.harvesteradmin.modulestorage.Storage;
+
+import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
@@ -99,11 +100,11 @@ public class RecordFailure extends StoredEntity {
    * CREATE TABLE statement.
    */
   public String makeCreateTableSql(String schema) {
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.record_failure
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.record_failure
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
+        + schema + "." + Tables.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
         + Column.record_number + " TEXT, "
         + Column.time_stamp + " TIMESTAMP, "
         + Column.record_errors + " JSONB NOT NULL, "
@@ -134,7 +135,7 @@ public class RecordFailure extends StoredEntity {
 
   @Override
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Storage.Table.record_failure
+    return "INSERT INTO " + schema + "." + Tables.record_failure
         + " ("
         + Column.id + ", "
         + Column.harvest_job_id + ", "

@@ -1,10 +1,10 @@
 package org.folio.harvesteradmin.test;
 
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
-import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_JSON;
-import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.CONTENT_TYPE_XML;
-import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.OKAPI_TENANT;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
+import static org.folio.harvesteradmin.test.HarvesterAdminTestSuiteIT.CONTENT_TYPE_JSON;
+import static org.folio.harvesteradmin.test.HarvesterAdminTestSuiteIT.CONTENT_TYPE_XML;
+import static org.folio.harvesteradmin.test.HarvesterAdminTestSuiteIT.OKAPI_TENANT;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;

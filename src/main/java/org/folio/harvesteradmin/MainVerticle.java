@@ -3,7 +3,7 @@ package org.folio.harvesteradmin;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServerOptions;
-import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
 import org.folio.harvesteradmin.service.HarvestAdminService;
 import org.folio.okapi.common.Config;
 import org.folio.tlib.RouterCreator;

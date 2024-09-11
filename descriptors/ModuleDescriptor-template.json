@@ -248,6 +248,7 @@
           ],
           "pathPattern": "/harvester-admin/purge-aged-logs",
           "modulePermissions": [
+            "configuration.entries.collection.get"
           ],
           "unit": "minute",
           "delay": "2"

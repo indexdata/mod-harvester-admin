@@ -1,6 +1,6 @@
-package org.folio.harvesteradmin.dataaccess.responsehandlers;
+package org.folio.harvesteradmin.legacydata.responsehandlers;
 
-import static org.folio.harvesteradmin.dataaccess.LegacyHarvesterStorage.NO_CONTENT;
+import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.NO_CONTENT;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;

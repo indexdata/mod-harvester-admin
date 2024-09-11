@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.dataaccess.statics;
+package org.folio.harvesteradmin.legacydata.statics;
 
 import java.lang.management.ManagementFactory;
 import org.apache.logging.log4j.Level;

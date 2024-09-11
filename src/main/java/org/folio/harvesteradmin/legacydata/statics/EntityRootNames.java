@@ -1,10 +1,10 @@
-package org.folio.harvesteradmin.dataaccess.statics;
+package org.folio.harvesteradmin.legacydata.statics;
 
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STEPS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_STORAGES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.HARVESTER_TSAS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STEPS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STORAGES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TSAS_PATH;
 
 import java.util.HashMap;
 import java.util.Map;

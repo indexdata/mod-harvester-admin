@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.dataaccess.dataconverters;
+package org.folio.harvesteradmin.legacydata.dataconverters;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;

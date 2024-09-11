@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.dataaccess.statics;
+package org.folio.harvesteradmin.legacydata.statics;
 
 import java.util.HashMap;
 import java.util.HashSet;

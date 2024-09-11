@@ -1,10 +1,10 @@
 package org.folio.harvesteradmin.test;
 
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STEPS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_STORAGES_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFORMATIONS_PATH;
-import static org.folio.harvesteradmin.dataaccess.statics.ApiPaths.THIS_TRANSFORMATIONS_STEPS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STORAGES_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_TRANSFORMATIONS_PATH;
+import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_TRANSFORMATIONS_STEPS_PATH;
 import static org.folio.harvesteradmin.test.Api.deleteConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecord;
 import static org.folio.harvesteradmin.test.Api.getConfigRecords;
@@ -53,9 +53,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-@SuppressWarnings("JUnitMalformedDeclaration")
 @RunWith( VertxUnitRunner.class )
-public class HarvesterAdminTestSuite {
+public class HarvesterAdminTestSuiteIT {
   private final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
 
   static final String TENANT = "mha_test";
@@ -66,7 +65,7 @@ public class HarvesterAdminTestSuite {
   public static final Header OKAPI_TENANT = new Header ("X-Okapi-Tenant", TENANT);
 
 
-  public HarvesterAdminTestSuite() {}
+  public HarvesterAdminTestSuiteIT() {}
 
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();

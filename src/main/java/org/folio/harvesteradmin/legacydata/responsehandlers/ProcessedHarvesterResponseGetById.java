@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.dataaccess.responsehandlers;
+package org.folio.harvesteradmin.legacydata.responsehandlers;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
@@ -6,8 +6,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.dataaccess.dataconverters.HarvesterXml2Json;
-import org.folio.harvesteradmin.dataaccess.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.legacydata.dataconverters.HarvesterXml2Json;
+import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
 
 
 public class ProcessedHarvesterResponseGetById extends ProcessedHarvesterResponse {
