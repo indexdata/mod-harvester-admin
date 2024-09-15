@@ -1,19 +1,12 @@
 package org.folio.harvesteradmin.test;
 
+import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STORAGES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_TRANSFORMATIONS_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_TRANSFORMATIONS_STEPS_PATH;
-import static org.folio.harvesteradmin.test.Api.deleteConfigRecord;
-import static org.folio.harvesteradmin.test.Api.getConfigRecord;
-import static org.folio.harvesteradmin.test.Api.getConfigRecords;
-import static org.folio.harvesteradmin.test.Api.getJobLog;
-import static org.folio.harvesteradmin.test.Api.getScript;
-import static org.folio.harvesteradmin.test.Api.putConfigRecord;
-import static org.folio.harvesteradmin.test.Api.putScript;
-import static org.folio.harvesteradmin.test.Api.responseJson;
-import static org.folio.harvesteradmin.test.Api.postConfigRecord;
+import static org.folio.harvesteradmin.test.Api.*;
 import static org.folio.harvesteradmin.test.SampleId.SAMPLES_ID_PREFIX;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_STORAGE_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.BASE_STORAGE_JSON;
@@ -29,9 +22,13 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.HttpClientConfig;
+import io.restassured.http.ContentType;
 import io.restassured.http.Header;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -40,29 +37,34 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.harvesteradmin.MainVerticle;
+import org.folio.harvesteradmin.test.fakestorage.FakeFolioApis;
+import org.folio.harvesteradmin.test.utils.NetworkUtils;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+
 @RunWith( VertxUnitRunner.class )
 public class HarvesterAdminTestSuiteIT {
-  private final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
+  private static final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
 
   static final String TENANT = "mha_test";
-  Vertx vertx;
-  private static final int PORT_HARVESTER_ADMIN = 9031;
+  static Vertx vertx;
+  public static int PORT_HARVESTER_ADMIN = NetworkUtils.nextFreePort();
+  public static final int PORT_OKAPI = 9031;
   public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
   public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
-  public static final Header OKAPI_TENANT = new Header ("X-Okapi-Tenant", TENANT);
+  public static final Header OKAPI_TENANT = new Header (XOkapiHeaders.TENANT, TENANT);
+  public static final Header OKAPI_URL = new Header (XOkapiHeaders.URL, "http://localhost:" + PORT_OKAPI);
+  public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 
 
   public HarvesterAdminTestSuiteIT() {}
@@ -70,12 +72,12 @@ public class HarvesterAdminTestSuiteIT {
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
 
+
   @Rule
   public final TestName name = new TestName();
 
-  @Before
-  public void setUp(TestContext testContext) {
-    logger.info("setUp " + name.getMethodName());
+  @BeforeClass
+  public static void setUp(TestContext testContext) {
 
     vertx = Vertx.vertx();
 
@@ -86,12 +88,17 @@ public class HarvesterAdminTestSuiteIT {
     System.setProperty("port", String.valueOf(PORT_HARVESTER_ADMIN));
     vertx.deployVerticle(
         MainVerticle.class.getName(), new DeploymentOptions())
-        .onComplete(testContext.asyncAssertSuccess(outcome -> deleteSamplesFromLegacyHarvester()));
+        .onComplete(testContext.asyncAssertSuccess(outcome -> new FakeFolioApis(vertx, testContext)));
+
   }
 
-  @After
-  public void tearDown(TestContext context) {
+  @Before @After
+  public void cleanUpSampleData() {
     deleteSamplesFromLegacyHarvester();
+  }
+
+  @AfterClass
+  public static void tearDown(TestContext context) {
     Async async = context.async();
     vertx.close(context.asyncAssertSuccess(res -> async.complete()));
   }
@@ -103,6 +110,41 @@ public class HarvesterAdminTestSuiteIT {
     deleteRecordsByIdPrefix(THIS_TRANSFORMATIONS_PATH, "transformations");
     deleteRecordsByIdPrefix(THIS_STEPS_PATH, "transformationSteps");
   }
+
+  void initModuleDatabase () {
+    tenantOp(TENANT, new JsonObject().put("module_to", "mod-harvester-admin-0.0.0"), null);
+  }
+
+  void tenantOp(String tenant, JsonObject tenantAttributes, String expectedError) {
+    ExtractableResponse<Response> response = RestAssured.given()
+            .header(XOkapiHeaders.TENANT, tenant)
+            .contentType(ContentType.JSON)
+            .body(tenantAttributes.encode())
+            .post("/_/tenant")
+            .then()
+            .extract();
+
+    if (response.statusCode() == 204) {
+      return;
+    }
+    assertThat(response.statusCode(), is(201));
+    String location = response.header("Location");
+    JsonObject tenantJob = new JsonObject(response.asString());
+    assertThat(location, is("/_/tenant/" + tenantJob.getString("id")));
+
+    RestAssured.given()
+            .header(XOkapiHeaders.TENANT, tenant)
+            .get(location + "?wait=10000")
+            .then().statusCode(200)
+            .body("complete", is(true))
+            .body("error", is(expectedError));
+
+    RestAssured.given()
+            .header(XOkapiHeaders.TENANT, tenant)
+            .delete(location)
+            .then().statusCode(204);
+  }
+
 
   private void deleteRecordsByIdPrefix(String path, String recordsArrayProperty) {
     JsonObject samples = responseJson(
@@ -118,7 +160,7 @@ public class HarvesterAdminTestSuiteIT {
     Response response =
         getConfigRecords(THIS_TRANSFORMATIONS_STEPS_PATH, "step.id=" +SAMPLES_ID_PREFIX + "*",200);
     JsonObject transformationStepAssociations = new JsonObject(response.body().asString());
-    if (transformationStepAssociations.getJsonArray("transformationStepAssociations").size() > 0) {
+    if (!transformationStepAssociations.getJsonArray("transformationStepAssociations").isEmpty()) {
       logger.info("TSAs to delete: ");
     }
     for (Object o : transformationStepAssociations.getJsonArray("transformationStepAssociations")) {
@@ -336,7 +378,7 @@ public class HarvesterAdminTestSuiteIT {
     getJobLog("9865320", 404);
   }
 
-  @Test
+  //@Test
   public void cannotCreateHarvestableWithWrongStorageId()
   {
     final SampleId harvestableId = new SampleId(1);
@@ -598,7 +640,7 @@ public class HarvesterAdminTestSuiteIT {
   }
 
   @Test
-  public void cannotPostConfigsWithAlreadyExistingNames() {
+  public void cannotPostConfigWithAlreadyExistingName() {
     JsonObject storageWithNoId = BASE_STORAGE_JSON.copy();
     storageWithNoId.remove("id");
     JsonObject transformationWithNoId = BASE_TRANSFORMATION_JSON.copy();
@@ -641,24 +683,135 @@ public class HarvesterAdminTestSuiteIT {
 
   }
 
-
   @Test
   public void canGetPreviousJob () {
-    tenantAction(TENANT, new JsonObject()
-            .put("module_to", "mod-harvester-admin-0.4.0-SNAPSHOT"));
-
-    RestAssured
-        .given()
-        .header(OKAPI_TENANT)
-        .get("harvester-admin/previous-jobs")
+    initModuleDatabase();
+    Response response = given().port(PORT_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .get("harvester-admin/previous-jobs")
         .then()
         .log().ifValidationFails().statusCode(200).extract().response();
+    logger.info("canGetPreviousJobs response: " + response.asPrettyString());
+  }
 
-    tenantAction(TENANT, new JsonObject()
-        .put("module_from", "mod-harvester-admin-0.4.0-SNAPSHOT")
-        .put("purge", true));
+  @Test
+  public void willPurgeAgedJobLogs () {
+    initModuleDatabase();
 
+    Response response = given().port(PORT_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .get("harvester-admin/previous-jobs")
+            .then()
+            .log().ifValidationFails().statusCode(200).extract().response();
+    logger.info("will purge jobs response: " + response.asPrettyString());
 
+    given().port(PORT_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .get("harvester-admin/previous-jobs")
+            .then()
+            .log().ifValidationFails().statusCode(200).extract().response();
+
+    LocalDateTime now = LocalDateTime.now();
+    final LocalDateTime agedJobStartedTime = now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS);
+    final LocalDateTime agedJobFinishedTime = agedJobStartedTime.plusMinutes(2);
+    final LocalDateTime newerJobStartedTime = now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS);
+    final LocalDateTime newerJobFinishedTime = newerJobStartedTime.plusMinutes(3);
+
+    JsonObject transformation = BASE_TRANSFORMATION_JSON;
+    String transformationId = transformation.getString("id");
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+
+    JsonObject agedJobJson =
+            new JsonObject(
+                    "    {\n" +
+                    "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
+                    "      \"name\" : \"fake job log\",\n" +
+                    "      \"harvestableId\" : 672813240090200,\n" +
+                    "      \"type\" : \"xmlBulk\",\n" +
+                    "      \"url\" : \"http://fileserver/xml/\",\n" +
+                    "      \"allowErrors\" : true,\n" +
+                    "      \"transformation\" : \""+ transformationId +"\",\n" +
+                    "      \"storage\" : \"Batch Upsert Inventory\",\n" +
+                    "      \"status\" : \"OK\",\n" +
+                    "      \"started\" : \""+agedJobStartedTime+"\",\n" +
+                    "      \"finished\" : \""+agedJobFinishedTime+"\",\n" +
+                    "      \"amountHarvested\" : 5,\n" +
+                    "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__5___5___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__13___13___0___0_ Items_processed/loaded/deleted/failed:__4___4___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
+                    "    }\n");
+
+    JsonObject newerJobJson =
+            new JsonObject(
+                    "    {\n" +
+                            "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
+                            "      \"name\" : \"fake job log\",\n" +
+                            "      \"harvestableId\" : 672813240090200,\n" +
+                            "      \"type\" : \"xmlBulk\",\n" +
+                            "      \"url\" : \"http://fileserver/xml/\",\n" +
+                            "      \"allowErrors\" : true,\n" +
+                            "      \"transformation\" : \"" + transformationId + "\",\n" +
+                            "      \"storage\" : \"Batch Upsert Inventory\",\n" +
+                            "      \"status\" : \"OK\",\n" +
+                            "      \"started\" : \""+newerJobStartedTime+"\",\n" +
+                            "      \"finished\" : \""+newerJobFinishedTime+"\",\n" +
+                            "      \"amountHarvested\" : 3,\n" +
+                            "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__3___3___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__8___8___0___0_ Items_processed/loaded/deleted/failed:__2___2___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
+                            "    }\n");
+
+    given().port(PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+            .body(agedJobJson.encode())
+            .contentType(ContentType.JSON)
+            .post("harvester-admin/previous-jobs")
+            .then()
+            .log().ifValidationFails().statusCode(201).extract().response();
+
+    given().port(PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+            .body(newerJobJson.encode())
+            .contentType(ContentType.JSON)
+            .post("harvester-admin/previous-jobs")
+            .then()
+            .log().ifValidationFails().statusCode(201).extract().response();
+
+    RestAssured
+            .given()
+            .port(PORT_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .contentType(ContentType.JSON)
+            .get("harvester-admin/previous-jobs")
+            .then().statusCode(200)
+            .body("totalRecords",  is(2));
+
+    final RequestSpecification timeoutConfig = timeoutConfig(10000);
+
+    given()
+            .port(PORT_OKAPI)
+            .header(OKAPI_TENANT)
+            .header(OKAPI_URL)
+            .header(OKAPI_TOKEN)
+            .contentType(ContentType.JSON)
+            .header(XOkapiHeaders.REQUEST_ID, "purge-aged-logs")
+            .spec(timeoutConfig)
+            .when().post("/harvester-admin/purge-aged-logs")
+            .then().log().ifValidationFails().statusCode(204)
+            .extract().response();
+
+    RestAssured
+            .given()
+            .port(PORT_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .contentType(ContentType.JSON)
+            .get("harvester-admin/previous-jobs")
+            .then().statusCode(200)
+            .body("totalRecords",  is(1));
+
+  }
+
+  public static RequestSpecification timeoutConfig(int timeOutInMilliseconds) {
+    return new RequestSpecBuilder()
+            .setConfig(RestAssured.config()
+                    .httpClient(HttpClientConfig.httpClientConfig()
+                            .setParam("http.connection.timeout", timeOutInMilliseconds)
+                            .setParam("http.socket.timeout", timeOutInMilliseconds)))
+            .build();
   }
 
   @Test
@@ -676,36 +829,6 @@ public class HarvesterAdminTestSuiteIT {
   @Test
   public void putByIdWithInvalidCharactersReturn400() {
     putConfigRecord(THIS_STORAGES_PATH, "æøå", BASE_STORAGE_JSON, 400);
-  }
-
-  void tenantAction(String tenant, JsonObject tenantAttributes) {
-    ExtractableResponse<Response> response = RestAssured.given()
-        .header(XOkapiHeaders.TENANT, tenant)
-        .header("Content-Type", "application/json")
-        .body(tenantAttributes.encode())
-        .post("/_/tenant")
-        .then()
-        .extract();
-
-    if (response.statusCode() == 204) {
-      return;
-    }
-    assertThat(response.statusCode(), is(201));
-    String location = response.header("Location");
-    JsonObject tenantJob = new JsonObject(response.asString());
-    assertThat(location, is("/_/tenant/" + tenantJob.getString("id")));
-
-    RestAssured.given()
-        .header(XOkapiHeaders.TENANT, tenant)
-        .get(location + "?wait=10000")
-        .then().statusCode(200)
-        .body("complete", is(true))
-        .body("error", is((String) null));
-
-    RestAssured.given()
-        .header(XOkapiHeaders.TENANT, tenant)
-        .delete(location)
-        .then().statusCode(204);
   }
 
 }

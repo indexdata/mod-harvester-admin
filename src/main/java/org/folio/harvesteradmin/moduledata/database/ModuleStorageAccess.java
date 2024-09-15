@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
@@ -307,9 +308,9 @@ public class ModuleStorageAccess {
     return promise.future();
   }
 
-  public Future<Void> purgePreviousJobsByAge (LocalDateTime untilDate) {
+  public Future<SqlResult<Void>> purgePreviousJobsByAge (LocalDateTime untilDate) {
       Promise<Void> promise = Promise.promise();
-      SqlTemplate.forUpdate(pool.getPool(),
+      return SqlTemplate.forUpdate(pool.getPool(),
                       "DELETE FROM " + schemaDotTable(Tables.log_statement)
                               + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID +
                               "    IN (SELECT " + HarvestJobField.ID +
@@ -331,14 +332,14 @@ public class ModuleStorageAccess {
                                                       "DELETE FROM " + schemaDotTable(Tables.harvest_job) +
                                                       "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} ")
                                               .execute(Collections.singletonMap("untilDate", untilDate))
-                                              .onComplete(deletedJobRun -> {
-                                                  if (deletedJobRun.succeeded()) {
-                                                      promise.complete();
-                                                  } else {
-                                                      logger.error("Purge of previous jobs failed." + deletedJobRun.cause().getMessage());
-                                                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                                                              + deletedJobRun.cause().getMessage());
-                                                  }
+                                              .onSuccess( result -> {
+                                                  logger.info("Timer process purged " + result.rowCount() + " harvest job runs from before " + untilDate);
+                                                  promise.complete();
+                                              })
+                                              .onFailure( result -> {
+                                                  logger.error("Timer process: Purge of previous jobs failed." + result.getCause().getMessage());
+                                                  promise.fail("Could not delete job runs with finish dates before  " + untilDate
+                                                          + result.getCause().getMessage());
                                               });
                                   } else {
                                       logger.error("Purge of failed records failed." + deletedFailedRecords.cause().getMessage());
@@ -354,8 +355,6 @@ public class ModuleStorageAccess {
                               + deletedLogs.cause().getMessage());
                   }
               });
-      return promise.future();
-
   }
 
   /**

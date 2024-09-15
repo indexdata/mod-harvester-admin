@@ -473,17 +473,18 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     launcher.stopJob(routingContext);
   }
 
-  private void purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
-    ConfigurationsClient.getStringValue(routingContext,
+  private Future<String> purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
+    return ConfigurationsClient.getStringValue(routingContext,
                     ConfigurationsClient.MODULE_HARVESTER_ADMIN,
                     ConfigurationsClient.CONFIG_NAME_PURGE_LOGS_AFTER)
                     .onComplete(val -> {
                       Period ageForDeletion = getPeriod(val.result(),3, "MONTHS");
-                      LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.DAYS);
-                      logger.info("Running timed process: purging aged logs from before " + untilDate);
+                      LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
+                      logger.info("Running timer process: purging aged logs from before " + untilDate);
                       String tenant = TenantUtil.tenant(routingContext);
                       ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-                      moduleStorage.purgePreviousJobsByAge(untilDate).onComplete(result -> { logger.info("Purge completed.");});
+                      moduleStorage.purgePreviousJobsByAge(untilDate)
+                              .onComplete(x -> routingContext.response().setStatusCode(204).end());
                     });
   }
 
@@ -639,7 +640,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           .withAdditionalWhereClause(timeRange);
     } catch (PgCqlException pce) {
       responseText(routingContext, 400)
-          .end("Could not execute query to retrieve jobs: " + pce.getMessage());
+          .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + routingContext.request().absoluteURI());
       return Future.succeededFuture();
     } catch (Exception e) {
       return Future.failedFuture(e.getMessage());
