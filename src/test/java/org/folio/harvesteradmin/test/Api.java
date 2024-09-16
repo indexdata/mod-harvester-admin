@@ -3,7 +3,7 @@ package org.folio.harvesteradmin.test;
 import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
-import static org.folio.harvesteradmin.test.HarvesterAdminTestSuiteIT.*;
+import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.*;
 
 import io.restassured.response.Response;
 import io.vertx.core.json.JsonObject;

@@ -53,7 +53,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @RunWith( VertxUnitRunner.class )
-public class HarvesterAdminTestSuiteIT {
+public class HarvesterAdminTestSuite {
   private static final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
 
   static final String TENANT = "mha_test";
@@ -67,7 +67,7 @@ public class HarvesterAdminTestSuiteIT {
   public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 
 
-  public HarvesterAdminTestSuiteIT() {}
+  public HarvesterAdminTestSuite() {}
 
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();

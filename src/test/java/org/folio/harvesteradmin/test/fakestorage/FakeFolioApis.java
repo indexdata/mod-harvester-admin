@@ -8,7 +8,7 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import org.folio.harvesteradmin.test.HarvesterAdminTestSuiteIT;
+import org.folio.harvesteradmin.test.HarvesterAdminTestSuite;
 
 
 public class FakeFolioApis {
@@ -30,7 +30,7 @@ public class FakeFolioApis {
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router)
-                .listen(HarvesterAdminTestSuiteIT.PORT_OKAPI)
+                .listen(HarvesterAdminTestSuite.PORT_OKAPI)
                 .onComplete(testContext.asyncAssertSuccess());
     }
 
@@ -52,7 +52,7 @@ public class FakeFolioApis {
     }
 
     public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-        RestAssured.port = HarvesterAdminTestSuiteIT.PORT_OKAPI;
+        RestAssured.port = HarvesterAdminTestSuite.PORT_OKAPI;
         Response response =  RestAssured.given()
                 .get(storagePath + "/" + id)
                 .then()
@@ -66,7 +66,7 @@ public class FakeFolioApis {
     }
 
     public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-        RestAssured.port = HarvesterAdminTestSuiteIT.PORT_OKAPI;
+        RestAssured.port = HarvesterAdminTestSuite.PORT_OKAPI;
         Response response = RestAssured.given()
                 .body(recordToPOST.toString())
                 .post(storagePath)

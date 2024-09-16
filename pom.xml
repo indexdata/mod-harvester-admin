@@ -255,7 +255,7 @@
                         <exclude>**/package/**XYZ.class</exclude>
                     </excludes>
                     <includes>
-                        <include>**/test/HarvesterAdminTestSuiteIT.class</include>
+                        <include>**/test/HarvesterAdminTestSuite.class</include>
                         <include>**/UnitTest.class</include>
                     </includes>
                 </configuration>
