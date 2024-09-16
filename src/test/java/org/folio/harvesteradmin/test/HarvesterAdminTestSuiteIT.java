@@ -695,7 +695,7 @@ public class HarvesterAdminTestSuiteIT {
   }
 
   @Test
-  public void willPurgeAgedJobLogs () {
+  public void willPurgeAgedJobLogsUsingDefaultThreshold () {
     initModuleDatabase();
 
     Response response = given().port(PORT_HARVESTER_ADMIN)
@@ -802,6 +802,11 @@ public class HarvesterAdminTestSuiteIT {
             .get("harvester-admin/previous-jobs")
             .then().statusCode(200)
             .body("totalRecords",  is(1));
+
+  }
+
+  @Test
+  public void willPurgeAgedJobLogsUsingConfiguredThreshold () {
 
   }
 

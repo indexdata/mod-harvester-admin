@@ -35,6 +35,7 @@ import org.folio.harvesteradmin.legacydata.JobLauncher;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseGet;
 import org.folio.harvesteradmin.foliodata.ConfigurationsClient;
+import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
 import org.folio.harvesteradmin.moduledata.*;
 import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
@@ -487,7 +488,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                               .onComplete(x -> routingContext.response().setStatusCode(204).end());
                     });
   }
-
 
   private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
