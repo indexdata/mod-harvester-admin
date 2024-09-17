@@ -11,13 +11,9 @@ public class ConfigurationStorage extends RecordStorage {
     }
 
     @Override
-    protected void declareMandatoryProperties() {
-        mandatoryProperties.add("source");
-    }
+    protected void declareMandatoryProperties() {}
 
-    protected void declareUniqueProperties() {
-        uniqueProperties.add("hrid");
-    }
+    protected void declareUniqueProperties() {}
 
 
 }
