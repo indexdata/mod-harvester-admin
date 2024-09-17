@@ -10,7 +10,6 @@
         <vertx.version>4.5.3</vertx.version>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
-        <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -245,21 +244,10 @@
                 <version>2.22.2</version>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <environmentVariables>
-                        <harvester_protocal>http</harvester_protocal>
-                        <harvester_host>localhost</harvester_host>
-                        <harvester_port>8080</harvester_port>
-                        <acl_filter_by_tenant>false</acl_filter_by_tenant>
-                    </environmentVariables>
-                    <excludes>
-                        <exclude>**/package/**XYZ.class</exclude>
-                    </excludes>
                     <includes>
-                        <include>**/test/HarvesterAdminTestSuite.class</include>
-                        <include>**/UnitTest.class</include>
+                        <include>**/test/NoHarvesterTestSuite.class</include>
                     </includes>
                 </configuration>
-
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -439,6 +427,33 @@
 
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>harvesterTests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.22.2</version>
+                        <configuration>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <environmentVariables>
+                                <harvester_protocal>http</harvester_protocal>
+                                <harvester_host>localhost</harvester_host>
+                                <harvester_port>8080</harvester_port>
+                                <acl_filter_by_tenant>false</acl_filter_by_tenant>
+                            </environmentVariables>
+                            <includes>
+                                <include>**/test/HarvesterIntegrationTestSuite.class</include>
+                                <include>**/test/NoHarvesterTestSuite.class</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>folio-nexus</id>

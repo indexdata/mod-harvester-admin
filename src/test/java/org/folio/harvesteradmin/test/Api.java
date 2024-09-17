@@ -3,7 +3,7 @@ package org.folio.harvesteradmin.test;
 import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
-import static org.folio.harvesteradmin.test.HarvesterAdminTestSuite.*;
+import static org.folio.harvesteradmin.test.HarvesterIntegrationTestSuite.*;
 
 import io.restassured.response.Response;
 import io.vertx.core.json.JsonObject;
@@ -18,9 +18,9 @@ public class Api {
   public static Response postConfigRecord( JsonObject record, String api, int expectStatus ) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .body(record.encodePrettily())
-        .header(CONTENT_TYPE_JSON)
+        .header(Statics.CONTENT_TYPE_JSON)
         .post(api)
         .then()
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
@@ -33,7 +33,7 @@ public class Api {
   public static Response getConfigRecord(String api, String id, int expectStatus) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .get(api + "/" + id)
         .then()
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
@@ -50,7 +50,7 @@ public class Api {
   public static Response getConfigRecords(String api, String query, int expectStatus) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .get(api
             + (query == null ? "" : "?query=" + query ))
         .then()
@@ -60,7 +60,7 @@ public class Api {
   public static Response deleteConfigRecord(String api, String id, int expectStatus) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .delete(api + "/" + id)
         .then()
         .log().ifValidationFails().statusCode(expectStatus).extract().response();
@@ -69,8 +69,8 @@ public class Api {
   public static Response putConfigRecord(String api, String id, JsonObject record, int status) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
-        .header(CONTENT_TYPE_JSON)
+            .header(Statics.OKAPI_TENANT)
+        .header(Statics.CONTENT_TYPE_JSON)
         .body(record.encodePrettily())
         .put(api + "/" + id)
         .then()
@@ -80,8 +80,8 @@ public class Api {
   public static Response putScript(String stepId, String stepName, String xsl, int status) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
-        .header(CONTENT_TYPE_XML)
+            .header(Statics.OKAPI_TENANT)
+        .header(Statics.CONTENT_TYPE_XML)
         .body(xsl)
         .put(THIS_STEPS_PATH + "/" + stepId + "/script?name="+stepName)
         .then()
@@ -91,7 +91,7 @@ public class Api {
   public static Response getScript(String stepId, int status) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .get(THIS_STEPS_PATH + "/" + stepId + "/script")
         .then()
         .log().ifValidationFails().statusCode(status).extract().response();
@@ -100,7 +100,7 @@ public class Api {
   public static Response getJobLog(String harvestableId, int status) {
     return given()
             .port(PORT_HARVESTER_ADMIN)
-            .header(OKAPI_TENANT)
+            .header(Statics.OKAPI_TENANT)
         .get(THIS_HARVESTABLES_PATH + "/" + harvestableId + "/log")
         .then()
         .log().ifValidationFails().statusCode(status).extract().response();
