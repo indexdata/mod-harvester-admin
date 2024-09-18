@@ -13,7 +13,7 @@ public class PgColumn {
   public final String nullable;
   public final Boolean isPrimaryKey;
 
-  enum Type {
+  public enum Type {
     TEXT,
     INTEGER,
     BIGINT,

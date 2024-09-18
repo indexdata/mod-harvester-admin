@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.folio.harvesteradmin.modulestorage.Storage;
+
+import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
@@ -56,6 +57,33 @@ public class HarvestJob extends StoredEntity {
   }
 
   /**
+   * Test purposes: For importing harvest job samples without running jobs to create them first
+   * @param harvestJobJson Could be harvest job JSON exported from another service
+   * @return POJO
+   */
+  public static HarvestJob fromHarvestJobJson(JsonObject harvestJobJson) {
+    HarvestJob harvestJob = new HarvestJob();
+    harvestJob.setId(UUID.fromString(harvestJobJson.getString(HarvestJobField.ID.propertyName())));
+    harvestJob.setHarvestableId(harvestJobJson.getString(HarvestJobField.HARVESTABLE_ID.propertyName()));
+    harvestJob.setName(harvestJobJson.getString(HarvestJobField.HARVESTABLE_NAME.propertyName()));
+    harvestJob.setType(harvestJobJson.getString(HarvestJobField.HARVESTABLE_TYPE.propertyName()));
+    harvestJob.setUrl(harvestJobJson.getString(HarvestJobField.URL.propertyName()));
+    harvestJob.setAllowErrors(harvestJobJson.getString(HarvestJobField.ALLOW_ERRORS.propertyName()));
+    harvestJob.setRecordLimit(harvestJobJson.getString(HarvestJobField.RECORD_LIMIT.propertyName()));
+    harvestJob.setBatchSize(harvestJobJson.getString(HarvestJobField.BATCH_SIZE.propertyName()));
+    harvestJob.setTransformation(harvestJobJson.getString(HarvestJobField.TRANSFORMATION.propertyName()));
+    harvestJob.setStorage(harvestJobJson.getString(HarvestJobField.STORAGE.propertyName()));
+    harvestJob.setStatus(harvestJobJson.getString(HarvestJobField.STATUS.propertyName()));
+    harvestJob.setStartedAndFinished(
+            harvestJobJson.getString(HarvestJobField.STARTED.propertyName()),
+            harvestJobJson.getString(HarvestJobField.FINISHED.propertyName()));
+    harvestJob.setAmountHarvested(harvestJobJson.getInteger(HarvestJobField.AMOUNT_HARVESTED.propertyName()));
+    harvestJob.setMessage(harvestJobJson.getString(HarvestJobField.MESSAGE.propertyName()));
+    return harvestJob;
+  }
+
+
+  /**
    * HarvestJob to JSON mapping.
    */
   public JsonObject asJson() {
@@ -71,7 +99,7 @@ public class HarvestJob extends StoredEntity {
         .forEach(field -> columnsDdl.append(field.pgColumn().getColumnDdl()).append(","));
     columnsDdl.deleteCharAt(columnsDdl.length() - 1); // remove ending comma
 
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.harvest_job
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.harvest_job
         + "("
         + columnsDdl
         + ")";
@@ -81,7 +109,7 @@ public class HarvestJob extends StoredEntity {
    * INSERT INTO statement.
    */
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Storage.Table.harvest_job
+    return "INSERT INTO " + schema + "." + Tables.harvest_job
         + " ("
         + HarvestJobField.ID + ", "
         + HarvestJobField.HARVESTABLE_ID.columnName() + ", "

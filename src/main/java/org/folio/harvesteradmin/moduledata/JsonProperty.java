@@ -6,13 +6,13 @@ public class JsonProperty {
   public final String type;
   public final String format;
 
-  enum Type {
+  public enum Type {
     string,
     integer,
     undefined
   }
 
-  enum Format {
+  public enum Format {
     undefined
   }
 

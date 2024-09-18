@@ -3,14 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.folio</groupId>
     <artifactId>mod-harvester-admin</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.3.0</okapi.version>
         <vertx.version>4.5.3</vertx.version>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
-        <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -73,7 +72,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.19.6</version>
+                <version>1.20.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -143,11 +142,17 @@
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
+            <artifactId>log4j-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.1.0-alpha1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.folio.okapi</groupId>
@@ -177,17 +182,6 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- logging see http://www.slf4j.org/legacy.html -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-jul</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -256,15 +250,10 @@
                         <harvester_port>8080</harvester_port>
                         <acl_filter_by_tenant>false</acl_filter_by_tenant>
                     </environmentVariables>
-                    <excludes>
-                        <exclude>**/package/**XYZ.class</exclude>
-                    </excludes>
                     <includes>
-                        <include>**/test/HarvesterAdminTestSuite.class</include>
-                        <include>**/UnitTest.class</include>
+                        <include>**/test/NoHarvesterTestSuite.class</include>
                     </includes>
                 </configuration>
-
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -444,6 +433,33 @@
 
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>harvesterTests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.22.2</version>
+                        <configuration>
+                            <useSystemClassLoader>false</useSystemClassLoader>
+                            <environmentVariables>
+                                <harvester_protocal>http</harvester_protocal>
+                                <harvester_host>localhost</harvester_host>
+                                <harvester_port>8080</harvester_port>
+                                <acl_filter_by_tenant>false</acl_filter_by_tenant>
+                            </environmentVariables>
+                            <includes>
+                                <include>**/test/HarvesterIntegrationTestSuite.class</include>
+                                <include>**/test/NoHarvesterTestSuite.class</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>folio-nexus</id>

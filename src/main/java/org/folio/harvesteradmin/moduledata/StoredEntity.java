@@ -7,6 +7,8 @@ import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Map;
+
+import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 
@@ -40,7 +42,7 @@ public abstract class StoredEntity {
   /**
    * Map of JSON property names to Postgres table column definitions (PgColumns).
    */
-  public abstract Map<String,PgColumn> getFieldMap();
+  public abstract Map<String, PgColumn> getFieldMap();
 
   /**
    * Gets a SQL query string.

@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.folio.harvesteradmin.modulestorage.Storage;
+
+import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldNumber;
@@ -82,15 +83,28 @@ public class RecordFailure extends StoredEntity {
     return recordFailure;
   }
 
+  public static RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
+    RecordFailure recordFailure = new RecordFailure();
+    recordFailure.id = UUID.fromString(json.getString("id"));
+    recordFailure.harvestJobId = harvestJobId;
+    recordFailure.recordNumber = json.getString("recordNumber");
+    recordFailure.timeStamp = json.getString("timeStamp").replace("T", " ");
+    recordFailure.originalRecord = json.getString("originalRecord");
+    recordFailure.transformedRecord = json.getJsonObject("transformedRecord");
+    recordFailure.recordErrors = json.getJsonArray("recordErrors");
+    return recordFailure;
+
+  }
+
   /**
    * CREATE TABLE statement.
    */
   public String makeCreateTableSql(String schema) {
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.record_failure
+    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.record_failure
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
+        + schema + "." + Tables.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
         + Column.record_number + " TEXT, "
         + Column.time_stamp + " TIMESTAMP, "
         + Column.record_errors + " JSONB NOT NULL, "
@@ -105,7 +119,7 @@ public class RecordFailure extends StoredEntity {
   public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       RecordFailure recordFailure = new RecordFailure();
-      recordFailure.id = row.getUUID(RecordFailure.Column.id.name());
+      recordFailure.id = row.getUUID(Column.id.name());
       recordFailure.harvestableId = row.getLong(Column.harvestable_id.name());
       recordFailure.harvestableName = row.getString(Column.harvestable_name.name());
       recordFailure.harvestJobId = row.getUUID(Column.harvest_job_id.name());
@@ -121,7 +135,7 @@ public class RecordFailure extends StoredEntity {
 
   @Override
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Storage.Table.record_failure
+    return "INSERT INTO " + schema + "." + Tables.record_failure
         + " ("
         + Column.id + ", "
         + Column.harvest_job_id + ", "

@@ -759,6 +759,32 @@ to push
 the correct, up-to-date [status information in the POST body](src/main/resources/openapi/schemas/harvestJobStatus.json)
 to the history.
 
+#### Automatic clean up of past job runs and job logs
+
+The module has a scheduled process for cleaning up old job runs together with their logs and any failed records saved for the jobs. By default,
+the job is set to run each night at 2 AM in the Central European time zone (CET), and it will then by default remove jobs that 
+are more than three months old.
+
+The timer process can be disabled with
+
+```
+curl -XPATCH -d'{"id":"mod-harvester-admin_0","routingEntry":{"delay":"0"}}' \
+    http://localhost:9130/_/proxy/tenants/<tenant>/timers
+```
+
+The age at which old jobs should be deleted can be changed by posting a configuration like this to `configurations/entries` :
+
+```
+{
+  "module": "HARVESTER_ADMIN",
+  "configName": "PURGE_LOGS_AFTER",
+  "value": "2 MONTHS"
+}
+```
+
+The format for `value` is an integer followed by a time unit that can be any of "DAY[S]", "TAG[E]", "WEEK[S]", 
+"WOCHE[N], "MONTH[S]", or "MONAT[E]". It can be uppercase or lowercase.
+
 #### View current and historic harvest job logs and error reports
 
 If the logs are saved to history, there are thus two sets of APIs for retrieving configurations and logs; one for
@@ -808,6 +834,7 @@ updates happens several times a day in which case the current logs will frequent
 | Content          | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordCurrentJob.json)                                                                                                                                                                                                                        | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordPreviousJob.json)                                                                                                                                                                                                                                                                                                                                                       |
 | Identifier       | `harvestableId` and `recordNumber`                                                                                                                                                                                                                                                                                                 | `id` (uuid)                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Mutating?        | Yes, the error report can disappear with next job run.                                                                                                                                                                                                                                                                             | No. Unless the administrator decides do delete old logs and error reports.                                                                                                                                                                                                                                                                                                                                                                                         |
+ 
 
 ### Running harvest jobs
 
