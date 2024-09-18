@@ -349,7 +349,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   @Override
   public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
-    return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes);
+    return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes)
+            .onFailure(x -> logger.error("Database initialization failed: " + x.getMessage()))
+            .onSuccess(x -> logger.info("Tenant '" + tenant + "' database initialized"));
   }
 
   private Future<Void> getConfigRecords(Vertx vertx, RoutingContext routingContext) {
