@@ -1,17 +1,15 @@
 package org.folio.harvesteradmin.moduledata.database;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import io.vertx.sqlclient.Query;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
-import org.folio.harvesteradmin.moduledata.StoredEntity;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class DatabaseInit {
@@ -23,26 +21,25 @@ public class DatabaseInit {
    */
   public static Future<Void> createDatabase(TenantPgPool pool) {
     final Promise<Void> promise = Promise.promise();
-    @SuppressWarnings("rawtypes") List<Future> tables = new ArrayList<>();
-    for (StoredEntity entity : Arrays.asList(
-        HarvestJob.entity(),
-        LogLine.entity(),
-        RecordFailure.entity())) {
-      tables.add(pool.query(entity.makeCreateTableSql(pool.getSchema())).execute().mapEmpty());
-    }
-    CompositeFuture.all(tables).onComplete(
-        creates -> {
-          if (creates.succeeded()) {
-            pool.query(createRecordFailureView(pool.getSchema()))
-                .execute().mapEmpty().onComplete(view -> {
-                  if (view.succeeded()) {
+    Query<RowSet<Row>> createHarvestJob = pool.query(HarvestJob.entity().makeCreateTableSql(pool.getSchema()));
+    Query<RowSet<Row>> createLogLine = pool.query(LogLine.entity().makeCreateTableSql(pool.getSchema()));
+    Query<RowSet<Row>> createRecordFailure = pool.query(RecordFailure.entity().makeCreateTableSql(pool.getSchema()));
+    createHarvestJob.execute().onComplete(
+            job -> {
+                if (job.succeeded()) {
+                    createLogLine.execute();
+                } else logger.info(job.cause().getMessage());})
+            .onComplete(y -> { if (y.succeeded()) {
+                createRecordFailure.execute()
+                        .onComplete(z -> pool.query(createRecordFailureView(pool.getSchema())).execute().mapEmpty())
+                        .onComplete(view -> {if (view.succeeded()) {
                     promise.complete();
                   } else {
-                    promise.fail(view.cause().getMessage());
+                            promise.fail("Failed to create view: " + view.cause().getMessage());
                   }
                 });
           } else {
-            promise.fail(creates.cause().getMessage());
+            promise.fail("Failed to create tables: " + y.cause().getMessage());
           }
         });
     return promise.future();

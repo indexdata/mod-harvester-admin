@@ -244,6 +244,12 @@
                 <version>2.22.2</version>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
+                    <environmentVariables>
+                        <harvester_protocal>http</harvester_protocal>
+                        <harvester_host>localhost</harvester_host>
+                        <harvester_port>8080</harvester_port>
+                        <acl_filter_by_tenant>false</acl_filter_by_tenant>
+                    </environmentVariables>
                     <includes>
                         <include>**/test/NoHarvesterTestSuite.class</include>
                     </includes>

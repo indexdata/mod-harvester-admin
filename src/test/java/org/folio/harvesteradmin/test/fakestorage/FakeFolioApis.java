@@ -9,7 +9,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
-import static org.folio.harvesteradmin.test.Statics.PORT_OKAPI;
+import static org.folio.harvesteradmin.test.Statics.*;
 
 
 public class FakeFolioApis {
@@ -42,6 +42,7 @@ public class FakeFolioApis {
 
     public static JsonObject getRecordsByQuery(String storagePath, String query, int expectedResponseCode) {
         Response response = RestAssured.given()
+                .baseUri(BASE_URI_OKAPI)
                 .get(storagePath + "?" + query)
                 .then()
                 .log().ifValidationFails()
@@ -54,8 +55,8 @@ public class FakeFolioApis {
     }
 
     public static JsonObject getRecordById(String storagePath, String id, int expectedResponseCode) {
-        RestAssured.port = PORT_OKAPI;
         Response response =  RestAssured.given()
+                .baseUri(BASE_URI_OKAPI)
                 .get(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()
@@ -68,8 +69,8 @@ public class FakeFolioApis {
     }
 
     public static JsonObject post(String storagePath, JsonObject recordToPOST, int expectedResponseCode) {
-        RestAssured.port = PORT_OKAPI;
         Response response = RestAssured.given()
+                .baseUri(BASE_URI_OKAPI)
                 .body(recordToPOST.toString())
                 .post(storagePath)
                 .then()
@@ -88,6 +89,7 @@ public class FakeFolioApis {
 
     public static void put(String storagePath, JsonObject recordToPUT, int expectedResponseCode) {
         RestAssured.given()
+                .baseUri(BASE_URI_OKAPI)
                 .body(recordToPUT.toString())
                 .put(storagePath + "/" + recordToPUT.getString("id"))
                 .then()
@@ -101,6 +103,7 @@ public class FakeFolioApis {
 
     public static void delete(String storagePath, String id, int expectedResponseCode) {
         RestAssured.given()
+                .baseUri(BASE_URI_OKAPI)
                 .delete(storagePath + "/" + id)
                 .then()
                 .log().ifValidationFails()

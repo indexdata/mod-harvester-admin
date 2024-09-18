@@ -261,6 +261,9 @@ public abstract class RecordStorage {
         respond(routingContext, new JsonObject("{\"message\": \"all records deleted\"}"), 200);
     }
 
+    public void wipeMockRecords() {
+        records.clear();
+    }
 
     /**
      * Handles POST
@@ -292,36 +295,6 @@ public abstract class RecordStorage {
         }
     }
 
-    protected void upsertRecords (RoutingContext routingContext) {
-        UUID transaction = UUID.randomUUID();
-        JsonObject requestJson = new JsonObject(routingContext.body().asString());
-        JsonArray recordsJson = requestJson.getJsonArray(getResultSetName());
-        for (Object o : recordsJson) {
-            FolioApiRecord FolioApiRecord = new FolioApiRecord((JsonObject) o);
-            if (hasId(FolioApiRecord.getId())) {
-                Resp validation = validateUpdate(FolioApiRecord.getId(), FolioApiRecord);
-                if (validation.statusCode != 204 ) {
-                    respondWithMessage(routingContext, validation.message, validation.statusCode);
-                    return;
-                }
-            } else {
-                Resp validation = validateCreate(FolioApiRecord);
-                if (validation.statusCode != 201 ) {
-                    respondWithMessage(routingContext, validation.message, validation.statusCode);
-                    return;
-                }
-            }
-        }
-        for (Object o : recordsJson) {
-            FolioApiRecord FolioApiRecord = new FolioApiRecord((JsonObject) o);
-            if (hasId(FolioApiRecord.getId())) {
-                update(FolioApiRecord.getId(), FolioApiRecord);
-            } else {
-                insert(FolioApiRecord);
-            }
-        }
-        respond(routingContext, requestJson, 201);
-    }
     // HELPERS FOR RESPONSE PROCESSING
 
     JsonObject buildJsonRecordsResponse(String optionalQuery) {

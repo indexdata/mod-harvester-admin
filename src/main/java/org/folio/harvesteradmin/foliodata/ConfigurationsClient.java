@@ -24,7 +24,7 @@ public class ConfigurationsClient {
     }
 
     public static Future<String> getStringValue (RoutingContext routingContext, String moduleName, String configName) {
-        String query = "module=" + moduleName + " and configName=" + configName + " and enabled=true";
+        String query = "module==" + moduleName + " and configName==" + configName + " and enabled=true";
         Promise<String> promise = Promise.promise();
         Folio.okapiClient(routingContext).get(CONFIGURATIONS_PATH +
                         "?query=(" + URLEncoder.encode(query, StandardCharsets.UTF_8) +")")

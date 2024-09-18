@@ -78,7 +78,7 @@ public class FolioApiRecord {
             }
         } else {
             String trimmed = query.replace("(", "").replace(")", "");
-            String[] orSections = trimmed.split(" or ");
+            String[] orSections = trimmed.split(" and ");
             logger.debug(
                     "orSections: " + ( orSections.length > 1 ? orSections[0] + ", " + orSections[1] : orSections[0] ));
 
