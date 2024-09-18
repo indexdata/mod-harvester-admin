@@ -22,7 +22,7 @@ public class JobLauncher extends LegacyHarvesterStorage {
   private static final int BAD_REQUEST = 400;
   private static final int OK = 200;
 
-  private static SimpleDateFormat dateFormat;
+  private final SimpleDateFormat dateFormat;
 
   /**
    * Constructor.

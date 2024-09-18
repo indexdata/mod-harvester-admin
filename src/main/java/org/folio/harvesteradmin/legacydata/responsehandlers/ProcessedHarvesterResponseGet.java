@@ -4,13 +4,9 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.folio.harvesteradmin.legacydata.dataconverters.HarvesterXml2Json;
 
 public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
-  private static final Pattern exceptionDescriptionPattern =
-      Pattern.compile("(Exception Description:.*?[\\n\\r]+.*?[\\n\\r]+)", Pattern.DOTALL);
 
   /**
    * Constructor.
@@ -27,12 +23,7 @@ public class ProcessedHarvesterResponseGet extends ProcessedHarvesterResponse {
       } else if (harvesterStatusCode == 500
           && bodyAsString.contains(
               "An exception occurred while creating a query in EntityManager")) {
-        Matcher m = exceptionDescriptionPattern.matcher(bodyAsString);
-        if (m.find()) {
-          errorMessage = "Query failed: " + m.group(1).replaceAll("&#39;", "'");
-        } else {
-          errorMessage = "Query failed: " + bodyAsString;
-        }
+        errorMessage = "Query failed: " + bodyAsString;
         statusCode = 400;
         jsonObject = new JsonObject();
       } else {

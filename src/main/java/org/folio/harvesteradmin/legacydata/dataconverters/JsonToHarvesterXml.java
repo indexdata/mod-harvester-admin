@@ -50,6 +50,7 @@ public class JsonToHarvesterXml {
   private static Document recordJsonToHarvesterXml(JsonObject json)
       throws DOMException, ParserConfigurationException {
     DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+    docFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
     Document doc = docBuilder.newDocument();
 
@@ -134,6 +135,7 @@ public class JsonToHarvesterXml {
    */
   private static String writeXmlDocumentToString(Document xmlDocument) throws TransformerException {
     TransformerFactory tf = TransformerFactory.newInstance();
+    //tf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     Transformer transformer;
     transformer = tf.newTransformer();
     StringWriter writer = new StringWriter();
@@ -146,6 +148,7 @@ public class JsonToHarvesterXml {
    */
   public static String writeXmlNodeToString(Node node) throws TransformerException {
     TransformerFactory tf = TransformerFactory.newInstance();
+    tf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     Transformer transformer;
     transformer = tf.newTransformer();
     transformer.setOutputProperty(OutputKeys.INDENT, "yes");

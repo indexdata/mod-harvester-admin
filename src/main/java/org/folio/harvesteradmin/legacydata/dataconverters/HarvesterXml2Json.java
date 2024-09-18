@@ -274,6 +274,7 @@ public class HarvesterXml2Json {
   protected static Document xmlStringToXmlDocument(String xmlString)
       throws IOException, ParserConfigurationException, SAXException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     DocumentBuilder builder = factory.newDocumentBuilder();
     return builder.parse(new InputSource(new StringReader(xmlString)));
   }

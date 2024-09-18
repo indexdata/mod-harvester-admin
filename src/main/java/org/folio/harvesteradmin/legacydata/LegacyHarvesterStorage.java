@@ -33,13 +33,13 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -80,8 +80,9 @@ public class LegacyHarvesterStorage {
   private static final DateTimeFormatter iso_instant = DateTimeFormatter.ISO_INSTANT;
   private static final Logger logger = LogManager.getLogger(LegacyHarvesterStorage.class);
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Iterator<Long> fifteenDigitLongs =
-      new Random().longs(100000000000000L, 999999999999999L).iterator();
+      random.longs(100000000000000L, 999999999999999L).iterator();
 
   public LegacyHarvesterStorage(Vertx vertx, String tenant) {
     this.tenant = tenant;
@@ -718,7 +719,19 @@ public class LegacyHarvesterStorage {
                             }
                           });
                     } else {
-                      logger.error(transformationPost.cause().getMessage());
+                      if (!transformationPost.succeeded()) {
+                        promise.complete(
+                                new ProcessedHarvesterResponsePost(500,
+                                        "There was a problem posting transformation to legacy harvester " + transformationPost.cause().getMessage()));
+                      } else {
+                        if (!(transformationPost.result().statusCode() == CREATED)) {
+                          promise.complete(
+                                  new ProcessedHarvesterResponsePost(500,
+                                        "There was a problem posting transformation to legacy harvester, status was  " + transformationPost.result().statusCode()));
+
+                        }
+                      }
+                      logger.error(transformationPost.cause());
                     }
                   });
         }
@@ -1136,7 +1149,9 @@ public class LegacyHarvesterStorage {
    */
   private static String validateScriptAsXml(String script) {
     try {
-      DocumentBuilder parser = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+      DocumentBuilderFactory builder = DocumentBuilderFactory.newInstance();
+      builder.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      DocumentBuilder parser = builder.newDocumentBuilder();
       parser.parse(new ByteArrayInputStream(script.getBytes(StandardCharsets.UTF_8)));
     } catch (ParserConfigurationException | IOException | SAXException pe) {
       return "Validation failed for script [ " + script + "]: " + pe.getMessage();
