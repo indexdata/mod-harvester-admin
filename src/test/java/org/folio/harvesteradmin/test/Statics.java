@@ -1,18 +1,7 @@
 package org.folio.harvesteradmin.test;
 
-import io.restassured.RestAssured;
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.config.HttpClientConfig;
-import io.restassured.http.ContentType;
 import io.restassured.http.Header;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
-import io.vertx.core.json.JsonObject;
 import org.folio.okapi.common.XOkapiHeaders;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 public class Statics {
 

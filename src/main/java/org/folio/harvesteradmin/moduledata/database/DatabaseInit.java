@@ -14,8 +14,6 @@ import org.folio.tlib.postgres.TenantPgPool;
 
 public class DatabaseInit {
 
-    private static final Logger logger = LogManager.getLogger(ModuleStorageAccess.class);
-
     /**
      * Creates tables and views.
      */

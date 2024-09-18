@@ -14,14 +14,6 @@ public class ConfigurationsClient {
     private static final String RECORDS = "configs";
     public static final String MODULE_HARVESTER_ADMIN = "HARVESTER_ADMIN";
     public static final String CONFIG_NAME_PURGE_LOGS_AFTER = "PURGE_LOGS_AFTER";
-    public static Future<JsonArray> getEntries(RoutingContext routingContext, String moduleName, String configName) {
-
-        String query = "module==" + moduleName + " and configName==" + configName + " and enabled==true";
-        return Folio.okapiClient(routingContext).get(CONFIGURATIONS_PATH +
-                        "?query=(" + URLEncoder.encode(query, StandardCharsets.UTF_8) +")")
-                .map(result -> new JsonObject(result).getJsonArray(RECORDS))
-                .recover(e -> Future.failedFuture(e.getMessage()));
-    }
 
     public static Future<String> getStringValue (RoutingContext routingContext, String moduleName, String configName) {
         String query = "module==" + moduleName + " and configName==" + configName + " and enabled=true";
