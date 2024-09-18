@@ -17,21 +17,27 @@ public class Miscellaneous {
                 try {
                     int amount = Integer.parseInt(periodAsArray[0]);
                     String unit = periodAsArray[1];
-                    if (!unit.endsWith("S")) {
-                        unit += "S";
-                    }
                     switch (unit) {
+                        case "DAY":
                         case "DAYS":
+                        case "TAG":
+                        case "TAGE":
                             return Period.ofDays(amount);
+                        case "WEEK":
                         case "WEEKS":
+                        case "WOCHE":
+                        case "WOCHEN":
                             return Period.ofWeeks(amount);
+                        case "MONTH":
                         case "MONTHS":
+                        case "MONAT":
+                        case "MONATE":
                             return Period.ofMonths(amount);
                     }
                 } catch (NumberFormatException ignored) {
                 }
             }
-            logger.error("Could not resolve period from [" + periodAsText + "]. Expected string on the format: <number> DAYS|WEEKS|MONTHS");
+            logger.error("Could not resolve period from [" + periodAsText + "]. Expected string on the format: <number> DAY(S)|TAG(E)|WEEK(S)|WOCHE(N)|MONTH(S)|MONAT(E)");
         }
         return switch (defaultUnit) {
             case "DAYS" -> Period.ofDays(defaultAmount);

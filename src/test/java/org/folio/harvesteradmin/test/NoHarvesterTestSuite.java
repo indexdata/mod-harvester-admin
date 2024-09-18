@@ -376,7 +376,7 @@ public class NoHarvesterTestSuite {
                 new JsonObject()
                         .put("module", "HARVESTER_ADMIN")
                         .put("configName", "PURGE_LOGS_AFTER")
-                        .put("value", "2 MONTHS"));
+                        .put("value", "2 MONATE"));
 
         Response responsex = RestAssured
                 .given()
