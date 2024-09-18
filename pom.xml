@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.folio</groupId>
     <artifactId>mod-harvester-admin</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.3.0</okapi.version>

@@ -250,8 +250,10 @@
           "modulePermissions": [
             "configuration.entries.collection.get"
           ],
-          "unit": "minute",
-          "delay": "2"
+          "schedule": {
+            "cron": "0 2 * * *",
+            "zone": "CET"
+          }
         }
       ]
     }

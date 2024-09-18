@@ -1,3 +1,7 @@
+## 1.3.0 IN PROGRESS
+
+* [MODHAADM-71](https://issues.folio.org/browse/MODHAADM-71) Provides timer process for automatic purge of past job runs and logs.
+
 ## 1.2.1 2024-09-06
 
 * [MODHAADM-94](https://issues.folio.org/browse/MODHAADM-94) Observes Harvester's timezone when fetching logs for latest harvest run.
