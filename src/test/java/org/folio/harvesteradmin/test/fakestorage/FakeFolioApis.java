@@ -8,26 +8,33 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.folio.harvesteradmin.foliodata.ConfigurationsClient;
+import org.folio.harvesteradmin.foliodata.SettingsClient;
 
 import static org.folio.harvesteradmin.test.Statics.*;
 
 
 public class FakeFolioApis {
-    public final static String CONFIGURATION_STORAGE_PATH = "/configurations/entries";
 
     public ConfigurationStorage configurationStorage = new ConfigurationStorage();
+    public SettingsStorage settingsStorage = new SettingsStorage();
 
     public FakeFolioApis(Vertx vertx, TestContext testContext) {
         configurationStorage.attachToFakeStorage(this);
 
         Router router = Router.router(vertx);
-        router.get(CONFIGURATION_STORAGE_PATH).handler(configurationStorage::getRecords);
-        router.get(CONFIGURATION_STORAGE_PATH + "/:id").handler(configurationStorage::getRecordById);
+        router.get(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::getRecords);
+        router.get(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::getRecordById);
+        router.get(SettingsClient.SETTINGS_PATH).handler(settingsStorage::getRecords);
+        router.get(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::getRecordById);
         router.post("/*").handler(BodyHandler.create());
-        router.post(CONFIGURATION_STORAGE_PATH).handler(configurationStorage::createRecord);
+        router.post(ConfigurationsClient.CONFIGURATIONS_PATH).handler(configurationStorage::createRecord);
+        router.post(SettingsClient.SETTINGS_PATH).handler(settingsStorage::createRecord);
         router.put("/*").handler(BodyHandler.create());
-        router.put(CONFIGURATION_STORAGE_PATH + "/:id").handler(configurationStorage::updateRecord);
-        router.delete(CONFIGURATION_STORAGE_PATH + "/:id").handler(configurationStorage::deleteRecord);
+        router.put(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::updateRecord);
+        router.delete(ConfigurationsClient.CONFIGURATIONS_PATH + "/:id").handler(configurationStorage::deleteRecord);
+        router.put(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::updateRecord);
+        router.delete(SettingsClient.SETTINGS_PATH + "/:id").handler(settingsStorage::deleteRecord);
         HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
         vertx.createHttpServer(so)
                 .requestHandler(router)

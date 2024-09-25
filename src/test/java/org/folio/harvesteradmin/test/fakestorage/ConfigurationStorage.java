@@ -1,8 +1,10 @@
 package org.folio.harvesteradmin.test.fakestorage;
 
+import org.folio.harvesteradmin.foliodata.ConfigurationsClient;
+
 public class ConfigurationStorage extends RecordStorage {
     public String getResultSetName() {
-        return CONFIGURATION_ENTRIES;
+        return ConfigurationsClient.RECORDS;
     }
 
     @Override
@@ -12,8 +14,6 @@ public class ConfigurationStorage extends RecordStorage {
 
     @Override
     protected void declareMandatoryProperties() {}
-
-    protected void declareUniqueProperties() {}
 
 
 }

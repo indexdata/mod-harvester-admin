@@ -248,7 +248,9 @@
           ],
           "pathPattern": "/harvester-admin/purge-aged-logs",
           "modulePermissions": [
-            "configuration.entries.collection.get"
+            "configuration.entries.collection.get",
+            "mod-settings.entries.collection.get",
+            "mod-settings.global.read.mod-harvester-admin"
           ],
           "schedule": {
             "cron": "0 2 * * *",
@@ -259,6 +261,16 @@
     }
   ],
   "requires": [],
+  "optional": [
+    {
+      "id": "settings",
+      "version": "1.0"
+    },
+    {
+      "id": "configuration",
+      "version": "2.0"
+    }
+  ],
   "permissionSets": [
     {
       "permissionName": "harvester-admin.harvestables.collection.get",
@@ -480,6 +492,12 @@
       "displayName": "harvester admin - stop harvesting jobs",
       "description": "stop individual harvesting jobs"
     },
+    {
+      "permissionName": "mod-settings.global.read.mod-harvester-admin",
+      "displayName": "harvester-admin settings - Read configuration",
+      "description": "To read the configuration from mod settings."
+    },
+
     {
       "permissionName": "harvester-admin.delete-all",
       "displayName": "harvester admin - delete all configurations of given types",

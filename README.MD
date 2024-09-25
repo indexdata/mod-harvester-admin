@@ -772,18 +772,34 @@ curl -XPATCH -d'{"id":"mod-harvester-admin_0","routingEntry":{"delay":"0"}}' \
     http://localhost:9130/_/proxy/tenants/<tenant>/timers
 ```
 
-The age at which old jobs should be deleted can be changed by posting a configuration like this to `configurations/entries` :
+The age at which old jobs should be deleted can be changed by posting a configuration like this to `settings/entries` :
 
 ```
 {
-  "module": "HARVESTER_ADMIN",
+  "id":  <UUID>,
+  "scope": "mod-harvester-admin",
+  "key": "PURGE_LOGS_AFTER",
+  "value": "2 MONTHS"
+}
+```
+
+To set this, the user must have mod-settings write permissions to the scope, `mod-harvester-admin`.
+
+The format for `value` is an integer followed by a time unit that can be any of "DAY[S]", "TAG[E]", "WEEK[S]", 
+"WOCHE[N], "MONTH[S]", or "MONAT[E]". It can be uppercase or lowercase.
+
+Alternatively, a configuration can be posted to `configurations/entries`. These configurations are not guarded by permissions, 
+but they are exposed in the FOLIO UI. 
+
+```
+{
+  "module": "mod-harvester-admin",
   "configName": "PURGE_LOGS_AFTER",
   "value": "2 MONTHS"
 }
 ```
 
-The format for `value` is an integer followed by a time unit that can be any of "DAY[S]", "TAG[E]", "WEEK[S]", 
-"WOCHE[N], "MONTH[S]", or "MONAT[E]". It can be uppercase or lowercase.
+A setting like this in `settings/entries` will take precedence over the similar one in `configurations/entries`.
 
 #### View current and historic harvest job logs and error reports
 

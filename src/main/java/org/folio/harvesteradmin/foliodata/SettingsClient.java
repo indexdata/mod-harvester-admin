@@ -11,18 +11,17 @@ import org.apache.logging.log4j.Logger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-
-public class ConfigurationsClient {
-    public static final String CONFIGURATIONS_PATH = "/configurations/entries";
-    public static final String RECORDS = "configs";
+public class SettingsClient {
+    public static final String SETTINGS_PATH = "/settings/entries";
+    public static final String RECORDS = "items";
 
     protected static final Logger logger =
-            LogManager.getLogger(ConfigurationsClient.class);
+            LogManager.getLogger(SettingsClient.class);
 
-    public static Future<String> getStringValue (RoutingContext routingContext, String moduleName, String configName) {
-        String query = "module==" + moduleName + " and configName==" + configName + " and enabled=true";
+    public static Future<String> getStringValue (RoutingContext routingContext, String scope, String key) {
+        String query = "scope==" + scope + " and key==" + key;
         Promise<String> promise = Promise.promise();
-        Folio.okapiClient(routingContext).get(CONFIGURATIONS_PATH +
+        Folio.okapiClient(routingContext).get(SETTINGS_PATH +
                         "?query=(" + URLEncoder.encode(query, StandardCharsets.UTF_8) +")")
                 .onSuccess(response -> {
                     JsonObject json = new JsonObject(response);
@@ -35,7 +34,7 @@ public class ConfigurationsClient {
                         promise.complete(entry.getString("value"));
                     }
                 }).onFailure(response -> {
-                    logger.info("Could not obtain settings by module " + moduleName + " and config " + configName + ": " + response.getMessage());
+                    logger.error("Could not obtain settings by scope " + scope + " and key " + key + ": " + response.getMessage());
                     promise.complete(null);
                 });
         return promise.future();

@@ -89,6 +89,7 @@ public class NoHarvesterTestSuite {
                 .put("module_from", "mod-harvester-admin-1.0.0")
                 .put("purge", true), null);
         fakeFolioApis.configurationStorage.wipeMockRecords();
+        fakeFolioApis.settingsStorage.wipeMockRecords();
     }
 
     void tenantOp(String tenant, JsonObject tenantAttributes, String expectedError) {
@@ -265,7 +266,160 @@ public class NoHarvesterTestSuite {
     }
 
     @Test
-    public void willPurgeAgedJobLogsUsingConfiguredThreshold() {
+    public void willPurgeAgedJobLogsUsingSettingsEntry() {
+        Response response = given().port(Statics.PORT_HARVESTER_ADMIN)
+                .header(OKAPI_TENANT)
+                .get("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(200).extract().response();
+        logger.info("will purge jobs response: " + response.asPrettyString());
+
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .header(OKAPI_TENANT)
+                .get("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(200).extract().response();
+
+        LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime agedJobStartedTime = now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime agedJobFinishedTime = agedJobStartedTime.plusMinutes(2);
+        final LocalDateTime intermediateJobStartedTime = now.minusMonths(2).minusDays(1).truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime intermediateJobFinishedTime = intermediateJobStartedTime.plusMinutes(2);
+        final LocalDateTime newerJobStartedTime = now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime newerJobFinishedTime = newerJobStartedTime.plusMinutes(3);
+
+        JsonObject agedJobJson =
+                new JsonObject(
+                        "    {\n" +
+                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
+                                "      \"name\" : \"fake job log\",\n" +
+                                "      \"harvestableId\" : 672813240090200,\n" +
+                                "      \"type\" : \"xmlBulk\",\n" +
+                                "      \"url\" : \"http://fileserver/xml/\",\n" +
+                                "      \"allowErrors\" : true,\n" +
+                                "      \"transformation\" : \"12345\",\n" +
+                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
+                                "      \"status\" : \"OK\",\n" +
+                                "      \"started\" : \"" + agedJobStartedTime + "\",\n" +
+                                "      \"finished\" : \"" + agedJobFinishedTime + "\",\n" +
+                                "      \"amountHarvested\" : 5,\n" +
+                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__5___5___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__13___13___0___0_ Items_processed/loaded/deleted/failed:__4___4___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
+                                "    }\n");
+
+        JsonObject intermediateJobJson =
+                new JsonObject(
+                        "    {\n" +
+                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
+                                "      \"name\" : \"fake job log\",\n" +
+                                "      \"harvestableId\" : 672813240090200,\n" +
+                                "      \"type\" : \"xmlBulk\",\n" +
+                                "      \"url\" : \"http://fileserver/xml/\",\n" +
+                                "      \"allowErrors\" : true,\n" +
+                                "      \"transformation\" : \"12345\",\n" +
+                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
+                                "      \"status\" : \"OK\",\n" +
+                                "      \"started\" : \"" + intermediateJobStartedTime + "\",\n" +
+                                "      \"finished\" : \"" + intermediateJobFinishedTime + "\",\n" +
+                                "      \"amountHarvested\" : 5,\n" +
+                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__5___5___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__13___13___0___0_ Items_processed/loaded/deleted/failed:__4___4___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
+                                "    }\n");
+
+
+        JsonObject newerJobJson =
+                new JsonObject(
+                        "    {\n" +
+                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
+                                "      \"name\" : \"fake job log\",\n" +
+                                "      \"harvestableId\" : 672813240090200,\n" +
+                                "      \"type\" : \"xmlBulk\",\n" +
+                                "      \"url\" : \"http://fileserver/xml/\",\n" +
+                                "      \"allowErrors\" : true,\n" +
+                                "      \"transformation\" : \"12345\",\n" +
+                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
+                                "      \"status\" : \"OK\",\n" +
+                                "      \"started\" : \"" + newerJobStartedTime + "\",\n" +
+                                "      \"finished\" : \"" + newerJobFinishedTime + "\",\n" +
+                                "      \"amountHarvested\" : 3,\n" +
+                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__3___3___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__8___8___0___0_ Items_processed/loaded/deleted/failed:__2___2___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
+                                "    }\n");
+
+        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+                .body(agedJobJson.encode())
+                .contentType(ContentType.JSON)
+                .post("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(201).extract().response();
+
+        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+                .body(intermediateJobJson.encode())
+                .contentType(ContentType.JSON)
+                .post("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(201).extract().response();
+
+        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+                .body(newerJobJson.encode())
+                .contentType(ContentType.JSON)
+                .post("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(201).extract().response();
+
+        RestAssured
+                .given()
+                .port(Statics.PORT_HARVESTER_ADMIN)
+                .header(OKAPI_TENANT)
+                .contentType(ContentType.JSON)
+                .get("harvester-admin/previous-jobs")
+                .then().statusCode(200)
+                .body("totalRecords", is(3));
+
+        logger.info(FakeFolioApis.post("/settings/entries",
+                new JsonObject()
+                        .put("id", UUID.randomUUID().toString())
+                        .put("scope", "mod-harvester-admin")
+                        .put("key", "PURGE_LOGS_AFTER")
+                        .put("value", "2 MONATE")).encodePrettily());
+
+
+        Response responsex = RestAssured
+                .given()
+                .baseUri("http://localhost:" + Statics.PORT_OKAPI)
+                .port(Statics.PORT_OKAPI)
+                .header(OKAPI_TENANT)
+                .contentType(ContentType.JSON)
+                .get("settings/entries")
+                .then().statusCode(200)
+                .body("totalRecords", is(1))
+                .extract().response();
+
+        logger.info(responsex.asPrettyString());
+
+        final RequestSpecification timeoutConfig = timeoutConfig(10000);
+
+        given()
+                .port(Statics.PORT_OKAPI)
+                .header(OKAPI_TENANT)
+                .header(Statics.OKAPI_URL)
+                .header(Statics.OKAPI_TOKEN)
+                .contentType(ContentType.JSON)
+                .header(XOkapiHeaders.REQUEST_ID, "purge-aged-logs")
+                .spec(timeoutConfig)
+                .when().post("/harvester-admin/purge-aged-logs")
+                .then().log().ifValidationFails().statusCode(204)
+                .extract().response();
+
+        RestAssured
+                .given()
+                .port(Statics.PORT_HARVESTER_ADMIN)
+                .header(OKAPI_TENANT)
+                .contentType(ContentType.JSON)
+                .get("harvester-admin/previous-jobs")
+                .then().statusCode(200)
+                .body("totalRecords", is(1));
+    }
+
+    @Test
+    public void willPurgeAgedJobLogsUsingConfigurationsEntry() {
         Response response = given().port(Statics.PORT_HARVESTER_ADMIN)
                 .header(OKAPI_TENANT)
                 .get("harvester-admin/previous-jobs")
@@ -374,11 +528,11 @@ public class NoHarvesterTestSuite {
 
         FakeFolioApis.post("/configurations/entries",
                 new JsonObject()
-                        .put("module", "HARVESTER_ADMIN")
+                        .put("module", "mod-harvester-admin")
                         .put("configName", "PURGE_LOGS_AFTER")
                         .put("value", "2 MONATE"));
 
-        Response responsex = RestAssured
+        RestAssured
                 .given()
                 .baseUri("http://localhost:" + Statics.PORT_OKAPI)
                 .port(Statics.PORT_OKAPI)
@@ -388,8 +542,6 @@ public class NoHarvesterTestSuite {
                 .then().statusCode(200)
                 .body("totalRecords", is(1))
                 .extract().response();
-
-        logger.info(responsex.asPrettyString());
 
         final RequestSpecification timeoutConfig = timeoutConfig(10000);
 

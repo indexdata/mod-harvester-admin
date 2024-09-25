@@ -13,9 +13,6 @@ import java.util.*;
 
 public abstract class RecordStorage {
     public final static String TOTAL_RECORDS = "totalRecords";
-    // Property keys, JSON responses
-    public final static String CONFIGURATION_ENTRIES = "configs";
-
     public final String STORAGE_NAME = getClass().getSimpleName();
     public boolean failOnDelete = false;
     public boolean failOnCreate = false;

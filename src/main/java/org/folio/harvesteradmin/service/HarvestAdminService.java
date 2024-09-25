@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.folio.harvesteradmin.foliodata.SettingsClient;
 import org.folio.harvesteradmin.legacydata.JobLauncher;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterResponseGet;
@@ -476,18 +477,34 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
   private Future<String> purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
-    return ConfigurationsClient.getStringValue(routingContext,
-                    ConfigurationsClient.MODULE_HARVESTER_ADMIN,
-                    ConfigurationsClient.CONFIG_NAME_PURGE_LOGS_AFTER)
-                    .onComplete(val -> {
-                      Period ageForDeletion = getPeriod(val.result(),3, "MONTHS");
-                      LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
-                      logger.info("Running timer process: purging aged logs from before " + untilDate);
-                      String tenant = TenantUtil.tenant(routingContext);
-                      ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-                      moduleStorage.purgePreviousJobsByAge(untilDate)
-                              .onComplete(x -> routingContext.response().setStatusCode(204).end());
+    logger.info("Running timer process: purge aged logs");
+    final String SETTINGS_SCOPE = "mod-harvester-admin";
+    final String SETTINGS_KEY = "PURGE_LOGS_AFTER";
+    return SettingsClient.getStringValue(routingContext,
+                    SETTINGS_SCOPE,
+                    SETTINGS_KEY)
+                    .onComplete(settingsValue -> {
+                      if (settingsValue.result() != null) {
+                        applyPurgeOfPastJobs(vertx, routingContext, settingsValue.result());
+                      } else {
+                        final String CONFIGS_MODULE = "mod-harvester-admin";
+                        final String CONFIGS_CONFIG_NAME = "PURGE_LOGS_AFTER";
+                        ConfigurationsClient.getStringValue(routingContext,
+                                        CONFIGS_MODULE,
+                                        CONFIGS_CONFIG_NAME)
+                                .onComplete(configsValue -> applyPurgeOfPastJobs(vertx, routingContext, configsValue.result()));
+                      }
                     });
+  }
+
+  private Future<Void> applyPurgeOfPastJobs(Vertx vertx, RoutingContext routingContext, String purgeSetting) {
+    Period ageForDeletion = getPeriod(purgeSetting,3, "MONTHS");
+    LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
+    logger.info("Running timer process: purging aged logs from before " + untilDate);
+    String tenant = TenantUtil.tenant(routingContext);
+    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+    return moduleStorage.purgePreviousJobsByAge(untilDate)
+            .onComplete(x -> routingContext.response().setStatusCode(204).end()).mapEmpty();
   }
 
   private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
