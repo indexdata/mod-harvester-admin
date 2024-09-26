@@ -799,7 +799,7 @@ but they are exposed in the FOLIO UI.
 }
 ```
 
-A setting like this in `settings/entries` will take precedence over the similar one in `configurations/entries`.
+The setting in `settings/entries` would take precedence over the setting in `configurations/entries` if both were set.
 
 #### View current and historic harvest job logs and error reports
 
