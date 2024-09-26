@@ -269,7 +269,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .handler(ctx -> deleteConfigRecord(vertx, ctx)
             .onFailure(cause -> exceptionResponse(cause, ctx)))
         .failureHandler(this::routerExceptionResponse);
-
     routerBuilder
         .operation("getScript")
         .handler(ctx -> getScript(vertx, ctx)
@@ -277,10 +276,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .failureHandler(this::routerExceptionResponse);
     routerBuilder
         .operation("putScript")
-        .handler(ctx -> putScript(vertx, ctx)
-            .onFailure(cause -> exceptionResponse(cause, ctx)))
-        .failureHandler(this::routerExceptionResponse);
-
+        .handler(ctx -> putScript(vertx, ctx));
     routerBuilder
         .operation("getTsas")
         .handler(ctx -> getConfigRecords(vertx, ctx)
@@ -455,11 +451,17 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         }).mapEmpty();
   }
 
-  private Future<Void> putScript(Vertx vertx, RoutingContext routingContext) {
+  private void putScript(Vertx vertx, RoutingContext routingContext) {
     String tenant = TenantUtil.tenant(routingContext);
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.putScript(routingContext)
-        .onComplete(response -> responseText(routingContext, 204).end())
+    legacyStorage.putScript(routingContext)
+        .onSuccess(response -> {
+          if (response.statusCode() == 204) {
+            responseText(routingContext, 204).end();
+          } else {
+            responseError(routingContext, response.statusCode(), response.errorMessage());
+          }
+        })
         .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
         .mapEmpty();
   }
@@ -476,11 +478,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     launcher.stopJob(routingContext);
   }
 
-  private Future<String> purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
+  private void purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
     logger.info("Running timer process: purge aged logs");
     final String SETTINGS_SCOPE = "mod-harvester-admin";
     final String SETTINGS_KEY = "PURGE_LOGS_AFTER";
-    return SettingsClient.getStringValue(routingContext,
+    SettingsClient.getStringValue(routingContext,
                     SETTINGS_SCOPE,
                     SETTINGS_KEY)
                     .onComplete(settingsValue -> {
@@ -497,13 +499,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                     });
   }
 
-  private Future<Void> applyPurgeOfPastJobs(Vertx vertx, RoutingContext routingContext, String purgeSetting) {
+  private void applyPurgeOfPastJobs(Vertx vertx, RoutingContext routingContext, String purgeSetting) {
     Period ageForDeletion = getPeriod(purgeSetting,3, "MONTHS");
     LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
     logger.info("Running timer process: purging aged logs from before " + untilDate);
     String tenant = TenantUtil.tenant(routingContext);
     ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    return moduleStorage.purgePreviousJobsByAge(untilDate)
+    moduleStorage.purgePreviousJobsByAge(untilDate)
             .onComplete(x -> routingContext.response().setStatusCode(204).end()).mapEmpty();
   }
 

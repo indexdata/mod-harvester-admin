@@ -1,6 +1,5 @@
 package org.folio.harvesteradmin.test;
 
-import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STEPS_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.THIS_STORAGES_PATH;
@@ -19,18 +18,12 @@ import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_2_ID;
 import static org.folio.harvesteradmin.test.sampleData.Samples.SAMPLE_STEP_ID;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertTrue;
 
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.config.HttpClientConfig;
-import io.restassured.http.ContentType;
 import io.restassured.http.Header;
-import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
-import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -38,7 +31,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.harvesteradmin.MainVerticle;
-import org.folio.harvesteradmin.test.fakestorage.FakeFolioApis;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
@@ -47,10 +39,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 @RunWith( VertxUnitRunner.class )
 public class HarvesterIntegrationTestSuite {
@@ -424,6 +412,24 @@ public class HarvesterIntegrationTestSuite {
     putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
         204);
     getScript(SAMPLE_STEP.getString("id"), 200);
+  }
+
+  @Test
+  public void cannotPutScriptWithNoStepNameProvided() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    putScript(SAMPLE_STEP.getString("id"), "", SAMPLE_SCRIPT, 400);
+  }
+
+  @Test
+  public void cannotPutScriptWithNonExistingStepId() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    putScript("99999999999", SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT, 404);
+  }
+
+  @Test
+  public void cannotPutScriptWithNonExistingStepIdAndNoStepName() {
+    postConfigRecord(SAMPLE_STEP, THIS_STEPS_PATH, 201);
+    putScript("99999999999", "", SAMPLE_SCRIPT, 400);
   }
 
   @Test
