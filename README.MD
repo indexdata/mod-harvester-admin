@@ -784,7 +784,7 @@ The age at which old jobs should be deleted can be changed by posting a configur
 ```
 This setting would have the timer process delete jobs that were started over 2 months ago, to the minute. 
 
-To set this, the user must have mod-settings write permissions to the module scope and, for convenience, presumably read permission too:
+To set this, the user must have mod-settings write permissions to the module scope and, for convenience, presumably read permissions too:
 
 ```
 mod-settings.global.write.mod-harvester-admin
