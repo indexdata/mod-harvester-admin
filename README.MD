@@ -782,14 +782,19 @@ The age at which old jobs should be deleted can be changed by posting a configur
   "value": "2 MONTHS"
 }
 ```
+This setting would have the timer process delete jobs that were started over 2 months ago, to the minute. 
 
-To set this, the user must have mod-settings write permissions to the scope, `mod-harvester-admin`.
+To set this, the user must have mod-settings write permissions to the module scope and, for convenience, presumably read permission too:
+
+```
+mod-settings.global.write.mod-harvester-admin
+mod-settings.global.read.mod-harvester-admin
+```
 
 The format for `value` is an integer followed by a time unit that can be any of "DAY[S]", "TAG[E]", "WEEK[S]", 
 "WOCHE[N], "MONTH[S]", or "MONAT[E]". It can be uppercase or lowercase.
 
-Alternatively, a configuration can be posted to `configurations/entries`. These configurations are not guarded by permissions, 
-but they are exposed in the FOLIO UI. 
+Alternatively, a configuration can be posted to `configurations/entries`, but note that configuration entries are not guarded by module scope permissions: 
 
 ```
 {
