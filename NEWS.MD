@@ -1,10 +1,12 @@
-## 1.3.0 IN PROGRESS
+## 1.3.0 2024-10-17
 
 * [MODHAADM-71](https://issues.folio.org/browse/MODHAADM-71) Provides timer process for automatic purge of past job runs and logs.
+* [MODHAADM-64](https://issues.folio.org/browse/MODHAADM-64) Fixes missing error responses for invalid PUTs to `/harvester-admin/steps`. 
 
 ## 1.2.1 2024-09-06
 
 * [MODHAADM-94](https://issues.folio.org/browse/MODHAADM-94) Observes Harvester's timezone when fetching logs for latest harvest run.
+* [MODHAADM-93](https://issues.folio.org/browse/MODHAADM-93) Fixes ordering of log statements, previous jobs.
 
 ## 1.2.0 2024-03-21
 
