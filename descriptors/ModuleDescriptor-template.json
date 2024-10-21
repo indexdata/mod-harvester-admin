@@ -446,6 +446,16 @@
       ]
     },
     {
+      "permissionName": "mod-settings.global.read.mod-harvester-admin",
+      "displayName": "Settings (Harvester Admin): read harvester-admin settings",
+      "visible": false
+    },
+    {
+      "permissionName": "mod-settings.global.write.mod-harvester-admin",
+      "displayName": "Settings (Harvester Admin): write harvester-admin settings",
+      "visible": false
+    },
+    {
       "permissionName": "harvester-admin.all",
       "displayName": "Harvester admin module - all permissions",
       "description": "Entire set of permissions needed to manage the Harvester",
