@@ -1,3 +1,25 @@
+## 1.3.0 2024-10-17
+
+* [MODHAADM-71](https://issues.folio.org/browse/MODHAADM-71) Provides timer process for automatic purge of past job runs and logs.
+* [MODHAADM-64](https://issues.folio.org/browse/MODHAADM-64) Fixes missing error responses for invalid PUTs to `/harvester-admin/steps`. 
+
+## 1.2.1 2024-09-06
+
+* [MODHAADM-94](https://issues.folio.org/browse/MODHAADM-94) Observes Harvester's timezone when fetching logs for latest harvest run.
+* [MODHAADM-93](https://issues.folio.org/browse/MODHAADM-93) Fixes ordering of log statements, previous jobs.
+
+## 1.2.0 2024-03-21
+
+* [MODHAADM-87](https://issues.folio.org/browse/MODHAADM-87) XML-bulk harvestables: Allow GET fields in PUT 
+* [MODHAADM-69](https://issues.folio.org/browse/MODHAADM-69) Respond with error 400 on attempt to delete a step in use
+* [MODHAADM-68](https://issues.folio.org/browse/MODHAADM-68) Fixes to schema for POST/PUT of steps, transformations 
+* [MODHAADM-88](https://issues.folio.org/browse/MODHAADM-88) Dependency upgrades, i.e. to Vert.x 4.5.3
+
+
+## 1.1.0 2023-10-12
+
+* Tighten `storage` schema: property `json` required for `inventoryStorage` (MODHAADM-73) 
+
 ## 1.0.0 2023-05-01
 
 * Adds schema for connector and status harvestables to support saving these (MODHAADM-58)

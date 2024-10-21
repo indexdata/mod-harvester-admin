@@ -42,6 +42,9 @@ Mod-harvester-admin provides two sets of APIs, firstly the administration APIs t
 legacy Harvester APIs, and
 secondly a number of APIs for retaining the harvest job history.
 
+Refer to the [source API description](src/main/resources/openapi)
+and to the generated [API documentation](https://s3.amazonaws.com/indexdata-docs/api/mod-harvester-admin/harvest-admin-1.0.html).
+
 The pass-through APIs are adapted to FOLIO conventions as much as possible but still differs somewhat from typical FOLIO
 back-end APIs. All legacy IDs (primary keys) are numeric for example, whereas FOLIO APIs typically use UUIDs for primary
 keys. Mod-harvester-admins own APIs for the job history use the FOLIO convention of UUIDs for identifiers. See more
@@ -81,7 +84,7 @@ upsert-by-hrid API:
     "inventoryBatchUpsertPath" : "inventory-batch-upsert-hrid",
     "logHistoryStoragePath" : "harvester-admin/harvestables/{id}/log/store"
   },
-  "url" : "http://okapi:9130/",
+  "url" : "http://okapi:9130/"
 }
 ``` 
 
@@ -756,6 +759,53 @@ to push
 the correct, up-to-date [status information in the POST body](src/main/resources/openapi/schemas/harvestJobStatus.json)
 to the history.
 
+#### Automatic clean up of past job runs and job logs
+
+The module has a scheduled process for cleaning up old job runs together with their logs and any failed records saved for the jobs. By default,
+the job is set to run each night at 2 AM in the Central European time zone (CET), and it will then by default remove jobs that 
+are more than three months old.
+
+The timer process can be disabled with
+
+```
+curl -XPATCH -d'{"id":"mod-harvester-admin_0","routingEntry":{"delay":"0"}}' \
+    http://localhost:9130/_/proxy/tenants/<tenant>/timers
+```
+
+The age at which old jobs should be deleted can be changed by posting a configuration like this to `settings/entries` :
+
+```
+{
+  "id":  <UUID>,
+  "scope": "mod-harvester-admin",
+  "key": "PURGE_LOGS_AFTER",
+  "value": "2 MONTHS"
+}
+```
+This setting would have the timer process delete jobs that were started over 2 months ago, to the minute. 
+
+To set this, the user must have mod-settings write permissions to the module scope and, for convenience, presumably read permissions too:
+
+```
+mod-settings.global.write.mod-harvester-admin
+mod-settings.global.read.mod-harvester-admin
+```
+
+The format for `value` is an integer followed by a time unit that can be any of "DAY[S]", "TAG[E]", "WEEK[S]", 
+"WOCHE[N], "MONTH[S]", or "MONAT[E]". It can be uppercase or lowercase.
+
+Alternatively, a configuration can be posted to `configurations/entries`, but note that configuration entries are not guarded by module scope permissions: 
+
+```
+{
+  "module": "mod-harvester-admin",
+  "configName": "PURGE_LOGS_AFTER",
+  "value": "2 MONTHS"
+}
+```
+
+The setting in `settings/entries` would take precedence over the setting in `configurations/entries` if both were set.
+
 #### View current and historic harvest job logs and error reports
 
 If the logs are saved to history, there are thus two sets of APIs for retrieving configurations and logs; one for
@@ -805,6 +855,7 @@ updates happens several times a day in which case the current logs will frequent
 | Content          | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordCurrentJob.json)                                                                                                                                                                                                                        | [Error report for a single incoming record](src/main/resources/openapi/schemas/failedRecordPreviousJob.json)                                                                                                                                                                                                                                                                                                                                                       |
 | Identifier       | `harvestableId` and `recordNumber`                                                                                                                                                                                                                                                                                                 | `id` (uuid)                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Mutating?        | Yes, the error report can disappear with next job run.                                                                                                                                                                                                                                                                             | No. Unless the administrator decides do delete old logs and error reports.                                                                                                                                                                                                                                                                                                                                                                                         |
+ 
 
 ### Running harvest jobs
 

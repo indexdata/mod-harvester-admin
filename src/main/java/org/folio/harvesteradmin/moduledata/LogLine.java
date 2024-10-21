@@ -1,6 +1,7 @@
 package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
@@ -10,7 +11,9 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.folio.harvesteradmin.modulestorage.Storage;
+
+import org.folio.harvesteradmin.moduledata.database.SqlQuery;
+import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
@@ -129,11 +132,11 @@ public class LogLine extends StoredEntity {
    * CREATE TABLE SQL template.
    */
   public String makeCreateTableSql(String schema) {
-    return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Storage.Table.log_statement
+    return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.log_statement
         + "("
         + LogLineField.ID.columnName() + " UUID PRIMARY KEY, "
         + LogLineField.HARVEST_JOB_ID.columnName() + " UUID NOT NULL REFERENCES "
-        + schema + "." + Storage.Table.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
+        + schema + "." + Tables.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
         + LogLineField.SEQUENCE_NUMBER.columnName() + " INTEGER NOT NULL, "
         + LogLineField.TIME_STAMP.columnName() + " TIMESTAMP NOT NULL, "
         + LogLineField.LOG_LEVEL.columnName() + " TEXT NOT NULL, "
@@ -148,7 +151,9 @@ public class LogLine extends StoredEntity {
       LogLine logLine = new LogLine();
       logLine.id = row.getUUID(LogLineField.ID.columnName());
       logLine.harvestJobId = row.getUUID(LogLineField.HARVEST_JOB_ID.columnName());
-      logLine.timeStamp = row.getLocalDateTime(LogLineField.TIME_STAMP.columnName()).toString();
+      // Display in original legacy harvester date format, not the pg date format (supports importing the output)
+      logLine.timeStamp = row.getLocalDateTime(LogLineField.TIME_STAMP.columnName())
+              .toString().replace("T", " ").replace(".",",");
       logLine.logLevel = row.getString(LogLineField.LOG_LEVEL.columnName());
       logLine.jobLabel = row.getString(LogLineField.JOB_LABEL.columnName());
       logLine.line = row.getString(LogLineField.LOG_STATEMENT.columnName());
@@ -160,7 +165,7 @@ public class LogLine extends StoredEntity {
    * INSERT INTO statement.
    */
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Storage.Table.log_statement
+    return "INSERT INTO " + schema + "." + Tables.log_statement
         + " ("
         + LogLineField.ID.columnName() + ", "
         + LogLineField.HARVEST_JOB_ID.columnName() + ", "
@@ -212,6 +217,12 @@ public class LogLine extends StoredEntity {
     return pgCqlDefinition;
   }
 
+  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
+    SqlQuery sql = super.makeSqlFromCqlQuery(routingContext, schemaDotTable);
+    sql.withAdditionalOrderByField(LogLineField.TIME_STAMP.columnName());
+    sql.withAdditionalOrderByField(LogLineField.SEQUENCE_NUMBER.columnName());
+    return sql;
+  }
 
   public String toString() {
     return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);

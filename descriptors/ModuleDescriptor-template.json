@@ -83,6 +83,10 @@
           "pathPattern": "/harvester-admin/previous-jobs",
           "permissionsRequired": ["harvester-admin.previous-jobs.collection.get"]
         }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/previous-jobs",
+          "permissionsRequired": ["harvester-admin.previous-jobs.item.post"]
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/failed-records",
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
@@ -103,9 +107,17 @@
           "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
           "permissionsRequired": ["harvester-admin.previous-jobs.log.get"]
         },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/log",
+          "permissionsRequired": ["harvester-admin.previous-jobs.log.post"]
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.get"]
+        },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.post"]
         },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
@@ -224,9 +236,41 @@
           "permissionsRequired": []
         }
       ]
+    },
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/harvester-admin/purge-aged-logs",
+          "modulePermissions": [
+            "configuration.entries.collection.get",
+            "mod-settings.entries.collection.get",
+            "mod-settings.global.read.mod-harvester-admin"
+          ],
+          "schedule": {
+            "cron": "0 2 * * *",
+            "zone": "CET"
+          }
+        }
+      ]
     }
   ],
   "requires": [],
+  "optional": [
+    {
+      "id": "settings",
+      "version": "1.0"
+    },
+    {
+      "id": "configuration",
+      "version": "2.0"
+    }
+  ],
   "permissionSets": [
     {
       "permissionName": "harvester-admin.harvestables.collection.get",
@@ -289,6 +333,11 @@
       "description": "view info about a finished harvest job"
     },
     {
+      "permissionName": "harvester-admin.previous-jobs.item.post",
+      "displayName": "harvester admin - backdoor for adding job logs",
+      "description": "add previous job information directly to the database independently of a job run, i.e. by import from a different FOLIO instance"
+    },
+    {
       "permissionName": "harvester-admin.previous-jobs.item.delete",
       "displayName": "harvester admin - delete a previous job run with all its logs",
       "description": "delete the history of a previous job run with its logs and failed records, if any"
@@ -299,9 +348,19 @@
       "description": "get log statements for past harvest jobs"
     },
     {
+      "permissionName": "harvester-admin.previous-jobs.log.post",
+      "displayName": "harvester-admin - backdoor for creating logs for a job",
+      "description": "creating logs for a job without running a job, for example to import logs from another FOLIO instance"
+    },
+    {
       "permissionName": "harvester-admin.previous-jobs.failed-records.collection.get",
       "displayName": "harvester admin - view failed records for a past harvest job",
       "description": "get failed records for past harvest jobs"
+    },
+    {
+      "permissionName": "harvester-admin.previous-jobs.failed-records.collection.post",
+      "displayName": "harvester admin - backdoor for adding failed record entries",
+      "description": "add failed record entries without running a job, for example to import failure records from another FOLIO instance"
     },
     {
       "permissionName": "harvester-admin.storages.collection.get",
@@ -434,6 +493,12 @@
       "description": "stop individual harvesting jobs"
     },
     {
+      "permissionName": "mod-settings.global.read.mod-harvester-admin",
+      "displayName": "harvester-admin settings - Read configuration",
+      "description": "To read the configuration from mod settings."
+    },
+
+    {
       "permissionName": "harvester-admin.delete-all",
       "displayName": "harvester admin - delete all configurations of given types",
       "description": "delete collections of harvestables, storages, transformations, steps, and transformation-steps",
@@ -493,10 +558,13 @@
         "harvester-admin.harvestables.failed-records.item.get",
         "harvester-admin.previous-jobs.collection.get",
         "harvester-admin.previous-jobs.item.get",
+        "harvester-admin.previous-jobs.item.post",
         "harvester-admin.previous-jobs.item.delete",
         "harvester-admin.previous-jobs.log.get",
+        "harvester-admin.previous-jobs.log.post",
         "harvester-admin.previous-jobs.failed-records.collection.get",
-        "harvester-admin.previous-jobs.failed-records.item.get"
+        "harvester-admin.previous-jobs.failed-records.item.get",
+        "harvester-admin.previous-jobs.failed-records.collection.post"
       ]
     }
   ],

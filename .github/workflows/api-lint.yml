@@ -27,6 +27,7 @@ env:
   API_WARNINGS: false
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'src/main/resources/openapi/**'
@@ -39,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Prepare folio-tools

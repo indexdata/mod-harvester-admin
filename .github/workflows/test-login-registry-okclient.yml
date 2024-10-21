@@ -1,0 +1,58 @@
+name: test-login-registry-okclient
+
+env:
+  FOLIO_MD_REGISTRY: 'https://registry.folio-dev.indexdata.com'
+  OK_SESSION: 'session1'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-login-registry-okclient:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Prepare okclient
+        run: git clone https://github.com/indexdata/okclient
+      - name: Ensure login ModuleDescriptor registry
+        # So do not proceed with other workflow steps if not available.
+        run: |
+          cd okclient && source ./ok.sh
+          echo "Do login ..."
+          OK -S ${{ env.OK_SESSION }} \
+            -v \
+            -o '-v' \
+            -h ${{ env.FOLIO_MD_REGISTRY }} \
+            -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
+            -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
+            -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
+          echo "Show context ..."
+          OK -S ${{ env.OK_SESSION }} -v
+          echo "Do logout ..."
+          OK -S ${{ env.OK_SESSION }} -x
+      - name: Set some variables
+        run: |
+          echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+      - name: Report some variables
+        run: |
+          echo "REPO_NAME=${{ env.REPO_NAME }}"
+      - name: Do OK login and operations
+        run: |
+          cd okclient && source ./ok.sh
+          echo "Do login ..."
+          OK -S ${{ env.OK_SESSION }} \
+            -h ${{ env.FOLIO_MD_REGISTRY }} \
+            -t ${{ secrets.FOLIO_REGISTRY_TENANT }} \
+            -u ${{ secrets.FOLIO_REGISTRY_USERNAME }} \
+            -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
+          echo "Do a request and report the response status ..."
+          OK -S ${{ env.OK_SESSION }} "_/proxy/modules?filter=${{env.REPO_NAME}}&latest=1"
+          declare -n NAMEREF_STATUS=${{ env.OK_SESSION }}_HTTPStatus
+          echo "Response status: $NAMEREF_STATUS"
+          echo "Do another request and process the response with jq ..."
+          for id in $(OK -S ${{ env.OK_SESSION }} _/proxy/modules?latest=1 -j '.[].id'); do
+            printf "%s\n" "$id"
+          done
+          echo "Do logout ..."
+          OK -S ${{ env.OK_SESSION }} -x

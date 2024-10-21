@@ -7,6 +7,8 @@ import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Map;
+
+import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 
@@ -40,13 +42,12 @@ public abstract class StoredEntity {
   /**
    * Map of JSON property names to Postgres table column definitions (PgColumns).
    */
-  public abstract Map<String,PgColumn> getFieldMap();
+  public abstract Map<String, PgColumn> getFieldMap();
 
   /**
    * Gets a SQL query string.
    */
   public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
-
     PgCqlDefinition definition = getQueryableFields();
 
     RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
@@ -56,22 +57,18 @@ public abstract class StoredEntity {
 
     String select = "SELECT * ";
     String from = "FROM " + schemaDotTable;
-    String where = "";
-    String orderBy = "";
+    String whereClause = "";
+    String orderByClause = "";
     if (query != null && !query.isEmpty()) {
       PgCqlQuery pgCqlQuery = definition.parse(query.getString());
-      String whereClause = pgCqlQuery.getWhereClause();
-      if (whereClause != null) {
-        whereClause = jsonPropertiesToColumnNames(whereClause);
-        where = " WHERE " + whereClause;
+      if (pgCqlQuery.getWhereClause() != null) {
+        whereClause = jsonPropertiesToColumnNames(pgCqlQuery.getWhereClause());
       }
-      String orderByClause = pgCqlQuery.getOrderByClause();
-      orderByClause = jsonPropertiesToColumnNames(orderByClause);
-      if (orderByClause != null) {
-        orderBy = " ORDER BY " + orderByClause;
+      if (pgCqlQuery.getOrderByClause() != null) {
+        orderByClause = jsonPropertiesToColumnNames(pgCqlQuery.getOrderByClause());
       }
     }
-    return new SqlQuery(select, from, where, orderBy, offset, limit);
+    return new SqlQuery(select, from, whereClause, orderByClause, offset, limit);
   }
 
   /**
