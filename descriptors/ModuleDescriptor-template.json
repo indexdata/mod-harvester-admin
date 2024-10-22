@@ -511,6 +511,16 @@
       ]
     },
     {
+      "permissionName": "mod-settings.global.read.mod-harvester-admin",
+      "displayName": "Settings (Harvester Admin): read harvester-admin settings",
+      "visible": false
+    },
+    {
+      "permissionName": "mod-settings.global.write.mod-harvester-admin",
+      "displayName": "Settings (Harvester Admin): write harvester-admin settings",
+      "visible": false
+    },
+    {
       "permissionName": "harvester-admin.all",
       "displayName": "Harvester admin module - all permissions",
       "description": "Entire set of permissions needed to manage the Harvester",
@@ -554,7 +564,9 @@
         "harvester-admin.previous-jobs.log.post",
         "harvester-admin.previous-jobs.failed-records.collection.get",
         "harvester-admin.previous-jobs.failed-records.item.get",
-        "harvester-admin.previous-jobs.failed-records.collection.post"
+        "harvester-admin.previous-jobs.failed-records.collection.post",
+        "mod-settings.global.read.mod-harvester-admin",
+        "mod-settings.global.write.mod-harvester-admin"
       ]
     }
   ],
