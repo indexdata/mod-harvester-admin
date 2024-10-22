@@ -564,7 +564,9 @@
         "harvester-admin.previous-jobs.log.post",
         "harvester-admin.previous-jobs.failed-records.collection.get",
         "harvester-admin.previous-jobs.failed-records.item.get",
-        "harvester-admin.previous-jobs.failed-records.collection.post"
+        "harvester-admin.previous-jobs.failed-records.collection.post",
+        "mod-settings.global.read.mod-harvester-admin",
+        "mod-settings.global.write.mod-harvester-admin"
       ]
     }
   ],
