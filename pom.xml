@@ -8,8 +8,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.3.0</okapi.version>
         <vertx.version>4.5.3</vertx.version>
-        <maven.compiler.source>18</maven.compiler.source>
-        <maven.compiler.target>18</maven.compiler.target>
+        <maven.compiler.source>23</maven.compiler.source>
+        <maven.compiler.target>23</maven.compiler.target>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -168,6 +168,18 @@
             <artifactId>netty-tcnative-boringssl-static</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>saxon</artifactId>
+            <version>8.7</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>saxon-dom</artifactId>
+            <version>8.7</version>
+        </dependency>
+
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>

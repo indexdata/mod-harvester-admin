@@ -17,6 +17,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.impl.HttpResponseImpl;
+import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.openapi.RouterBuilder;
 import io.vertx.ext.web.validation.RequestParameter;
 import io.vertx.ext.web.validation.RequestParameters;
@@ -40,12 +41,15 @@ import org.folio.harvesteradmin.moduledata.*;
 import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
+import org.folio.harvesteradmin.service.harvest.transformation.XmlCollectionSplitter;
+import org.folio.harvesteradmin.service.harvest.transformation.TransformationPipeline;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.postgres.PgCqlException;
 import org.folio.tlib.util.TenantUtil;
+
 
 /**
  * Main service.
@@ -57,6 +61,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   @Override
   public Future<Router> createRouter(Vertx vertx) {
     return RouterBuilder.create(vertx, "openapi/harvest-admin-1.0.yaml").map(routerBuilder -> {
+      routerBuilder.rootHandler(BodyHandler.create().setBodyLimit(30000000));
       handlers(vertx, routerBuilder);
       return routerBuilder.createRouter();
     });
@@ -316,6 +321,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .operation("getIds")
         .handler(this::generateIds);
 
+    routerBuilder
+        .operation("importXmlRecords")
+        .handler(ctx-> importXmlRecords(vertx, ctx))
+        .failureHandler(this::routerExceptionResponse);
+
   }
 
   private void exceptionResponse(Throwable cause, RoutingContext routingContext) {
@@ -332,7 +342,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
    * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
    */
   private void routerExceptionResponse(RoutingContext ctx) {
-    String message = ctx.failure().getMessage();
+    String message = null;
+    if (ctx.failure() != null) message = ctx.failure().getMessage();
     if (message != null && message.contains("No schema matches")) {
       SchemaValidation validation = SchemaValidation.validateJsonObject(
           ctx.request().path(), ctx.body().asJsonObject());
@@ -926,5 +937,40 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           .append(System.lineSeparator());
     }
     responseText(routingContext, 200).end(response.toString());
+  }
+
+  private void importXmlRecords(Vertx vertx, RoutingContext routingContext) {
+    String tenant = TenantUtil.tenant(routingContext);
+    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
+    String id = routingContext.pathParam("id");
+    String requestBody = routingContext.body().asString();
+    legacyStorage.getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id)
+            .onSuccess(resp -> {
+              if (resp.wasOK()) {
+                JsonObject harvestConfig = resp.jsonObject();
+                String transformationId = harvestConfig.getJsonObject("transformation").getString("id");
+                TransformationPipeline.build(legacyStorage, transformationId)
+                        .onFailure(error -> {
+                          logger.error("TSAS not found " + error.getCause());
+                        })
+                        .onSuccess(pipeline ->
+                                vertx.executeBlocking(handler -> {
+                                  long transformationStarted = System.currentTimeMillis();
+                                  List<String> records = XmlCollectionSplitter.splitToListOfRecords(requestBody);
+                                  pipeline.transformAndConvert(records);
+                                  logger.info("Transformed " + records.size() + " records in " + (System.currentTimeMillis() - transformationStarted));
+                                  if (records.size()<10) System.out.println(records);
+                                }).onComplete(h ->
+                                        {
+                                          if (h.failed()) {
+                                            logger.info("There was an error transforming " + h.cause());
+                                          } else {
+                                            logger.info("Transformation complete.");
+                                          }
+                                        }));
+              }
+            });
+    responseText(routingContext, 200).end("Transforming");
+
   }
 }

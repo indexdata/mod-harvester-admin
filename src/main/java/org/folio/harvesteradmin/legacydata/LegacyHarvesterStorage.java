@@ -1059,22 +1059,27 @@ public class LegacyHarvesterStorage {
    * Gets a script.
    */
   public Future<String> getScript(RoutingContext routingContext) {
-    Promise<String> promise = Promise.promise();
     String id = routingContext.request().getParam("id");
-    getConfigRecordById(ApiPaths.HARVESTER_STEPS_PATH, id).onComplete(getStep -> {
+    return getScript(id);
+  }
+
+  public Future<String> getScript(String stepId) {
+    Promise<String> promise = Promise.promise();
+    getConfigRecordById(ApiPaths.HARVESTER_STEPS_PATH, stepId).onComplete(getStep -> {
       if (getStep.result().found()) {
         String script = getStep.result().jsonObject().getString(STEP_SCRIPT_KEY);
         script = script.replaceAll("\\r[\\n]?", System.lineSeparator());
         promise.complete(script);
       } else {
         if (getStep.result().wasNotFound()) {
-          promise.fail("Did not find step with ID " + id + " to GET script from");
+          promise.fail("Did not find step with ID " + stepId + " to GET script from");
         } else {
           promise.fail(getStep.result().errorMessage());
         }
       }
     });
     return promise.future();
+
   }
 
   /**

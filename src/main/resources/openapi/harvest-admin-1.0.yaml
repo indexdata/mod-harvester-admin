@@ -191,6 +191,36 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/harvestables/xml-bulk/{id}/harvest:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Harvest configuration identifier
+        schema:
+          type: number
+    post:
+      operationId: importXmlRecords
+      description: Load XML document using given harvest configuration
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/script"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
   /harvester-admin/harvestables/oai-pmh/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
