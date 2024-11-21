@@ -18,7 +18,7 @@ public class ConfigurationsClient {
             LogManager.getLogger(ConfigurationsClient.class);
 
     public static Future<String> getStringValue(RoutingContext routingContext, String moduleName, String configName) {
-        String query = "module==\"" +moduleName+ "\" and configName==\"" +configName+"\" and enabled=true\"";
+        String query = "module==\"" +moduleName+ "\" and configName==\"" +configName+"\" and enabled=true";
         return Folio.okapiClient(routingContext).get(CONFIGURATIONS_PATH +
                         "?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8))
                 .map(response ->
