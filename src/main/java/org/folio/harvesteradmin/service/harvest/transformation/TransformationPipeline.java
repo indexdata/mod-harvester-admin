@@ -15,12 +15,12 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TransformationPipeline implements RecordReceiver, RecordProvider {
+public class TransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
     private final RecordReceiver recordReceiver;
-    private TransformationPipeline(JsonObject transformation, RecordReceiver recordReceiver) {
-        this.recordReceiver = recordReceiver;
+    private TransformationPipeline(JsonObject transformation, RecordReceiver target) {
+        this.recordReceiver = target;
         setTemplates(transformation);
     }
 
@@ -34,32 +34,18 @@ public class TransformationPipeline implements RecordReceiver, RecordProvider {
         return promise.future();
     }
 
-    public List<String> transformAndConvert (List<String> listOfRecords) {
-        transform(listOfRecords);
-        convertToJson(listOfRecords);
-        return listOfRecords;
-    }
-
-    public void transform (List<String> listOfRecords) {
-        for (int i=0; i< listOfRecords.size(); i++) {
-            for (Templates templates : listOfTemplates) {
-                listOfRecords.set(i,transform(listOfRecords.get(i), templates));
-            }
-        }
-    }
-
-    public void transformAndConvert (String record) {
+    private void transformConvertAndForward(String xmlRecord) {
         String transformedRecord = "";
         for (Templates templates : listOfTemplates) {
-            transformedRecord = transform(record, templates);
+            transformedRecord = transform(xmlRecord, templates);
         }
-        String convertedRecord = convertToJson(transformedRecord);
-        recordReceiver.put(convertedRecord);
+        String jsonRecord = convertToJson(transformedRecord);
+        recordReceiver.put(jsonRecord);
     }
 
-    public String transform (String record, Templates templates) {
+    private String transform (String xmlRecord, Templates templates) {
         try {
-        Source sourceXml = new StreamSource(new StringReader(record));
+        Source sourceXml = new StreamSource(new StringReader(xmlRecord));
         StreamResult resultXmlStream = new StreamResult(new StringWriter());
         Transformer transformer = templates.newTransformer();
         transformer.transform(sourceXml, resultXmlStream);
@@ -69,14 +55,8 @@ public class TransformationPipeline implements RecordReceiver, RecordProvider {
         }
     }
 
-    public void convertToJson (List<String> listOfRecords) {
-        for (int i=0; i< listOfRecords.size(); i++) {
-            listOfRecords.set(i,convertToJson(listOfRecords.get(i)));
-        }
-    }
-
-    public String convertToJson (String record) {
-        return InventoryXmlToInventoryJson.convert(record).encodePrettily();
+    private String convertToJson (String xmlRecord) {
+        return InventoryXmlToInventoryJson.convert(xmlRecord).encodePrettily();
     }
 
     private void setTemplates(JsonObject transformation) {
@@ -98,11 +78,7 @@ public class TransformationPipeline implements RecordReceiver, RecordProvider {
 
     @Override
     public void put(String record) {
-
+       transformConvertAndForward(record);
     }
 
-    @Override
-    public void produceRecords() {
-
-    }
 }

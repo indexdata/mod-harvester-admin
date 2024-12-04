@@ -9,6 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
+import org.folio.harvesteradmin.service.harvest.transformation.RecordReceiver;
 import org.folio.harvesteradmin.service.harvest.transformation.RecordReceivingArrayList;
 import org.folio.harvesteradmin.service.harvest.transformation.TransformationPipeline;
 import org.folio.tlib.util.TenantUtil;
@@ -51,6 +52,7 @@ public class Harvester extends AbstractVerticle {
                             System.out.println("ID-NE Harvesting " + file.getName() + " for tenant " + tenant + " next.");
                             transformRecords(jobId, content).onComplete(na ->
                                     {
+                                        System.out.println("ID-NE: transformed " + na.result().size() + " records.");
                                         fileQueue.deleteFile(file);
                                         System.out.println("ID-NE deleting file harvested by tenant " + tenant + " " + file.getName());
                                     }
@@ -70,11 +72,13 @@ public class Harvester extends AbstractVerticle {
 
     public Future<List<String>> transformRecords(String jobId, String fileContents) {
         Promise<List<String>> promise = Promise.promise();
-        getTransformationPipeline(jobId)
-                .compose(pipeline -> Vertx.vertx().executeBlocking(new Transformation(fileContents, pipeline))
+        RecordReceivingArrayList recordList = new RecordReceivingArrayList();
+        getTransformationPipeline(jobId, recordList)
+                .compose(pipeline -> Vertx.vertx().executeBlocking(new Ingest(fileContents, pipeline))
                         .onComplete(transformation -> {
                             if (transformation.succeeded()) {
-                                promise.complete(safelyCastToList(transformation.result()));
+                                System.out.println("ID-NE transformRecords(), records transformed: " + recordList.getListOfRecords().size());
+                                promise.complete(recordList.getListOfRecords());
                             } else {
                                 System.out.println("Transformation failed with " + transformation.cause().getMessage());
                                 promise.complete(new ArrayList<>());
@@ -83,24 +87,10 @@ public class Harvester extends AbstractVerticle {
         return promise.future();
     }
 
-    private List<String> safelyCastToList(Object o) {
-        List<String> records = new ArrayList<>();
-        if (o instanceof List) {
-            System.out.println("Transformed " + ((List<?>) o).size() + " records.");
-            for (Object x : ((List<?>) o)) {
-                if (x instanceof String) {
-                    records.add((String) x);
-                }
-            }
-        }
-        return records;
-    }
-
-    private Future<TransformationPipeline> getTransformationPipeline (String jobId) {
+    private Future<TransformationPipeline> getTransformationPipeline (String jobId, RecordReceiver target) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        RecordReceivingArrayList recordList = new RecordReceivingArrayList();
         getTransformationId(jobId)
-                .compose(transformationId -> TransformationPipeline.build(vertx, tenant, transformationId, recordList))
+                .compose(transformationId -> TransformationPipeline.build(vertx, tenant, transformationId, target))
                 .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()));
         return promise.future();
     }
