@@ -2,6 +2,7 @@ package org.folio.harvesteradmin.service.harvest.transformation;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
@@ -14,25 +15,29 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TransformationPipeline {
+public class TransformationPipeline implements RecordReceiver, RecordProvider {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
-    private TransformationPipeline(JsonObject transformation) {
+    private final RecordReceiver recordReceiver;
+    private TransformationPipeline(JsonObject transformation, RecordReceiver recordReceiver) {
+        this.recordReceiver = recordReceiver;
         setTemplates(transformation);
     }
 
-    public static Future<TransformationPipeline> build(LegacyHarvesterStorage legacyHarvesterStorage, String transformationId) {
+    public static Future<TransformationPipeline> build(Vertx vertx, String tenant, String transformationId, RecordReceiver recordReceiver) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        legacyHarvesterStorage.getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
+        new LegacyHarvesterStorage(vertx, tenant)
+                .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
                 .onSuccess(transformationResponse -> {
-                    promise.complete(new TransformationPipeline(transformationResponse.jsonObject()));
+                    promise.complete(new TransformationPipeline(transformationResponse.jsonObject(), recordReceiver));
                 });
         return promise.future();
     }
 
-    public void transformAndConvert (List<String> listOfRecords) {
+    public List<String> transformAndConvert (List<String> listOfRecords) {
         transform(listOfRecords);
         convertToJson(listOfRecords);
+        return listOfRecords;
     }
 
     public void transform (List<String> listOfRecords) {
@@ -41,6 +46,15 @@ public class TransformationPipeline {
                 listOfRecords.set(i,transform(listOfRecords.get(i), templates));
             }
         }
+    }
+
+    public void transformAndConvert (String record) {
+        String transformedRecord = "";
+        for (Templates templates : listOfTemplates) {
+            transformedRecord = transform(record, templates);
+        }
+        String convertedRecord = convertToJson(transformedRecord);
+        recordReceiver.put(convertedRecord);
     }
 
     public String transform (String record, Templates templates) {
@@ -82,4 +96,13 @@ public class TransformationPipeline {
     }
 
 
+    @Override
+    public void put(String record) {
+
+    }
+
+    @Override
+    public void produceRecords() {
+
+    }
 }

@@ -1,5 +1,6 @@
 package org.folio.harvesteradmin.service.harvest.transformation;
 
+import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -32,8 +33,8 @@ public class XmlCollectionSplitter extends DefaultHandler implements RecordProvi
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
+
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 
@@ -52,10 +53,7 @@ public class XmlCollectionSplitter extends DefaultHandler implements RecordProvi
     @Override
     public void characters(char[] ch, int start, int length) throws SAXException {
         String text = new String(ch, start, length);
-        text = text.replace("&", "&amp;");
-        text = text.replace("<", "&lt;");
-        text = text.replace(">", "&gt;");
-        record += text;
+        record += EncodeXmlText.encodeXmlText(text);
     }
 
     @Override

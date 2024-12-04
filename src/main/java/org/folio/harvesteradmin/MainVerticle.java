@@ -1,10 +1,13 @@
 package org.folio.harvesteradmin;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Promise;
+import io.vertx.core.ThreadingModel;
 import io.vertx.core.http.HttpServerOptions;
 import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
 import org.folio.harvesteradmin.service.HarvestAdminService;
+import org.folio.harvesteradmin.service.harvest.Harvester;
 import org.folio.okapi.common.Config;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.api.HealthApi;
@@ -28,6 +31,7 @@ public class MainVerticle extends AbstractVerticle {
         new Tenant2Api(harvestAdminService),
         new HealthApi(),
     };
+
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
     RouterCreator.mountAll(vertx, routerCreators)
