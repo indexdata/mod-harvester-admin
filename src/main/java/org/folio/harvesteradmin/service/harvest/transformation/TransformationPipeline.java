@@ -13,49 +13,76 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
-    private final RecordReceiver recordReceiver;
+    private final RecordReceiver target;
+    private static final Map<String, Map<String, TransformationPipeline>> transformationPipelines = new HashMap<>();
+
+
     private TransformationPipeline(JsonObject transformation, RecordReceiver target) {
-        this.recordReceiver = target;
+        this.target = target;
         setTemplates(transformation);
     }
 
-    public static Future<TransformationPipeline> build(Vertx vertx, String tenant, String transformationId, RecordReceiver recordReceiver) {
+    public static Future<TransformationPipeline> instance(Vertx vertx, String tenant, String jobId, String transformationId, RecordReceiver recordReceiver) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        new LegacyHarvesterStorage(vertx, tenant)
-                .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
-                .onSuccess(transformationResponse -> {
-                    promise.complete(new TransformationPipeline(transformationResponse.jsonObject(), recordReceiver));
-                });
+        if (! hasInstance(tenant, jobId)) {
+            new LegacyHarvesterStorage(vertx, tenant)
+                    .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
+                    .onSuccess(transformationConfig -> {
+                        TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject(), recordReceiver);
+                        cacheInstance(tenant, jobId, pipeline);
+                        promise.complete(pipeline);
+                    });
+        } else {
+            promise.complete(transformationPipelines.get(tenant).get(jobId));
+        }
         return promise.future();
     }
 
-    private void transformConvertAndForward(String xmlRecord) {
+    public static boolean hasInstance(String tenant, String jobId) {
+        return (transformationPipelines.containsKey(tenant)
+                && transformationPipelines.get(tenant).containsKey(jobId)
+                && transformationPipelines.get(tenant).get(jobId) != null);
+    }
+
+    public static TransformationPipeline getInstance(String tenant, String jobId) {
+        return transformationPipelines.get(tenant).get(jobId);
+    }
+
+    private static void cacheInstance(String tenant, String jobId,TransformationPipeline pipeline) {
+        if (!transformationPipelines.containsKey(tenant)) {
+            transformationPipelines.put(tenant, new HashMap<>());
+        }
+        transformationPipelines.get(tenant).putIfAbsent(jobId, pipeline);
+    }
+
+    private String transform(String xmlRecord) {
         String transformedRecord = "";
         for (Templates templates : listOfTemplates) {
             transformedRecord = transform(xmlRecord, templates);
         }
-        String jsonRecord = convertToJson(transformedRecord);
-        recordReceiver.put(jsonRecord);
+        return transformedRecord;
     }
 
-    private String transform (String xmlRecord, Templates templates) {
+    private String transform(String xmlRecord, Templates templates) {
         try {
-        Source sourceXml = new StreamSource(new StringReader(xmlRecord));
-        StreamResult resultXmlStream = new StreamResult(new StringWriter());
-        Transformer transformer = templates.newTransformer();
-        transformer.transform(sourceXml, resultXmlStream);
-        return resultXmlStream.getWriter().toString();
+            Source sourceXml = new StreamSource(new StringReader(xmlRecord));
+            StreamResult resultXmlStream = new StreamResult(new StringWriter());
+            Transformer transformer = templates.newTransformer();
+            transformer.transform(sourceXml, resultXmlStream);
+            return resultXmlStream.getWriter().toString();
         } catch (TransformerException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private String convertToJson (String xmlRecord) {
+    private String convertToJson(String xmlRecord) {
         return InventoryXmlToInventoryJson.convert(xmlRecord).encodePrettily();
     }
 
@@ -75,10 +102,16 @@ public class TransformationPipeline implements RecordReceiver {
         }
     }
 
+    @Override
+    public void put(String xmlRecord) {
+        String transformedXmlRecord = transform(xmlRecord);
+        String jsonRecord = convertToJson(transformedXmlRecord);
+        target.put(jsonRecord);
+    }
 
     @Override
-    public void put(String record) {
-       transformConvertAndForward(record);
+    public void endOfDocument() {
+        target.endOfDocument();
     }
 
 }

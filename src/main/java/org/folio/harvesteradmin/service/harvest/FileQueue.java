@@ -49,10 +49,15 @@ public class FileQueue {
      * @param jobId ID of a job configuration and thus the name of the job's staging directory.
      * @return true if the processing directory is empty and thus ready for the next file, otherwise false.
      */
-    public boolean canPromoteNextFile(String jobId) {
+    public boolean couldPromoteNextFile(String jobId) {
         return fs.readDirBlocking(pathToProcessingSlot(jobId)).isEmpty();
     }
 
+    public boolean hasNextFile(String jobId) {
+        Optional<File> nextFile = fs.readDirBlocking(pathToJobFiles(jobId)).stream().map(File::new)
+                .filter(File::isFile).min(Comparator.comparing(File::lastModified));
+        return nextFile.isPresent();
+    }
     /**
      * Promotes the next file in the staging directory to the processing directory
      * and returns true if a staged file was found, otherwise returns false.
@@ -83,11 +88,11 @@ public class FileQueue {
      * @return The name of file being processed, "none" if there is none.
      */
     public String currentlyPromotedFile(String jobId) {
-        return canPromoteNextFile(jobId) ? "none" : fs.readDirBlocking(pathToProcessingSlot(jobId)).get(0);
+        return couldPromoteNextFile(jobId) ? "none" : fs.readDirBlocking(pathToProcessingSlot(jobId)).get(0);
     }
 
     public void deleteFile(File file) {
-        fs.delete(file.getPath());
+        fs.deleteBlocking(file.getPath());
     }
 
     /**

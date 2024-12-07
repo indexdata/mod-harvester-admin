@@ -10,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.service.harvest.transformation.RecordReceiver;
-import org.folio.harvesteradmin.service.harvest.transformation.RecordReceivingArrayList;
 import org.folio.harvesteradmin.service.harvest.transformation.TransformationPipeline;
 import org.folio.tlib.util.TenantUtil;
 
@@ -18,8 +17,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
@@ -30,6 +29,7 @@ public class Harvester extends AbstractVerticle {
     private final FileQueue fileQueue;
     public static final Logger logger = LogManager.getLogger("harvester");
     private final String tenant;
+    private final Map<String,Vertx> vertxInstances = new HashMap<>();
 
     public Harvester (Vertx vertx, RoutingContext routingContext) {
         this.tenant = TenantUtil.tenant(routingContext);
@@ -43,25 +43,25 @@ public class Harvester extends AbstractVerticle {
         vertx.setPeriodic(2000, (r) -> {
             System.out.println("ID-NE: " + Thread.currentThread().getName());
             for (String jobId : fileQueue.getJobIds()) {
-                if (fileQueue.canPromoteNextFile(jobId)) {
+                InventoryUpdate target = InventoryUpdate.instance(tenant, jobId);
+                if (fileQueue.couldPromoteNextFile(jobId)) {
                     if (fileQueue.promoteNextFile(jobId)) {
                         String promotedFile = fileQueue.currentlyPromotedFile(jobId);
                         File file = new File(promotedFile);
                         try {
                             String content = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
                             System.out.println("ID-NE Harvesting " + file.getName() + " for tenant " + tenant + " next.");
-                            transformRecords(jobId, content).onComplete(na ->
+                            processRecords(jobId, content, target).onComplete(na ->
                                     {
-                                        System.out.println("ID-NE: transformed " + na.result().size() + " records.");
                                         fileQueue.deleteFile(file);
-                                        System.out.println("ID-NE deleting file harvested by tenant " + tenant + " " + file.getName());
+                                        if (!fileQueue.hasNextFile(jobId)) {
+                                            target.fileQueueEmpty();
+                                        }
                                     }
                             ).onFailure(f -> System.out.println("Error harvesting file: " + f.getMessage()));
                         } catch (IOException e) {
                             System.out.println(e.getMessage());
                         }
-                    } else {
-                        System.out.println("ID-NE no more files in queue for job ID " + jobId);
                     }
                 } else {
                     System.out.println("ID-NE Processing busy with " + fileQueue.currentlyPromotedFile(jobId));
@@ -70,28 +70,39 @@ public class Harvester extends AbstractVerticle {
         });
     }
 
-    public Future<List<String>> transformRecords(String jobId, String fileContents) {
-        Promise<List<String>> promise = Promise.promise();
-        RecordReceivingArrayList recordList = new RecordReceivingArrayList();
-        getTransformationPipeline(jobId, recordList)
-                .compose(pipeline -> Vertx.vertx().executeBlocking(new Ingest(fileContents, pipeline))
+    public Future<Void> processRecords(String jobId, String fileContents, RecordReceiver target) {
+        Promise<Void> promise = Promise.promise();
+        getTransformationPipeline(jobId, target)
+                .compose(pipeline -> vertxInstance(jobId).executeBlocking(new Ingest(fileContents, pipeline))
                         .onComplete(transformation -> {
                             if (transformation.succeeded()) {
-                                System.out.println("ID-NE transformRecords(), records transformed: " + recordList.getListOfRecords().size());
-                                promise.complete(recordList.getListOfRecords());
+                                System.out.println("ID-NE transformRecords(), records processed: "
+                                        + InventoryUpdate.instance(tenant,jobId).getRecordCount());
+                                promise.complete();
                             } else {
                                 System.out.println("Transformation failed with " + transformation.cause().getMessage());
-                                promise.complete(new ArrayList<>());
+                                promise.complete();
                             }
                         }));
         return promise.future();
     }
 
+    private Vertx vertxInstance (String jobId) {
+        if (! vertxInstances.containsKey(jobId)) {
+            vertxInstances.put(jobId, Vertx.vertx());
+        }
+        return vertxInstances.get(jobId);
+    }
+
     private Future<TransformationPipeline> getTransformationPipeline (String jobId, RecordReceiver target) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        getTransformationId(jobId)
-                .compose(transformationId -> TransformationPipeline.build(vertx, tenant, transformationId, target))
-                .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()));
+        if (TransformationPipeline.hasInstance(tenant, jobId)) {
+            promise.complete(TransformationPipeline.getInstance(tenant,jobId));
+        } else {
+            getTransformationId(jobId)
+                    .compose(transformationId -> TransformationPipeline.instance(vertx, tenant, jobId, transformationId, target))
+                    .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()));
+        }
         return promise.future();
     }
 

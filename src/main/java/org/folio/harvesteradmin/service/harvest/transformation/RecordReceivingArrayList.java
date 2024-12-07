@@ -11,6 +11,10 @@ public class RecordReceivingArrayList implements RecordReceiver {
         listOfRecords.add(record);
     }
 
+    @Override
+    public void endOfDocument() {
+    }
+
     public List<String> getListOfRecords () {
         return listOfRecords;
     }

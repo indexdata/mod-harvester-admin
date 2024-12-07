@@ -11,19 +11,19 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class XmlCollectionSplitter extends DefaultHandler implements RecordProvider {
     String record=null;
     RecordReceiver target;
     String xmlCollectionOfRecords;
 
+
     public XmlCollectionSplitter(String recordsSource, RecordReceiver target) {
         this.target = target;
         this.xmlCollectionOfRecords = recordsSource;
     }
 
-    public void produceRecords() {
+    public void provideRecords() {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
             InputStream inputStream = new ByteArrayInputStream(xmlCollectionOfRecords.getBytes(StandardCharsets.UTF_8));
@@ -67,11 +67,8 @@ public class XmlCollectionSplitter extends DefaultHandler implements RecordProvi
         }
     }
 
-    public static List<String> splitToListOfRecords(String xmlCollectionOfRecords) {
-        RecordReceivingArrayList recordReceivingArrayList = new RecordReceivingArrayList();
-        new XmlCollectionSplitter(xmlCollectionOfRecords, recordReceivingArrayList).produceRecords();
-        return recordReceivingArrayList.getListOfRecords();
+    @Override
+    public void endDocument() {
+        target.endOfDocument();
     }
-
-
 }
