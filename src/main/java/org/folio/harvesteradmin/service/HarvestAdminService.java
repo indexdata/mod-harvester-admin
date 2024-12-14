@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -39,7 +40,7 @@ import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.harvesteradmin.service.fileimport.FileQueue;
-import org.folio.harvesteradmin.service.fileimport.QueuedFilesProcessor;
+import org.folio.harvesteradmin.service.fileimport.FileQueueProcessor;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -939,24 +940,30 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     private final static Map<String, Map<String, String>> fileProcessorVerticles = new HashMap<>();
 
-    private void bootstrapFileProcessorThreadPool(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
+    private void initializeFileQueueProcessor(String tenant, String jobId, RoutingContext routingContext) {
         fileProcessorVerticles.putIfAbsent(tenant, new HashMap<>());
         if (fileProcessorVerticles.get(tenant).get(jobId) == null) {
-            vertx.deployVerticle(() -> new QueuedFilesProcessor(vertx, tenant, jobId, routingContext),
+            Vertx vertx = Vertx.vertx(new VertxOptions()
+                    .setMaxWorkerExecuteTime(10)
+                    .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
+            vertx.deployVerticle(() -> new FileQueueProcessor(vertx, tenant, jobId, routingContext),
                     new DeploymentOptions()
                             .setThreadingModel(ThreadingModel.WORKER)
-                            .setWorkerPoolSize(1)
-                            .setWorkerPoolName("file-processing-thread" + tenant)).onComplete(
+                            .setWorkerPoolSize(2)
+                            .setMaxWorkerExecuteTime(10)
+                            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)
+                            .setWorkerPoolName("import-worker-" + tenant + "-" + jobId)).onComplete(
                     started -> {
                         if (started.succeeded()) {
-                            System.out.println("ID-NE: started file processor thread pool for " + tenant);
+                            System.out.println("ID-NE: started file processor thread pool for " + tenant + " and job ID " + jobId);
+                            System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
                             fileProcessorVerticles.get(tenant).put(jobId, started.result());
                         } else {
-                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant);
+                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and jobID " + jobId);
                         }
                     });
         } else {
-            System.out.println("ID-NE: Already got thread pool for tenant " + tenant);
+            System.out.println("ID-NE: Reusing existing thread pool for tenant " + tenant + " and job ID " + jobId);
         }
     }
 
@@ -968,13 +975,14 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         String jobId = routingContext.pathParam("id");
         String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
+        System.out.println("Staging XML file, current thread is " + Thread.currentThread().getName());
 
-        bootstrapFileProcessorThreadPool(vertx, tenant, jobId, routingContext);
 
         new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                 .onComplete(resp -> {
                     if (resp.result().found()) {
                         new FileQueue(vertx, tenant, jobId).addNewFile(fileName, xmlContent);
+                        initializeFileQueueProcessor(tenant, jobId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobId + "] found.");

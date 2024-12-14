@@ -6,15 +6,11 @@ import io.vertx.core.file.FileSystem;
 
 import java.io.File;
 import java.util.*;
-import java.util.stream.Collectors;
-
 
 public class FileQueue {
 
     public static final String SOURCE_FILES_ROOT_DIR = "source-files";
     public static final String HARVEST_JOB_FILE_PROCESSING_DIR = "processing";
-    private final String tenantRootDir;
-    private final String processingDirectoryName;
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
@@ -22,8 +18,7 @@ public class FileQueue {
     public FileQueue(Vertx vertx, String tenant, String jobId) {
         this.fs = vertx.fileSystem();
         String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
-        this.tenantRootDir = sourceFilesRootDir + "/" + tenant;
-        this.processingDirectoryName = HARVEST_JOB_FILE_PROCESSING_DIR;
+        String tenantRootDir = sourceFilesRootDir + "/" + tenant;
         if (!fs.existsBlocking(sourceFilesRootDir)) {
             fs.mkdirBlocking(sourceFilesRootDir);
         }
@@ -31,7 +26,7 @@ public class FileQueue {
             fs.mkdirBlocking(tenantRootDir);
         }
         jobPath = tenantRootDir + "/" + jobId;
-        pathToProcessingSlot = jobPath + "/" + processingDirectoryName;
+        pathToProcessingSlot = jobPath + "/" + HARVEST_JOB_FILE_PROCESSING_DIR;
         if (! fs.existsBlocking(jobPath)) {
             fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/tmp");
         }
@@ -50,7 +45,6 @@ public class FileQueue {
     /**
      * Checks if there is a file in the processing directory for the
      * given job ID or if it's empty and thus available for the next file to harvest.
-     * @param jobId ID of a job configuration and thus the name of the job's staging directory.
      * @return true if the processing directory is empty and thus ready for the next file, otherwise false.
      */
     public boolean couldPromoteNextFile() {
@@ -65,7 +59,6 @@ public class FileQueue {
     /**
      * Promotes the next file in the staging directory to the processing directory
      * and returns true if a staged file was found, otherwise returns false.
-     * @param jobId ID of a job configuration and thus the name of the job's staging directory.
      * @return true if another file was found for processing, otherwise false.
      */
     public boolean promoteNextFile() {
@@ -87,17 +80,8 @@ public class FileQueue {
     }
 
     public void deleteFile(File file) {
+        System.out.println(Thread.currentThread().getName() + " deleting file.");
         fs.deleteBlocking(file.getPath());
-    }
-
-    /**
-     * Get a list of the names of the job directories currently created in the file system.
-     * @return list of IDs
-     */
-    public List<String> getJobIds() {
-        return fs.readDirBlocking(tenantRootDir)
-                .stream().filter(p -> fs.propsBlocking(p).isDirectory()).map(p -> new File(p).getName())
-                .collect(Collectors.toList());
     }
 
 }
