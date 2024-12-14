@@ -26,13 +26,15 @@ public class QueuedFilesProcessor extends AbstractVerticle {
     private final FileQueue fileQueue;
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
     private final String tenant;
+    private final String jobId;
     private final RoutingContext routingContext;
     private final Map<String,Vertx> vertxInstances = new HashMap<>();
 
-    public QueuedFilesProcessor(Vertx vertx, RoutingContext routingContext) {
+    public QueuedFilesProcessor(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
         this.routingContext = routingContext;
-        this.tenant = TenantUtil.tenant(routingContext);
-        fileQueue = new FileQueue(vertx, tenant);
+        this.tenant = tenant;
+        this.jobId = jobId;
+        fileQueue = new FileQueue(vertx, tenant, jobId);
     }
 
     @Override
@@ -41,31 +43,29 @@ public class QueuedFilesProcessor extends AbstractVerticle {
 
         vertx.setPeriodic(2000, (r) -> {
             System.out.println("ID-NE: " + Thread.currentThread().getName());
-            for (String jobId : fileQueue.getJobIds()) {
-                InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
-                if (fileQueue.couldPromoteNextFile(jobId)) {
-                    if (fileQueue.promoteNextFile(jobId)) {
-                        String promotedFile = fileQueue.currentlyPromotedFile(jobId);
-                        File file = new File(promotedFile);
-                        try {
-                            String xmlFileContents = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
-                            System.out.println("ID-NE " + Thread.currentThread().getName() + " Processing next file " + file.getName() + ", by job ID " + jobId + ", for tenant " + tenant + " next.");
-                            processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
-                                    {
-                                        fileQueue.deleteFile(file);
-                                        if (!fileQueue.hasNextFile(jobId)) {
-                                            inventoryBatchUpdating.fileQueueEmpty();
-                                            System.out.println("File queue empty, records processed this run: " + inventoryBatchUpdating.getRecordCount());
-                                        }
+            InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
+            if (fileQueue.couldPromoteNextFile()) {
+                if (fileQueue.promoteNextFile()) {
+                    String promotedFile = fileQueue.currentlyPromotedFile();
+                    File file = new File(promotedFile);
+                    try {
+                        String xmlFileContents = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
+                        System.out.println("ID-NE " + Thread.currentThread().getName() + " Processing next file " + file.getName() + ", by job ID " + jobId + ", for tenant " + tenant + " next.");
+                        processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
+                                {
+                                    fileQueue.deleteFile(file);
+                                    if (!fileQueue.hasNextFile()) {
+                                        inventoryBatchUpdating.fileQueueEmpty();
+                                        System.out.println("File queue empty, records processed this run: " + inventoryBatchUpdating.getRecordCount());
                                     }
-                            ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
-                        } catch (IOException e) {
-                            System.out.println(e.getMessage());
-                        }
+                                }
+                        ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
+                    } catch (IOException e) {
+                        System.out.println(e.getMessage());
                     }
-                } else {
-                    System.out.println("ID-NE, job ID " + jobId + ": Processing busy with " + fileQueue.currentlyPromotedFile(jobId));
                 }
+            } else {
+                System.out.println("ID-NE, job ID " + jobId + ": Processing busy with " + fileQueue.currentlyPromotedFile());
             }
         });
     }

@@ -937,12 +937,12 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         responseText(routingContext, 200).end(response.toString());
     }
 
-    private final static Map<String, String> fileProcessorVerticles = new HashMap<>();
+    private final static Map<String, Map<String, String>> fileProcessorVerticles = new HashMap<>();
 
-    private void bootstrapFileProcessorThreadPool(Vertx vertx, RoutingContext routingContext) {
-        String tenant = TenantUtil.tenant(routingContext);
-        if (!fileProcessorVerticles.containsKey(tenant)) {
-            vertx.deployVerticle(() -> new QueuedFilesProcessor(vertx, routingContext),
+    private void bootstrapFileProcessorThreadPool(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
+        fileProcessorVerticles.putIfAbsent(tenant, new HashMap<>());
+        if (fileProcessorVerticles.get(tenant).get(jobId) == null) {
+            vertx.deployVerticle(() -> new QueuedFilesProcessor(vertx, tenant, jobId, routingContext),
                     new DeploymentOptions()
                             .setThreadingModel(ThreadingModel.WORKER)
                             .setWorkerPoolSize(1)
@@ -950,7 +950,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                     started -> {
                         if (started.succeeded()) {
                             System.out.println("ID-NE: started file processor thread pool for " + tenant);
-                            fileProcessorVerticles.put(tenant, started.result());
+                            fileProcessorVerticles.get(tenant).put(jobId, started.result());
                         } else {
                             System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant);
                         }
@@ -969,12 +969,12 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
 
-        bootstrapFileProcessorThreadPool(vertx, routingContext);
+        bootstrapFileProcessorThreadPool(vertx, tenant, jobId, routingContext);
 
         new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                 .onComplete(resp -> {
                     if (resp.result().found()) {
-                        new FileQueue(vertx, tenant).addNewFile(jobId, fileName, xmlContent);
+                        new FileQueue(vertx, tenant, jobId).addNewFile(fileName, xmlContent);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobId + "] found.");
