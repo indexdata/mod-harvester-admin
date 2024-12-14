@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest.transformation;
+package org.folio.harvesteradmin.service.fileimport.transformation;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
+import org.folio.harvesteradmin.service.fileimport.RecordReceiver;
 
 import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
@@ -20,22 +21,26 @@ import java.util.Map;
 public class TransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
-    private final RecordReceiver target;
+    private RecordReceiver target;
     private static final Map<String, Map<String, TransformationPipeline>> transformationPipelines = new HashMap<>();
 
 
-    private TransformationPipeline(JsonObject transformation, RecordReceiver target) {
-        this.target = target;
+    private TransformationPipeline(JsonObject transformation) {
         setTemplates(transformation);
     }
 
-    public static Future<TransformationPipeline> instance(Vertx vertx, String tenant, String jobId, String transformationId, RecordReceiver recordReceiver) {
+    public TransformationPipeline setTarget(RecordReceiver target) {
+        this.target = target;
+        return this;
+    }
+
+    public static Future<TransformationPipeline> instance(Vertx vertx, String tenant, String jobId, String transformationId) {
         Promise<TransformationPipeline> promise = Promise.promise();
         if (! hasInstance(tenant, jobId)) {
             new LegacyHarvesterStorage(vertx, tenant)
                     .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
                     .onSuccess(transformationConfig -> {
-                        TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject(), recordReceiver);
+                        TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject());
                         cacheInstance(tenant, jobId, pipeline);
                         promise.complete(pipeline);
                     });
@@ -63,9 +68,9 @@ public class TransformationPipeline implements RecordReceiver {
     }
 
     private String transform(String xmlRecord) {
-        String transformedRecord = "";
+        String transformedRecord = xmlRecord;
         for (Templates templates : listOfTemplates) {
-            transformedRecord = transform(xmlRecord, templates);
+            transformedRecord = transform(transformedRecord, templates);
         }
         return transformedRecord;
     }
@@ -104,8 +109,12 @@ public class TransformationPipeline implements RecordReceiver {
 
     @Override
     public void put(String xmlRecord) {
+        //System.out.println("Pipeline received " + xmlRecord);
+        xmlRecord = "<collection>" + xmlRecord + "</collection>";
         String transformedXmlRecord = transform(xmlRecord);
+        //System.out.println("Transformed to: " + transformedXmlRecord);
         String jsonRecord = convertToJson(transformedXmlRecord);
+        //System.out.println("Converted to " + jsonRecord);
         target.put(jsonRecord);
     }
 

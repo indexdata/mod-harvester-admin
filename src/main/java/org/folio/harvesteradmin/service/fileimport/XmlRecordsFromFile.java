@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest.transformation;
+package org.folio.harvesteradmin.service.fileimport;
 
 import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
@@ -11,16 +11,21 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
 
-public class XmlCollectionSplitter extends DefaultHandler implements RecordProvider {
+public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider, Callable<Void> {
     String record=null;
     RecordReceiver target;
     String xmlCollectionOfRecords;
 
 
-    public XmlCollectionSplitter(String recordsSource, RecordReceiver target) {
-        this.target = target;
+    public XmlRecordsFromFile(String recordsSource) {
         this.xmlCollectionOfRecords = recordsSource;
+    }
+
+    public XmlRecordsFromFile setTarget (RecordReceiver target) {
+        this.target = target;
+        return this;
     }
 
     public void provideRecords() {
@@ -70,5 +75,11 @@ public class XmlCollectionSplitter extends DefaultHandler implements RecordProvi
     @Override
     public void endDocument() {
         target.endOfDocument();
+    }
+
+    @Override
+    public Void call() throws Exception {
+        provideRecords();
+        return null;
     }
 }

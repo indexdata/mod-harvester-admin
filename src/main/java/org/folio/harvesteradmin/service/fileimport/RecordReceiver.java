@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest.transformation;
+package org.folio.harvesteradmin.service.fileimport;
 
 public interface RecordReceiver {
     void put(String record);

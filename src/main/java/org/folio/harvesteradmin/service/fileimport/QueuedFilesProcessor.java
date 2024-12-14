@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest;
+package org.folio.harvesteradmin.service.fileimport;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -9,8 +9,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
-import org.folio.harvesteradmin.service.harvest.transformation.RecordReceiver;
-import org.folio.harvesteradmin.service.harvest.transformation.TransformationPipeline;
+import org.folio.harvesteradmin.service.fileimport.transformation.TransformationPipeline;
 import org.folio.tlib.util.TenantUtil;
 
 import java.io.File;
@@ -22,62 +21,64 @@ import java.util.Map;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
-public class Harvester extends AbstractVerticle {
+public class QueuedFilesProcessor extends AbstractVerticle {
 
-    public static final String HARVEST_FILES_ROOT_DIR = "harvest-files";
-    public static final String HARVEST_JOB_FILE_PROCESSING_DIR = "processing";
     private final FileQueue fileQueue;
-    public static final Logger logger = LogManager.getLogger("harvester");
+    public static final Logger logger = LogManager.getLogger("queued-files-processing");
     private final String tenant;
+    private final RoutingContext routingContext;
     private final Map<String,Vertx> vertxInstances = new HashMap<>();
 
-    public Harvester (Vertx vertx, RoutingContext routingContext) {
+    public QueuedFilesProcessor(Vertx vertx, RoutingContext routingContext) {
+        this.routingContext = routingContext;
         this.tenant = TenantUtil.tenant(routingContext);
         fileQueue = new FileQueue(vertx, tenant);
     }
 
     @Override
     public void start() {
-        System.out.println("ID-NE: starting harvester for tenant " + tenant);
+        System.out.println("ID-NE: starting file processor for tenant " + tenant);
 
         vertx.setPeriodic(2000, (r) -> {
             System.out.println("ID-NE: " + Thread.currentThread().getName());
             for (String jobId : fileQueue.getJobIds()) {
-                InventoryUpdate target = InventoryUpdate.instance(tenant, jobId);
+                InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
                 if (fileQueue.couldPromoteNextFile(jobId)) {
                     if (fileQueue.promoteNextFile(jobId)) {
                         String promotedFile = fileQueue.currentlyPromotedFile(jobId);
                         File file = new File(promotedFile);
                         try {
-                            String content = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
-                            System.out.println("ID-NE Harvesting " + file.getName() + " for tenant " + tenant + " next.");
-                            processRecords(jobId, content, target).onComplete(na ->
+                            String xmlFileContents = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
+                            System.out.println("ID-NE " + Thread.currentThread().getName() + " Processing next file " + file.getName() + ", by job ID " + jobId + ", for tenant " + tenant + " next.");
+                            processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
                                     {
                                         fileQueue.deleteFile(file);
                                         if (!fileQueue.hasNextFile(jobId)) {
-                                            target.fileQueueEmpty();
+                                            inventoryBatchUpdating.fileQueueEmpty();
+                                            System.out.println("File queue empty, records processed this run: " + inventoryBatchUpdating.getRecordCount());
                                         }
                                     }
-                            ).onFailure(f -> System.out.println("Error harvesting file: " + f.getMessage()));
+                            ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
                         } catch (IOException e) {
                             System.out.println(e.getMessage());
                         }
                     }
                 } else {
-                    System.out.println("ID-NE Processing busy with " + fileQueue.currentlyPromotedFile(jobId));
+                    System.out.println("ID-NE, job ID " + jobId + ": Processing busy with " + fileQueue.currentlyPromotedFile(jobId));
                 }
             }
         });
     }
 
-    public Future<Void> processRecords(String jobId, String fileContents, RecordReceiver target) {
+    public Future<Void> processFile(String jobId, String xmlFileContents, RecordReceiver inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
-        getTransformationPipeline(jobId, target)
-                .compose(pipeline -> vertxInstance(jobId).executeBlocking(new Ingest(fileContents, pipeline))
+        System.out.println("processRecords, thread " + Thread.currentThread().getName());
+        getTransformationPipeline(jobId)
+                .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
+                .compose(pipelineToInventory -> vertxInstance(jobId)
+                        .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
                         .onComplete(transformation -> {
                             if (transformation.succeeded()) {
-                                System.out.println("ID-NE transformRecords(), records processed: "
-                                        + InventoryUpdate.instance(tenant,jobId).getRecordCount());
                                 promise.complete();
                             } else {
                                 System.out.println("Transformation failed with " + transformation.cause().getMessage());
@@ -94,13 +95,13 @@ public class Harvester extends AbstractVerticle {
         return vertxInstances.get(jobId);
     }
 
-    private Future<TransformationPipeline> getTransformationPipeline (String jobId, RecordReceiver target) {
+    private Future<TransformationPipeline> getTransformationPipeline (String jobId) {
         Promise<TransformationPipeline> promise = Promise.promise();
         if (TransformationPipeline.hasInstance(tenant, jobId)) {
             promise.complete(TransformationPipeline.getInstance(tenant,jobId));
         } else {
             getTransformationId(jobId)
-                    .compose(transformationId -> TransformationPipeline.instance(vertx, tenant, jobId, transformationId, target))
+                    .compose(transformationId -> TransformationPipeline.instance(vertx, tenant, jobId, transformationId))
                     .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()));
         }
         return promise.future();

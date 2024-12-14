@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest.transformation;
+package org.folio.harvesteradmin.service.fileimport.transformation;
 
 
 import io.vertx.core.json.JsonArray;
@@ -80,11 +80,11 @@ public class InventoryXmlToInventoryJson {
     }
 
     private static void makeCollection(JsonObject toJson, JsonObject intermediateJson) {
-        toJson.put("collection", new JsonArray());
+        toJson.put("inventoryRecordSets", new JsonArray());
         if (intermediateJson.containsKey("children")) {
             JsonArray fromRecords = intermediateJson.getJsonArray("children");
             for (Object fromRecord : fromRecords ) {
-                toJson.getJsonArray("collection").add(makeInventoryJsonObject(new JsonObject(), (JsonObject)fromRecord));
+                toJson.getJsonArray("inventoryRecordSets").add(makeInventoryJsonObject(new JsonObject(), (JsonObject)fromRecord));
             }
         }
     }

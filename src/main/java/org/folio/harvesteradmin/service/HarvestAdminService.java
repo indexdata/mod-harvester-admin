@@ -38,8 +38,8 @@ import org.folio.harvesteradmin.moduledata.*;
 import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
-import org.folio.harvesteradmin.service.harvest.FileQueue;
-import org.folio.harvesteradmin.service.harvest.Harvester;
+import org.folio.harvesteradmin.service.fileimport.FileQueue;
+import org.folio.harvesteradmin.service.fileimport.QueuedFilesProcessor;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -937,22 +937,22 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         responseText(routingContext, 200).end(response.toString());
     }
 
-    private final static Map<String, String> harvestVerticles = new HashMap<>();
+    private final static Map<String, String> fileProcessorVerticles = new HashMap<>();
 
-    private void bootstrapHarvestThreadPool(Vertx vertx, RoutingContext routingContext) {
+    private void bootstrapFileProcessorThreadPool(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
-        if (!harvestVerticles.containsKey(tenant)) {
-            vertx.deployVerticle(new Harvester(vertx, routingContext),
+        if (!fileProcessorVerticles.containsKey(tenant)) {
+            vertx.deployVerticle(() -> new QueuedFilesProcessor(vertx, routingContext),
                     new DeploymentOptions()
                             .setThreadingModel(ThreadingModel.WORKER)
-                            .setWorkerPoolSize(10)
-                            .setWorkerPoolName("harvest-thread")).onComplete(
+                            .setWorkerPoolSize(1)
+                            .setWorkerPoolName("file-processing-thread" + tenant)).onComplete(
                     started -> {
                         if (started.succeeded()) {
-                            System.out.println("ID-NE: started harvest thread pool for " + tenant);
-                            harvestVerticles.put(tenant, started.result());
+                            System.out.println("ID-NE: started file processor thread pool for " + tenant);
+                            fileProcessorVerticles.put(tenant, started.result());
                         } else {
-                            System.out.println("ID-NE: Couldn't start harvesting threads for tenant " + tenant);
+                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant);
                         }
                     });
         } else {
@@ -969,7 +969,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
 
-        bootstrapHarvestThreadPool(vertx, routingContext);
+        bootstrapFileProcessorThreadPool(vertx, routingContext);
 
         new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                 .onComplete(resp -> {

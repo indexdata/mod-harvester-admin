@@ -1,4 +1,4 @@
-package org.folio.harvesteradmin.service.harvest;
+package org.folio.harvesteradmin.service.fileimport;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -11,17 +11,19 @@ import java.util.stream.Collectors;
 
 public class FileQueue {
 
+    public static final String SOURCE_FILES_ROOT_DIR = "source-files";
+    public static final String HARVEST_JOB_FILE_PROCESSING_DIR = "processing";
     private final String tenantRootDir;
     private final String processingDirectoryName;
     private final FileSystem fs;
 
     public FileQueue(Vertx vertx, String tenant) {
         this.fs = vertx.fileSystem();
-        String harvestFilesRootDir = Harvester.HARVEST_FILES_ROOT_DIR;
-        this.tenantRootDir = harvestFilesRootDir + "/" + tenant;
-        this.processingDirectoryName = Harvester.HARVEST_JOB_FILE_PROCESSING_DIR;
-        if (!fs.existsBlocking(harvestFilesRootDir)) {
-            fs.mkdirBlocking(harvestFilesRootDir);
+        String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
+        this.tenantRootDir = sourceFilesRootDir + "/" + tenant;
+        this.processingDirectoryName = HARVEST_JOB_FILE_PROCESSING_DIR;
+        if (!fs.existsBlocking(sourceFilesRootDir)) {
+            fs.mkdirBlocking(sourceFilesRootDir);
         }
         if (!fs.existsBlocking(tenantRootDir)) {
             fs.mkdirBlocking(tenantRootDir);

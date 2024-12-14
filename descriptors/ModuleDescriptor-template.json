@@ -237,7 +237,10 @@
         }, {
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}/harvest",
-          "permissionsRequired": []
+          "permissionsRequired": [],
+          "modulePermissions": [
+            "inventory-update.batch-by-hrid.collection.put"
+          ]
         }
       ]
     },
