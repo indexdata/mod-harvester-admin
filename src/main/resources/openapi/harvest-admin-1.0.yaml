@@ -191,7 +191,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/harvestables/xml-bulk/{id}/harvest:
+  /harvester-admin/harvestables/xml-bulk/{id}/import:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml

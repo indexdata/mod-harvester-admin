@@ -27,8 +27,14 @@ public class InventoryUpdateClient {
 
     public Future<JsonObject> inventoryUpsert (RoutingContext routingContext, JsonObject recordSets) {
         Buffer records = Buffer.buffer(recordSets.encode().getBytes(StandardCharsets.UTF_8));
-        return Folio.okapiClient(routingContext).request(HttpMethod.PUT,INVENTORY_UPSERT_PATH, records)
+        return okapiClient.request(HttpMethod.PUT,INVENTORY_UPSERT_PATH, records)
                 .map(JsonObject::new)
+                .compose(responseJson -> {
+                    if (okapiClient.getStatusCode() == 207) {
+                        System.out.println(responseJson.encodePrettily());
+                    }
+                    return Future.succeededFuture(responseJson);
+                })
                 .onFailure(e -> System.out.println("Could not upsert batch: " + e.getMessage()));
     }
 }

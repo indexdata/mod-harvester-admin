@@ -236,7 +236,7 @@
           "permissionsRequired": []
         }, {
           "methods": ["POST"],
-          "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}/harvest",
+          "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}/import",
           "permissionsRequired": [],
           "modulePermissions": [
             "inventory-update.batch-by-hrid.collection.put"

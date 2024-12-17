@@ -44,7 +44,12 @@ public class InventoryBatchUpdating implements RecordReceiver {
     public void put(String jsonRecord) {
         if (jsonRecord != null) {
             recordsProcessedThisQueue++;
-            inventoryRecordSets.add(new JsonObject(jsonRecord).getJsonArray("inventoryRecordSets").getJsonObject(0));
+            JsonObject json = new JsonObject(jsonRecord).getJsonArray("inventoryRecordSets").getJsonObject(0);
+            if (!json.containsKey("processing")) {
+                json.put("processing",new JsonObject());
+            }
+            json.getJsonObject("processing").put("batchIndex", batchSize);
+            inventoryRecordSets.add(json);
             if (batchSize.incrementAndGet()>99) {
                 handlePopulatedBatch();
             }
