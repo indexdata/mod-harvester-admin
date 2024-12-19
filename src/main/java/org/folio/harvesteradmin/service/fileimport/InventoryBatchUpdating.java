@@ -15,17 +15,19 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private static final Map<String, Map<String, InventoryBatchUpdating>> inventoryUpdaters = new HashMap<>();
     private final String jobId;
+    private long fileQueueStartTime = 0;
+    private int filesProcessedThisQueue = 0;
     private long recordsProcessedThisQueue = 0;
+    private long batchUpsertTimeThisQueue = 0;
+    private long transformationTimeThisQueue = 0;
     private JsonArray inventoryRecordSets = new JsonArray();
     private final AtomicInteger batchSize = new AtomicInteger(0);
     private int batchCounter = 0;
-    private final RoutingContext routingContext;
     private final InventoryUpdateClient updateClient;
 
     private final BlockingQueue<JsonObject> batchQueue = new ArrayBlockingQueue<>(1);
     private InventoryBatchUpdating(RoutingContext routingContext, String jobId) {
         this.jobId = jobId;
-        this.routingContext = routingContext;
         updateClient = InventoryUpdateClient.getClient(routingContext);
     }
 
@@ -37,13 +39,16 @@ public class InventoryBatchUpdating implements RecordReceiver {
             System.out.println("Creating new instance of InventoryUpdate for tenant '" + tenant + "' job '" + jobId + "'");
             inventoryUpdaters.get(tenant).put(jobId, new InventoryBatchUpdating(routingContext, jobId));
         }
-        return inventoryUpdaters.get(tenant).get(jobId);
+        InventoryBatchUpdating instance = inventoryUpdaters.get(tenant).get(jobId);
+        if (instance.fileQueueStartTime==0) {
+            instance.fileQueueStartTime=System.currentTimeMillis();
+        }
+        return instance;
     }
 
     @Override
     public void put(String jsonRecord) {
         if (jsonRecord != null) {
-            recordsProcessedThisQueue++;
             JsonObject json = new JsonObject(jsonRecord).getJsonArray("inventoryRecordSets").getJsonObject(0);
             if (!json.containsKey("processing")) {
                 json.put("processing",new JsonObject());
@@ -51,17 +56,17 @@ public class InventoryBatchUpdating implements RecordReceiver {
             json.getJsonObject("processing").put("batchIndex", batchSize);
             inventoryRecordSets.add(json);
             if (batchSize.incrementAndGet()>99) {
-                handlePopulatedBatch();
+                releaseBatch();
             }
         } else {
             System.out.println("Received null record (end-of-document signal)");
             if (batchSize.get()>0) {
-                handlePopulatedBatch();
+                releaseBatch();
             }
         }
     }
 
-    private void handlePopulatedBatch() {
+    private void releaseBatch() {
         batchCounter++;
         batchSize.set(0);
         JsonObject requestBody = new JsonObject();
@@ -70,7 +75,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
         requestBody.put("batchNumber", batchCounter);
         try {
             batchQueue.put(requestBody.copy());
-            persistBatch(routingContext);
+            persistBatch();
         } catch (InterruptedException ie) {
             System.out.println("Error: Queue put operation was interrupted.");
         }
@@ -81,13 +86,20 @@ public class InventoryBatchUpdating implements RecordReceiver {
         put(null);
     }
 
-    private void persistBatch(RoutingContext routingContext) {
+    private void persistBatch() {
         JsonObject batch = batchQueue.peek();
         if (batch != null) {
-            System.out.println("Started  batch: Job ID " + jobId + " upserting batch number " + batch.getInteger("batchNumber") + ".");
-            updateClient.inventoryUpsert(routingContext, batch).onComplete(response -> {
+            long batchUpsertStarted = System.currentTimeMillis();
+            updateClient.inventoryUpsert(batch).onComplete(response -> {
                 try {
-                    System.out.println("Finished batch: Job ID " + jobId + " upserted batch number " + batch.getInteger("batchNumber") + ".");
+                    long batchUpsertTime = System.currentTimeMillis() - batchUpsertStarted;
+                    int records = batch.getJsonArray("inventoryRecordSets").size();
+                    batchUpsertTimeThisQueue += batchUpsertTime;
+                    recordsProcessedThisQueue += records;
+                    System.out.println("Throughput: Job " + jobId + " upserted batch number " + batch.getInteger("batchNumber") + " with " + records + " records in " + batchUpsertTime + " ms.");
+                    if ( batchCounter % 100 == 1) {
+                        System.out.println("Throughput: Job " + jobId + " processed " + recordsProcessedThisQueue + " records in " + getQueueProcessingTime());
+                    }
                     batchQueue.take();
                 } catch (InterruptedException e) {
                     System.out.println(e.getMessage());
@@ -96,15 +108,42 @@ public class InventoryBatchUpdating implements RecordReceiver {
         }
     }
 
-    public void fileQueueEmpty() {
-        System.out.println("fileQueueEmpty(): File queue is empty. Records processed this run: " + recordsProcessedThisQueue );
+    public void incrementFilesProcessed () {
+        filesProcessedThisQueue++;
+    }
+
+    public void incrementTransformationTime(long transformationTime) {
+        this.transformationTimeThisQueue += transformationTime;
+    }
+
+    public void endOfFileQueue() {
+        System.out.println("Throughput: End of queue, job ID " + jobId + "\n" +
+         "Throughput: " + filesProcessedThisQueue + " files with " + recordsProcessedThisQueue + " records processed in " + getQueueProcessingTime() +
+         " Transformation: " + (transformationTimeThisQueue/recordsProcessedThisQueue) + " ms/rec. Upsert: " +
+                 (batchUpsertTimeThisQueue / recordsProcessedThisQueue) + " ms/rec.");
         resetStreamStatistics();
     }
 
     public void resetStreamStatistics() {
         recordsProcessedThisQueue = 0;
+        batchUpsertTimeThisQueue = 0;
+        transformationTimeThisQueue = 0;
+        fileQueueStartTime=0;
         batchCounter=0;
+        filesProcessedThisQueue =0;
     }
 
+    public String getQueueProcessingTime () {
+        long processingTime = System.currentTimeMillis()-fileQueueStartTime;
+        int hours = (int) processingTime/(1000*60*60);
+        long remainingMs = processingTime % (1000*60*60);
+        int minutes = (int) remainingMs/(1000*60);
+        remainingMs = remainingMs % (1000*60);
+        int seconds = (int) remainingMs/1000;
+        return (hours>0 ? hours + " hours " : "") +  minutes + " minutes " + seconds + " seconds";
+    }
 
+    public int getFilesProcessedThisQueue () {
+        return filesProcessedThisQueue;
+    }
 }

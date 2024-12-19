@@ -37,22 +37,21 @@ public class FileQueueProcessor extends AbstractVerticle {
     public void start() {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
 
-        vertx.setPeriodic(2000, (r) -> {
+        vertx.setPeriodic(100, (r) -> {
             if (fileQueue.couldPromoteNextFile()) {
                 if (fileQueue.promoteNextFile()) {
+                    InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
                     String promotedFile = fileQueue.currentlyPromotedFile();
                     File file = new File(promotedFile);
                     try {
                         String xmlFileContents = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
-                        System.out.println("ID-NE " + Thread.currentThread().getName() + " Processing next file " + file.getName() + ", by job ID " + jobId + ", for tenant " + tenant + " next.");
                         long fileProcessStarted = System.currentTimeMillis();
-                        InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
                         processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
                                 {
-                                    System.out.println("Thread: " + Thread.currentThread().getName() + "Job " + jobId + ": File processed in " + (System.currentTimeMillis()-fileProcessStarted));
+                                    System.out.println("Throughput: file number " + inventoryBatchUpdating.getFilesProcessedThisQueue() + " processed in " + (System.currentTimeMillis()-fileProcessStarted) + " ms.,  " + fileQueue.filesInQueue() + " more files in queue. Processed file: " + file.getName() + ". Job " + jobId);
                                     fileQueue.deleteFile(file);
                                     if (!fileQueue.hasNextFile()) {
-                                        inventoryBatchUpdating.fileQueueEmpty();
+                                        inventoryBatchUpdating.endOfFileQueue();
                                     }
                                 }
                         ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
@@ -64,18 +63,19 @@ public class FileQueueProcessor extends AbstractVerticle {
         });
     }
 
-    public Future<Void> processFile(String jobId, String xmlFileContents, RecordReceiver inventoryUpdater) {
+    public Future<Void> processFile(String jobId, String xmlFileContents, InventoryBatchUpdating inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
-        System.out.println("processRecords, thread " + Thread.currentThread().getName());
+        inventoryUpdater.incrementFilesProcessed();
         getTransformationPipeline(jobId)
                 .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
                 .compose(pipelineToInventory -> vertx
                         .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                        .onComplete(transformation -> {
-                            if (transformation.succeeded()) {
+                        .onComplete(processing -> {
+                            if (processing.succeeded()) {
+                                inventoryUpdater.incrementTransformationTime(pipelineToInventory.transformationTime());
                                 promise.complete();
                             } else {
-                                System.out.println("Transformation failed with " + transformation.cause().getMessage());
+                                System.out.println("Processing failed with " + processing.cause().getMessage());
                                 promise.complete();
                             }
                         }));

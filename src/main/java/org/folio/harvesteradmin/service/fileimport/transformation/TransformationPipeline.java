@@ -24,6 +24,9 @@ public class TransformationPipeline implements RecordReceiver {
     private RecordReceiver target;
     private static final Map<String, Map<String, TransformationPipeline>> transformationPipelines = new HashMap<>();
 
+    private int records = 0;
+    private long transformationTime = 0;
+
 
     private TransformationPipeline(JsonObject transformation) {
         setTemplates(transformation);
@@ -31,6 +34,8 @@ public class TransformationPipeline implements RecordReceiver {
 
     public TransformationPipeline setTarget(RecordReceiver target) {
         this.target = target;
+        records = 0;
+        transformationTime = 0;
         return this;
     }
 
@@ -109,12 +114,15 @@ public class TransformationPipeline implements RecordReceiver {
 
     @Override
     public void put(String xmlRecord) {
+        long transformationStarted = System.currentTimeMillis();
+        records++;
         //System.out.println("Pipeline received " + xmlRecord);
         xmlRecord = "<collection>" + xmlRecord + "</collection>";
         String transformedXmlRecord = transform(xmlRecord);
         //System.out.println("Transformed to: " + transformedXmlRecord);
         String jsonRecord = convertToJson(transformedXmlRecord);
         //System.out.println("Converted to " + jsonRecord);
+        transformationTime+=(System.currentTimeMillis()-transformationStarted);
         target.put(jsonRecord);
     }
 
@@ -123,4 +131,11 @@ public class TransformationPipeline implements RecordReceiver {
         target.endOfDocument();
     }
 
+    public long transformationTime() {
+        return transformationTime;
+    }
+
+    public int records() {
+        return records;
+    }
 }

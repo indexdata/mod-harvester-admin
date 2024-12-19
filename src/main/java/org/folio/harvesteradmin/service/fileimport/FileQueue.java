@@ -52,9 +52,7 @@ public class FileQueue {
     }
 
     public boolean hasNextFile() {
-        Optional<File> nextFile = fs.readDirBlocking(jobPath).stream().map(File::new)
-                .filter(File::isFile).min(Comparator.comparing(File::lastModified));
-        return nextFile.isPresent();
+        return fs.readDirBlocking(jobPath).stream().map(File::new).anyMatch(File::isFile);
     }
     /**
      * Promotes the next file in the staging directory to the processing directory
@@ -82,6 +80,11 @@ public class FileQueue {
     public void deleteFile(File file) {
         System.out.println(Thread.currentThread().getName() + " deleting file.");
         fs.deleteBlocking(file.getPath());
+    }
+
+    public long filesInQueue () {
+        return fs.readDirBlocking(jobPath).stream().map(File::new)
+                .filter(File::isFile).count();
     }
 
 }

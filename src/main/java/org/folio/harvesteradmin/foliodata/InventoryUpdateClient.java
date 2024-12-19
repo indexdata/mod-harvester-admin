@@ -25,7 +25,7 @@ public class InventoryUpdateClient {
         return inventoryUpdateClient;
     }
 
-    public Future<JsonObject> inventoryUpsert (RoutingContext routingContext, JsonObject recordSets) {
+    public Future<JsonObject> inventoryUpsert (JsonObject recordSets) {
         Buffer records = Buffer.buffer(recordSets.encode().getBytes(StandardCharsets.UTF_8));
         return okapiClient.request(HttpMethod.PUT,INVENTORY_UPSERT_PATH, records)
                 .map(JsonObject::new)
