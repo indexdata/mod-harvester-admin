@@ -25,6 +25,8 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 
@@ -938,32 +940,27 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         responseText(routingContext, 200).end(response.toString());
     }
 
-    private final static Map<String, Map<String, String>> fileProcessorVerticles = new HashMap<>();
+    private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileProcessorVerticles = new ConcurrentHashMap<>();
 
-    private void initializeFileQueueProcessor(String tenant, String jobId, RoutingContext routingContext) {
-        fileProcessorVerticles.putIfAbsent(tenant, new HashMap<>());
-        if (fileProcessorVerticles.get(tenant).get(jobId) == null) {
-            Vertx vertx = Vertx.vertx(new VertxOptions()
-                    .setMaxWorkerExecuteTime(10)
-                    .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
-            vertx.deployVerticle(() -> new FileQueueProcessor(vertx, tenant, jobId, routingContext),
-                    new DeploymentOptions()
-                            .setThreadingModel(ThreadingModel.WORKER)
-                            .setWorkerPoolSize(2)
-                            .setMaxWorkerExecuteTime(10)
-                            .setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)
-                            .setWorkerPoolName("import-worker-" + tenant + "-" + jobId)).onComplete(
+    private void initializeFileQueueProcessor(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
+        fileProcessorVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
+        String previousMapping = fileProcessorVerticles.get(tenant).putIfAbsent(jobId, "initializing");
+        if (previousMapping == null) {
+            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
+            vertx.deployVerticle(new FileQueueProcessor(tenant, jobId, routingContext), new DeploymentOptions()
+                    .setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {
-                            System.out.println("ID-NE: started file processor thread pool for " + tenant + " and job ID " + jobId);
+                            System.out.println("ID-NE: started verticle for " + tenant + " and job ID " + jobId);
                             System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
                             fileProcessorVerticles.get(tenant).put(jobId, started.result());
+                            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
                         } else {
                             System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and jobID " + jobId);
                         }
                     });
         } else {
-            System.out.println("ID-NE: Reusing existing thread pool for tenant " + tenant + " and job ID " + jobId);
+            System.out.println("ID-NE: Continuing with already existing verticle for tenant " + tenant + " and job ID " + jobId);
         }
     }
 
@@ -982,7 +979,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onComplete(resp -> {
                     if (resp.result().found()) {
                         new FileQueue(vertx, tenant, jobId).addNewFile(fileName, xmlContent);
-                        initializeFileQueueProcessor(tenant, jobId, routingContext);
+                        initializeFileQueueProcessor(vertx, tenant, jobId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobId + "] found.");

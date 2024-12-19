@@ -3,7 +3,6 @@ package org.folio.harvesteradmin.service.fileimport;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
@@ -20,36 +19,33 @@ import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HAR
 
 public class FileQueueProcessor extends AbstractVerticle {
 
-    private final FileQueue fileQueue;
+    private FileQueue fileQueue;
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
     private final String tenant;
     private final String jobId;
     private final RoutingContext routingContext;
 
-    public FileQueueProcessor(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
+    public FileQueueProcessor(String tenant, String jobId, RoutingContext routingContext) {
         this.routingContext = routingContext;
         this.tenant = tenant;
         this.jobId = jobId;
-        fileQueue = new FileQueue(vertx, tenant, jobId);
     }
 
     @Override
     public void start() {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
-
-        vertx.setPeriodic(100, (r) -> {
-            if (fileQueue.couldPromoteNextFile()) {
-                if (fileQueue.promoteNextFile()) {
-                    InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
-                    String promotedFile = fileQueue.currentlyPromotedFile();
-                    File file = new File(promotedFile);
+        fileQueue = new FileQueue(vertx, tenant, jobId);
+        vertx.setPeriodic(200, (r) -> {
+            InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
+            File nextFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
+            if (nextFile != null) {  // queue is empty or another file is currently processing
                     try {
-                        String xmlFileContents = Files.readString(new File(promotedFile).toPath(), StandardCharsets.UTF_8);
+                        String xmlFileContents = Files.readString(nextFile.toPath(), StandardCharsets.UTF_8);
                         long fileProcessStarted = System.currentTimeMillis();
                         processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
                                 {
-                                    System.out.println("Throughput: file number " + inventoryBatchUpdating.getFilesProcessedThisQueue() + " processed in " + (System.currentTimeMillis()-fileProcessStarted) + " ms.,  " + fileQueue.filesInQueue() + " more files in queue. Processed file: " + file.getName() + ". Job " + jobId);
-                                    fileQueue.deleteFile(file);
+                                    System.out.println("Throughput: file number " + inventoryBatchUpdating.getFilesProcessedThisQueue() + " processed in " + (System.currentTimeMillis() - fileProcessStarted) + " ms.,  " + fileQueue.filesInQueue() + " more files in queue. Processed file: " + nextFile.getName() + ". Job " + jobId);
+                                    fileQueue.deleteFile(nextFile);
                                     if (!fileQueue.hasNextFile()) {
                                         inventoryBatchUpdating.endOfFileQueue();
                                     }
@@ -59,12 +55,28 @@ public class FileQueueProcessor extends AbstractVerticle {
                         System.out.println(e.getMessage());
                     }
                 }
-            }
         });
+    }
+
+    private File nextFileIfPossible(FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
+        if (resumeHaltedProcessing(fileQueue, inventoryBatchUpdating)) {
+            return fileQueue.currentlyPromotedFile();
+        } else if (fileQueue.promoteNextFileIfPossible()) {
+            return fileQueue.currentlyPromotedFile();
+        }
+        return null;
+    }
+
+    public boolean resumeHaltedProcessing (FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
+        return fileQueue.processingSlotTaken() && inventoryBatchUpdating.batchQueueIdle(10);
     }
 
     public Future<Void> processFile(String jobId, String xmlFileContents, InventoryBatchUpdating inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
+        System.out.println("ID-NE: Set start time? Files processed this queue: " + inventoryUpdater.getFilesProcessedThisQueue());
+        if (inventoryUpdater.getFilesProcessedThisQueue() == 0) {
+            inventoryUpdater.setFileQueueStartTime();
+        }
         inventoryUpdater.incrementFilesProcessed();
         getTransformationPipeline(jobId)
                 .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))

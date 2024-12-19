@@ -44,11 +44,11 @@ public class FileQueue {
 
     /**
      * Checks if there is a file in the processing directory for the
-     * given job ID or if it's empty and thus available for the next file to harvest.
-     * @return true if the processing directory is empty and thus ready for the next file, otherwise false.
+     * given job ID (or if it's empty and thus available for the next file to import).
+     * @return true if the processing directory is occupied, false if it's ready for next file.
      */
-    public boolean couldPromoteNextFile() {
-        return fs.readDirBlocking(pathToProcessingSlot).isEmpty();
+    public boolean processingSlotTaken() {
+        return fs.readDirBlocking(pathToProcessingSlot).stream().map(File::new).anyMatch(File::isFile);
     }
 
     public boolean hasNextFile() {
@@ -56,15 +56,20 @@ public class FileQueue {
     }
     /**
      * Promotes the next file in the staging directory to the processing directory
-     * and returns true if a staged file was found, otherwise returns false.
+     * and returns true if a staged file was found (and the processing directory was free), otherwise returns false.
      * @return true if another file was found for processing, otherwise false.
      */
-    public boolean promoteNextFile() {
-        Optional<File> nextFile = fs.readDirBlocking(jobPath).stream().map(File::new)
-                .filter(File::isFile).min(Comparator.comparing(File::lastModified));
-        if (nextFile.isPresent()) {
-            fs.moveBlocking(nextFile.get().getPath(), pathToProcessingSlot + "/" + nextFile.get().getName());
-            return true;
+    public boolean promoteNextFileIfPossible() {
+        if (!processingSlotTaken()) {
+            return fs.readDirBlocking(jobPath).stream().map(File::new).filter(File::isFile).min(Comparator.comparing(File::lastModified))
+                    .map(file -> {
+                        if (!processingSlotTaken()) {
+                            fs.moveBlocking(file.getPath(), pathToProcessingSlot + "/" + file.getName());
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }).orElse(false);
         }
         return false;
     }
@@ -73,8 +78,8 @@ public class FileQueue {
      * Gets the name of the file currently processing under the given job configuration.
      * @return The name of file being processed, "none" if there is none.
      */
-    public String currentlyPromotedFile() {
-        return couldPromoteNextFile() ? "none" : fs.readDirBlocking(pathToProcessingSlot).get(0);
+    public File currentlyPromotedFile() {
+        return fs.readDirBlocking(pathToProcessingSlot).stream().map(File::new).filter(File::isFile).findFirst().orElse(null);
     }
 
     public void deleteFile(File file) {
