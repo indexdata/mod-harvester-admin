@@ -20,7 +20,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
 
 
     public XmlRecordsFromFile(String recordsSource) {
-        System.out.println("XmlRecordsFromFile constructor, thread " + Thread.currentThread().getName());
+        //System.out.println("XmlRecordsFromFile constructor, thread " + Thread.currentThread().getName());
         this.xmlCollectionOfRecords = recordsSource;
     }
 

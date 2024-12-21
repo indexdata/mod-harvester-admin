@@ -35,20 +35,13 @@ public class FileQueueProcessor extends AbstractVerticle {
     public void start() {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
         fileQueue = new FileQueue(vertx, tenant, jobId);
-        FileQueueProcessingReport reporting = new FileQueueProcessingReport(fileQueue);
-        vertx.setPeriodic(200, (r) -> {
-            InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext, reporting);
+        Reporting reporting = new Reporting();
+        vertx.setPeriodic(2000, (r) -> {
+            InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext, reporting, fileQueue);
             File currentFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
             if (currentFile != null) {  // null if queue is empty or the previous file is still processing
                 reporting.nextFileProcessing(currentFile.getName());
-                processFile(jobId, currentFile, inventoryBatchUpdating).onComplete(na ->
-                        {
-                            reporting.reportFileProcessed();
-                            fileQueue.deleteFile(currentFile);
-                            if (!fileQueue.hasNextFile()) {
-                                inventoryBatchUpdating.endOfFileQueue();
-                            }
-                        }
+                processFile(jobId, currentFile, inventoryBatchUpdating).onComplete(na -> fileQueue.deleteFile(currentFile)
                 ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
             }
         });
@@ -70,7 +63,6 @@ public class FileQueueProcessor extends AbstractVerticle {
     public Future<Void> processFile(String jobId, File xmlFile, InventoryBatchUpdating inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
         try {
-            inventoryUpdater.incrementFilesProcessed();
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
             getTransformationPipeline(jobId)
                     .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
