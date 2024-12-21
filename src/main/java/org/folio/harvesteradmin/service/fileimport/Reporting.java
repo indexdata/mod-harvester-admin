@@ -50,7 +50,7 @@ public class Reporting {
                         + stats.getRecordsProcessed() + " records in " + getProcessingTimeAsString(stats.processingTime()) + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) +
                         " recs/s.)");
             }
-        } catch (InterruptedException ignore) { System.out.println(ignore.getMessage());}
+        } catch (InterruptedException ie) { System.out.println(ie.getMessage());}
     }
 
     public String getProcessingTimeAsString (long processingTime) {

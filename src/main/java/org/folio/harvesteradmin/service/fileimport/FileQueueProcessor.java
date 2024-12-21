@@ -36,13 +36,13 @@ public class FileQueueProcessor extends AbstractVerticle {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
         fileQueue = new FileQueue(vertx, tenant, jobId);
         Reporting reporting = new Reporting();
-        vertx.setPeriodic(2000, (r) -> {
+        vertx.setPeriodic(200, (r) -> {
             InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext, reporting, fileQueue);
             File currentFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
             if (currentFile != null) {  // null if queue is empty or the previous file is still processing
                 reporting.nextFileProcessing(currentFile.getName());
-                processFile(jobId, currentFile, inventoryBatchUpdating).onComplete(na -> fileQueue.deleteFile(currentFile)
-                ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
+                processFile(jobId, currentFile, inventoryBatchUpdating).onComplete(na -> fileQueue.deleteFile(currentFile))
+                        .onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
             }
         });
     }
@@ -70,7 +70,6 @@ public class FileQueueProcessor extends AbstractVerticle {
                             .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
                             .onComplete(processing -> {
                                 if (processing.succeeded()) {
-                                    inventoryUpdater.incrementTransformationTime(pipelineToInventory.transformationTime());
                                     promise.complete();
                                 } else {
                                     System.out.println("Processing failed with " + processing.cause().getMessage());
