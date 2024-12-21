@@ -41,8 +41,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
             System.out.println("Creating new instance of InventoryUpdate for tenant '" + tenant + "' job '" + jobId + "'");
             inventoryUpdaters.get(tenant).put(jobId, new InventoryBatchUpdating(routingContext, jobId));
         }
-        InventoryBatchUpdating instance = inventoryUpdaters.get(tenant).get(jobId);
-        return instance;
+        return inventoryUpdaters.get(tenant).get(jobId);
     }
 
     @Override
@@ -66,12 +65,11 @@ public class InventoryBatchUpdating implements RecordReceiver {
     }
 
     private void releaseBatch() {
-        batchCounter++;
         batchSize.set(0);
         JsonObject requestBody = new JsonObject();
         requestBody.put("inventoryRecordSets", inventoryRecordSets.copy());
         inventoryRecordSets = new JsonArray();
-        requestBody.put("batchNumber", batchCounter);
+        requestBody.put("batchNumber", ++batchCounter);
         try {
             batchQueue.put(requestBody.copy());
             persistBatch();
@@ -112,6 +110,9 @@ public class InventoryBatchUpdating implements RecordReceiver {
     }
 
     public void incrementFilesProcessed () {
+        if (filesProcessedThisQueue == 0) {
+            fileQueueStartTime = System.currentTimeMillis();
+        }
         filesProcessedThisQueue++;
     }
 
@@ -154,10 +155,6 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     public int getFilesProcessedThisQueue () {
         return filesProcessedThisQueue;
-    }
-
-    public void setFileQueueStartTime() {
-        fileQueueStartTime = System.currentTimeMillis();
     }
 
     public boolean batchQueueIdle(int idlingChecksThreshold) {

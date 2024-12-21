@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.concurrent.TimeUnit;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
@@ -37,24 +38,19 @@ public class FileQueueProcessor extends AbstractVerticle {
         fileQueue = new FileQueue(vertx, tenant, jobId);
         vertx.setPeriodic(200, (r) -> {
             InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext);
-            File nextFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
-            if (nextFile != null) {  // queue is empty or another file is currently processing
-                    try {
-                        String xmlFileContents = Files.readString(nextFile.toPath(), StandardCharsets.UTF_8);
-                        long fileProcessStarted = System.currentTimeMillis();
-                        processFile(jobId, xmlFileContents, inventoryBatchUpdating).onComplete(na ->
-                                {
-                                    System.out.println("Throughput: file number " + inventoryBatchUpdating.getFilesProcessedThisQueue() + " processed in " + (System.currentTimeMillis() - fileProcessStarted) + " ms.,  " + fileQueue.filesInQueue() + " more files in queue. Processed file: " + nextFile.getName() + ". Job " + jobId);
-                                    fileQueue.deleteFile(nextFile);
-                                    if (!fileQueue.hasNextFile()) {
-                                        inventoryBatchUpdating.endOfFileQueue();
-                                    }
-                                }
-                        ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
-                    } catch (IOException e) {
-                        System.out.println(e.getMessage());
-                    }
-                }
+            File currentFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
+            if (currentFile != null) {  // null if queue is empty or the previous file is still processing
+                long fileProcessStarted = System.currentTimeMillis();
+                processFile(jobId, currentFile, inventoryBatchUpdating).onComplete(na ->
+                        {
+                            System.out.println("Throughput: file number " + inventoryBatchUpdating.getFilesProcessedThisQueue() + " processed in " + (System.currentTimeMillis() - fileProcessStarted) + " ms.,  " + fileQueue.filesInQueue() + " more file(s) in queue. Processed file: " + currentFile.getName() + ". Job " + jobId);
+                            fileQueue.deleteFile(currentFile);
+                            if (!fileQueue.hasNextFile()) {
+                                inventoryBatchUpdating.endOfFileQueue();
+                            }
+                        }
+                ).onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
+            }
         });
     }
 
@@ -67,37 +63,39 @@ public class FileQueueProcessor extends AbstractVerticle {
         return null;
     }
 
-    public boolean resumeHaltedProcessing (FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
+    public boolean resumeHaltedProcessing(FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
         return fileQueue.processingSlotTaken() && inventoryBatchUpdating.batchQueueIdle(10);
     }
 
-    public Future<Void> processFile(String jobId, String xmlFileContents, InventoryBatchUpdating inventoryUpdater) {
+    public Future<Void> processFile(String jobId, File xmlFile, InventoryBatchUpdating inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
-        System.out.println("ID-NE: Set start time? Files processed this queue: " + inventoryUpdater.getFilesProcessedThisQueue());
-        if (inventoryUpdater.getFilesProcessedThisQueue() == 0) {
-            inventoryUpdater.setFileQueueStartTime();
+        try {
+            inventoryUpdater.incrementFilesProcessed();
+            long fileProcessStarted = System.currentTimeMillis();
+            String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
+            getTransformationPipeline(jobId)
+                    .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
+                    .compose(pipelineToInventory -> vertx
+                            .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
+                            .onComplete(processing -> {
+                                if (processing.succeeded()) {
+                                    inventoryUpdater.incrementTransformationTime(pipelineToInventory.transformationTime());
+                                    promise.complete();
+                                } else {
+                                    System.out.println("Processing failed with " + processing.cause().getMessage());
+                                    promise.complete();
+                                }
+                            }));
+        } catch (IOException e) {
+            promise.fail("Could not open XML source file for importing " + e.getMessage());
         }
-        inventoryUpdater.incrementFilesProcessed();
-        getTransformationPipeline(jobId)
-                .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
-                .compose(pipelineToInventory -> vertx
-                        .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                        .onComplete(processing -> {
-                            if (processing.succeeded()) {
-                                inventoryUpdater.incrementTransformationTime(pipelineToInventory.transformationTime());
-                                promise.complete();
-                            } else {
-                                System.out.println("Processing failed with " + processing.cause().getMessage());
-                                promise.complete();
-                            }
-                        }));
         return promise.future();
     }
 
-    private Future<TransformationPipeline> getTransformationPipeline (String jobId) {
+    private Future<TransformationPipeline> getTransformationPipeline(String jobId) {
         Promise<TransformationPipeline> promise = Promise.promise();
         if (TransformationPipeline.hasInstance(tenant, jobId)) {
-            promise.complete(TransformationPipeline.getInstance(tenant,jobId));
+            promise.complete(TransformationPipeline.getInstance(tenant, jobId));
         } else {
             getTransformationId(jobId)
                     .compose(transformationId -> TransformationPipeline.instance(vertx, tenant, jobId, transformationId))
@@ -108,7 +106,7 @@ public class FileQueueProcessor extends AbstractVerticle {
 
     private Future<String> getTransformationId(String jobId) {
         Promise<String> promise = Promise.promise();
-        LegacyHarvesterStorage legacyHarvesterStorage = new LegacyHarvesterStorage(vertx,tenant);
+        LegacyHarvesterStorage legacyHarvesterStorage = new LegacyHarvesterStorage(vertx, tenant);
         legacyHarvesterStorage.getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                 .onComplete(configResponse -> {
                     if (configResponse.succeeded()) {

@@ -942,13 +942,13 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileProcessorVerticles = new ConcurrentHashMap<>();
 
-    private void initializeFileQueueProcessor(Vertx vertx, String tenant, String jobId, RoutingContext routingContext) {
+    private void initializeFileQueueProcessor(String tenant, String jobId, RoutingContext routingContext) {
         fileProcessorVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
         String previousMapping = fileProcessorVerticles.get(tenant).putIfAbsent(jobId, "initializing");
         if (previousMapping == null) {
-            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
+            Vertx vertx = Vertx.vertx(new VertxOptions().setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
             vertx.deployVerticle(new FileQueueProcessor(tenant, jobId, routingContext), new DeploymentOptions()
-                    .setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
+                    .setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {
                             System.out.println("ID-NE: started verticle for " + tenant + " and job ID " + jobId);
@@ -967,19 +967,17 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     private void stageXmlRecords(Vertx vertx, RoutingContext routingContext) {
 
         final long fileStartTime = System.currentTimeMillis();
-
         String tenant = TenantUtil.tenant(routingContext);
         String jobId = routingContext.pathParam("id");
         String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
         System.out.println("Staging XML file, current thread is " + Thread.currentThread().getName());
 
-
         new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                 .onComplete(resp -> {
                     if (resp.result().found()) {
                         new FileQueue(vertx, tenant, jobId).addNewFile(fileName, xmlContent);
-                        initializeFileQueueProcessor(vertx, tenant, jobId, routingContext);
+                        initializeFileQueueProcessor(tenant, jobId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobId + "] found.");
