@@ -28,18 +28,20 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private final BlockingQueue<JsonObject> batchQueue = new ArrayBlockingQueue<>(1);
     private final AtomicInteger batchQueueIdleChecks = new AtomicInteger(0);
-    private InventoryBatchUpdating(RoutingContext routingContext, String jobId) {
+    private final FileQueueProcessingReport reporting;
+    private InventoryBatchUpdating(RoutingContext routingContext, String jobId, FileQueueProcessingReport reporting) {
         this.jobId = jobId;
         updateClient = InventoryUpdateClient.getClient(routingContext);
+        this.reporting = reporting;
     }
 
-    public static InventoryBatchUpdating instance(String tenant, String jobId, RoutingContext routingContext) {
+    public static InventoryBatchUpdating instance(String tenant, String jobId, RoutingContext routingContext, FileQueueProcessingReport reporting) {
         if (!inventoryUpdaters.containsKey(tenant)) {
             inventoryUpdaters.put(tenant, new HashMap<>());
         }
         if (!inventoryUpdaters.get(tenant).containsKey(jobId)) {
             System.out.println("Creating new instance of InventoryUpdate for tenant '" + tenant + "' job '" + jobId + "'");
-            inventoryUpdaters.get(tenant).put(jobId, new InventoryBatchUpdating(routingContext, jobId));
+            inventoryUpdaters.get(tenant).put(jobId, new InventoryBatchUpdating(routingContext, jobId, reporting));
         }
         return inventoryUpdaters.get(tenant).get(jobId);
     }
@@ -47,6 +49,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
     @Override
     public void put(String jsonRecord) {
         if (jsonRecord != null) {
+            reporting.incrementRecordsProcessed();
             JsonObject json = new JsonObject(jsonRecord).getJsonArray("inventoryRecordSets").getJsonObject(0);
             if (!json.containsKey("processing")) {
                 json.put("processing",new JsonObject());
@@ -100,7 +103,8 @@ public class InventoryBatchUpdating implements RecordReceiver {
                     }
                     batchQueue.take();
                     if (reachedEndOfFileQueue) {
-                        reportAndClearStats();
+                        reporting.endOfFileQueue();
+                        //reportAndClearStats();
                     }
                 } catch (InterruptedException e) {
                     System.out.println(e.getMessage());
@@ -124,25 +128,6 @@ public class InventoryBatchUpdating implements RecordReceiver {
         reachedEndOfFileQueue = true;
     }
 
-    public void reportAndClearStats () {
-        System.out.println("Throughput: End of queue, job ID " + jobId + "\n" +
-                "Throughput: " + filesProcessedThisQueue + " files with " + recordsProcessedThisQueue + " records processed in " + getQueueProcessingTime() +
-                " ~ " + (System.currentTimeMillis()-fileQueueStartTime)/recordsProcessedThisQueue + " ms./rec. " +
-                " Transformation: " + (transformationTimeThisQueue/recordsProcessedThisQueue) + " ms/rec. Upsert: " +
-                (batchUpsertTimeThisQueue / recordsProcessedThisQueue) + " ms/rec.");
-        resetStreamStatistics();
-    }
-
-    public void resetStreamStatistics() {
-        recordsProcessedThisQueue = 0;
-        batchUpsertTimeThisQueue = 0;
-        transformationTimeThisQueue = 0;
-        batchCounter=0;
-        filesProcessedThisQueue =0;
-        reachedEndOfFileQueue = false;
-        fileQueueStartTime =0;
-    }
-
     public String getQueueProcessingTime () {
         long processingTime = System.currentTimeMillis()-fileQueueStartTime;
         int hours = (int) processingTime/(1000*60*60);
@@ -160,7 +145,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
     public boolean batchQueueIdle(int idlingChecksThreshold) {
         if (batchQueue.isEmpty()) {
             if (batchQueueIdleChecks.incrementAndGet()>idlingChecksThreshold) {
-                System.out.println("ID-NE: BatchQueue has been idle for 10 consecutive checks.");
+                System.out.println("ID-NE: BatchQueue has been idle for " + idlingChecksThreshold + " consecutive checks.");
                 batchQueueIdleChecks.set(0);
                 return true;
             }
