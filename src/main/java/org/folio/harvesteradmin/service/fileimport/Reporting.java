@@ -4,25 +4,33 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Reporting {
 
-    private final AtomicBoolean idleQueue = new AtomicBoolean(true);
-    private long startTime;
+    public final AtomicBoolean idleQueue = new AtomicBoolean(true);
+    private final AtomicLong startTime = new AtomicLong();
     private final AtomicInteger filesProcessed = new AtomicInteger(0);
     private final AtomicInteger recordsProcessed = new AtomicInteger(0);
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
 
     public void nextFileProcessing(String fileName) {
         if (idleQueue.get()) {
+            //System.out.println("nextFileProcessing() queue marked idle, resetting records, files processed, star time ");
             recordsProcessed.set(0);
             filesProcessed.set(0);
-            startTime = System.currentTimeMillis();
+            startTime.set(System.currentTimeMillis());
             idleQueue.set(false);
         }
         try {
+            //System.out.println("Put FileStats for " + fileName + " in queue.");
             fileStats.put(new FileStats(fileName));
         } catch (InterruptedException ignore) {}
+        //System.out.println(fileStats.size() + " FileStats in queue.");
+    }
+
+    public boolean pendingFileStats() {
+        return !fileStats.isEmpty();
     }
 
     public void incrementRecordsProcessed(int delta) {
@@ -31,11 +39,11 @@ public class Reporting {
     }
 
     public void reportFileQueueStats() {
-        long processingTime = (System.currentTimeMillis() - startTime);
+        long processingTime = (System.currentTimeMillis() - startTime.get());
         System.out.println(filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + getProcessingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
-        idleQueue.set(true);
+        //idleQueue.set(true);resetting
     }
 
     public void incrementFilesProcessed() {
@@ -45,10 +53,15 @@ public class Reporting {
     public void reportFileStats() {
         try {
             if (!fileStats.isEmpty()) {
-                FileStats stats = fileStats.take();
+                //System.out.println("reportFileStats(): Take FileStats from queue of " + fileStats.size());
+                FileStats stats = fileStats.peek();
+                assert stats != null;
                 System.out.println("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
                         + stats.getRecordsProcessed() + " records in " + getProcessingTimeAsString(stats.processingTime()) + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) +
                         " recs/s.)");
+                fileStats.take();
+            } else {
+                System.out.println("reportFileStats(): FileStatus queue was empty");
             }
         } catch (InterruptedException ie) { System.out.println(ie.getMessage());}
     }
@@ -59,7 +72,7 @@ public class Reporting {
         int minutes = (int) remainingMs/(1000*60);
         remainingMs = remainingMs % (1000*60);
         int seconds = (int) remainingMs/1000;
-        return (hours>0 ? hours + " hours " : "") +  (hours>0 && minutes>0 ? minutes  + " minutes " : "") + seconds + " seconds";
+        return (hours>0 ? hours + " hours " : "") +  (hours>0 || minutes>0 ? minutes  + " minutes " : "") + seconds + " seconds";
     }
 
 }

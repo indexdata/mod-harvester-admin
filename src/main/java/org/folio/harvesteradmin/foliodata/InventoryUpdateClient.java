@@ -31,7 +31,7 @@ public class InventoryUpdateClient {
                 .map(JsonObject::new)
                 .compose(responseJson -> {
                     if (okapiClient.getStatusCode() == 207) {
-                        System.out.println(responseJson.encodePrettily());
+                        System.out.println("Error: " + responseJson.getJsonArray("errors").getJsonObject(0).getString("shortMessage"));
                     }
                     return Future.succeededFuture(responseJson);
                 })

@@ -62,7 +62,9 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private void releaseBatch(Batch batch) {
         try {
+            //System.out.println("releaseBatch() # "+batch.getBatchNumber() +" with " + batch.size() + " records, batch queue size before put: " + batchQueue.size());
             batchQueue.put(batch);
+            //System.out.println("releaseBatch() # "+batch.getBatchNumber() +" with " + batch.size() + ", batch queue size after put: " + batchQueue.size());
             persistBatch();
         } catch (InterruptedException ie) {
             System.out.println("Error: Queue put operation was interrupted.");
@@ -71,37 +73,51 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     @Override
     public void endOfDocument() {
+        //System.out.println("endOfDocument() putting null record ");
         put(null);
+        //System.out.println("endOfDocument() null record put");
     }
 
     private void persistBatch() {
         Batch batch = batchQueue.peek();
+        //System.out.println("persistBatch, peeked batch #" + (batch == null ? " null " : batch.getBatchNumber() + " with " + batch.size() + "records, last batch? " + batch.isLastBatchOfFile()));
         if (batch != null) {
             if (batch.size() > 0) {
                 // long batchUpsertStarted = System.currentTimeMillis();
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(response -> {
                     reporting.incrementRecordsProcessed(batch.size());
-                    // "long batchUpsertTime = System.currentTimeMillis() - batchUpsertStarted;
-                    // "System.out.println("Throughput: Job " + jobId + " upserted batch number " + batch.getBatchNumber()
-                    // + " with " + batch.size() + " records in " + batchUpsertTime + " ms.");
+                    //System.out.println("persistBatch(), upsert done for batch #" + batch.getBatchNumber() + " with " + batch.size() + " records");
                     reporting(batch);
-                    try {batchQueue.take();} catch (InterruptedException ignored) {}
+                    try {
+                        //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
+                        Batch takebatch =batchQueue.take();
+                        //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
+
+                    } catch (InterruptedException ignored) {}
                 });
             } else { // we get here when the last set of records is exactly 100. We just need to report
+                //System.out.println("persistBatch(), batch #" + batch.getBatchNumber() + " with " + batch.size() + " records, is last batch? " + batch.isLastBatchOfFile());
                 reporting(batch);
-                try { batchQueue.take();} catch (InterruptedException ignored) {}
+                try {
+                    //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
+                    Batch takebatch = batchQueue.take();
+                    //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
+                } catch (InterruptedException ignored) {}
 
             }
         }
     }
 
-    private void reporting(Batch batch) {
+    private void reporting(Batch batch) {  // does this always work whether last Batch is empty or not.
+        //System.out.println("Report if last batch, last batch? " + batch.isLastBatchOfFile());
         if (batch.isLastBatchOfFile()) {
             reporting.incrementFilesProcessed();
             reporting.reportFileStats();
-            if (!fileQueue.hasNextFile()) {
+            reporting.reportFileQueueStats();
+            if (!fileQueue.hasNextFile() && !reporting.pendingFileStats()) {
+                //System.out.println("reporting() no more files in queue, no pending file stats, reset batch counter");
                 batchCounter = 0;
-                reporting.reportFileQueueStats();
+                reporting.idleQueue.set(true);
             }
         }
     }
