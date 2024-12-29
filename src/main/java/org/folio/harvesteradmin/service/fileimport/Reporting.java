@@ -13,6 +13,13 @@ public class Reporting {
     private final AtomicInteger filesProcessed = new AtomicInteger(0);
     private final AtomicInteger recordsProcessed = new AtomicInteger(0);
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
+    private final String jobId;
+    private final FileQueue fileQueue;
+
+    public Reporting (FileQueue fileQueue) {
+        this.jobId = fileQueue.getJobId();
+        this.fileQueue = fileQueue;
+    }
 
     public void nextFileProcessing(String fileName) {
         if (idleQueue.get()) {
@@ -40,10 +47,17 @@ public class Reporting {
 
     public void reportFileQueueStats() {
         long processingTime = (System.currentTimeMillis() - startTime.get());
-        System.out.println(filesProcessed + " file(s) with " + recordsProcessed.get() +
+        System.out.println((fileQueueDone()? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + getProcessingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
-        //idleQueue.set(true);resetting
+    }
+
+    public boolean fileQueueDone() {
+        if (!fileQueue.hasNextFile() && !pendingFileStats()) {
+            idleQueue.set(true);
+            return true;
+        }
+        return false;
     }
 
     public void incrementFilesProcessed() {
@@ -53,12 +67,11 @@ public class Reporting {
     public void reportFileStats() {
         try {
             if (!fileStats.isEmpty()) {
-                //System.out.println("reportFileStats(): Take FileStats from queue of " + fileStats.size());
                 FileStats stats = fileStats.peek();
                 assert stats != null;
                 System.out.println("File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
                         + stats.getRecordsProcessed() + " records in " + getProcessingTimeAsString(stats.processingTime()) + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) +
-                        " recs/s.)");
+                        " recs/s.). Job ID " + jobId + ".");
                 fileStats.take();
             } else {
                 System.out.println("reportFileStats(): FileStatus queue was empty");

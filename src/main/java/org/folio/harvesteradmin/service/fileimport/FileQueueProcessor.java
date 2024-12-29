@@ -35,7 +35,7 @@ public class FileQueueProcessor extends AbstractVerticle {
     public void start() {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
         fileQueue = new FileQueue(vertx, tenant, jobId);
-        Reporting reporting = new Reporting();
+        Reporting reporting = new Reporting(fileQueue);
         vertx.setPeriodic(200, (r) -> {
             InventoryBatchUpdating inventoryBatchUpdating = InventoryBatchUpdating.instance(tenant, jobId, routingContext, reporting, fileQueue);
             File currentFile = nextFileIfPossible(fileQueue, inventoryBatchUpdating);
@@ -56,11 +56,11 @@ public class FileQueueProcessor extends AbstractVerticle {
         return null;
     }
 
-    public boolean resumeHaltedProcessing(FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
+    private boolean resumeHaltedProcessing(FileQueue fileQueue, InventoryBatchUpdating inventoryBatchUpdating) {
         return fileQueue.processingSlotTaken() && inventoryBatchUpdating.batchQueueIdle(10);
     }
 
-    public Future<Void> processFile(String jobId, File xmlFile, InventoryBatchUpdating inventoryUpdater) {
+    private Future<Void> processFile(String jobId, File xmlFile, InventoryBatchUpdating inventoryUpdater) {
         Promise<Void> promise = Promise.promise();
         try {
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);

@@ -14,8 +14,10 @@ public class FileQueue {
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
+    private final String jobId;
 
     public FileQueue(Vertx vertx, String tenant, String jobId) {
+        this.jobId = jobId;
         this.fs = vertx.fileSystem();
         String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
         String tenantRootDir = sourceFilesRootDir + "/" + tenant;
@@ -87,4 +89,7 @@ public class FileQueue {
         fs.deleteBlocking(file.getPath());
     }
 
+    public String getJobId() {
+        return jobId;
+    }
 }

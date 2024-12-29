@@ -108,16 +108,15 @@ public class InventoryBatchUpdating implements RecordReceiver {
         }
     }
 
-    private void reporting(Batch batch) {  // does this always work whether last Batch is empty or not.
+    private void reporting(Batch batch) {
         //System.out.println("Report if last batch, last batch? " + batch.isLastBatchOfFile());
         if (batch.isLastBatchOfFile()) {
             reporting.incrementFilesProcessed();
             reporting.reportFileStats();
             reporting.reportFileQueueStats();
-            if (!fileQueue.hasNextFile() && !reporting.pendingFileStats()) {
+            if (reporting.fileQueueDone()) {
                 //System.out.println("reporting() no more files in queue, no pending file stats, reset batch counter");
                 batchCounter = 0;
-                reporting.idleQueue.set(true);
             }
         }
     }
