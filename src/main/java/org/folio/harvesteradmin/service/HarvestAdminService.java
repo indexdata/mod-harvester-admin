@@ -42,7 +42,7 @@ import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.harvesteradmin.service.fileimport.FileQueue;
-import org.folio.harvesteradmin.service.fileimport.FileQueueProcessor;
+import org.folio.harvesteradmin.service.fileimport.JobHandler;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -924,7 +924,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 }).mapEmpty();
     }
 
-
     private void generateIds(RoutingContext routingContext) {
         RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
         int count = 1;
@@ -947,7 +946,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         String previousMapping = fileProcessorVerticles.get(tenant).putIfAbsent(jobId, "initializing");
         if (previousMapping == null) {
             Vertx vertx = Vertx.vertx(new VertxOptions().setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
-            vertx.deployVerticle(new FileQueueProcessor(tenant, jobId, routingContext), new DeploymentOptions()
+            vertx.deployVerticle(new JobHandler(tenant, jobId, vertx, routingContext), new DeploymentOptions()
                     .setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {

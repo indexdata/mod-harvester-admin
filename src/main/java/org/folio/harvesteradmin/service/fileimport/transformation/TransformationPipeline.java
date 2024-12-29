@@ -39,19 +39,15 @@ public class TransformationPipeline implements RecordReceiver {
         return this;
     }
 
-    public static Future<TransformationPipeline> instance(Vertx vertx, String tenant, String jobId, String transformationId) {
+    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, String jobId, String transformationId) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        if (! hasInstance(tenant, jobId)) {
-            new LegacyHarvesterStorage(vertx, tenant)
-                    .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
-                    .onSuccess(transformationConfig -> {
-                        TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject());
-                        cacheInstance(tenant, jobId, pipeline);
-                        promise.complete(pipeline);
-                    });
-        } else {
-            promise.complete(transformationPipelines.get(tenant).get(jobId));
-        }
+        new LegacyHarvesterStorage(vertx, tenant)
+                .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
+                .onSuccess(transformationConfig -> {
+                    TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject());
+                    cacheInstance(tenant, jobId, pipeline);
+                    promise.complete(pipeline);
+                });
         return promise.future();
     }
 
@@ -69,7 +65,7 @@ public class TransformationPipeline implements RecordReceiver {
         if (!transformationPipelines.containsKey(tenant)) {
             transformationPipelines.put(tenant, new HashMap<>());
         }
-        transformationPipelines.get(tenant).putIfAbsent(jobId, pipeline);
+        transformationPipelines.get(tenant).put(jobId, pipeline);
     }
 
     private String transform(String xmlRecord) {

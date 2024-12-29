@@ -5,37 +5,21 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.harvesteradmin.foliodata.InventoryUpdateClient;
 
-import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class InventoryBatchUpdating implements RecordReceiver {
 
-    private static final Map<String, Map<String, InventoryBatchUpdating>> inventoryUpdaters = new HashMap<>();
+    private final JobHandler job;
     private JsonArray inventoryRecordSets = new JsonArray();
+    private final BlockingQueue<BatchOfRecords> batchQueue = new ArrayBlockingQueue<>(1);
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
-    private final FileQueue fileQueue;
-    private final BlockingQueue<Batch> batchQueue = new ArrayBlockingQueue<>(1);
-    private final Reporting reporting;
 
-    private InventoryBatchUpdating(RoutingContext routingContext, Reporting reporting, FileQueue fileQueue) {
+    public InventoryBatchUpdating(JobHandler job, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
-        this.reporting = reporting;
-        this.fileQueue = fileQueue;
-    }
-
-    public static InventoryBatchUpdating instance(String tenant, String jobId, RoutingContext routingContext, Reporting reporting, FileQueue fileQueue) {
-        if (!inventoryUpdaters.containsKey(tenant)) {
-            inventoryUpdaters.put(tenant, new HashMap<>());
-        }
-        if (!inventoryUpdaters.get(tenant).containsKey(jobId)) {
-            System.out.println("Creating new instance of InventoryBatchUpdating for tenant '" + tenant + "' job '" + jobId + "'");
-            inventoryUpdaters.get(tenant).put(jobId, new InventoryBatchUpdating(routingContext, reporting, fileQueue));
-        }
-        return inventoryUpdaters.get(tenant).get(jobId);
+        this.job = job;
     }
 
     @Override
@@ -50,17 +34,17 @@ public class InventoryBatchUpdating implements RecordReceiver {
             if (inventoryRecordSets.size() > 99) {
                 JsonArray records = inventoryRecordSets.copy();
                 inventoryRecordSets = new JsonArray();
-                releaseBatch(new Batch(records, ++batchCounter, false));
+                releaseBatch(new BatchOfRecords(records, ++batchCounter, false));
             }
         } else { // a null record is the end-of-file signal, forward remaining records if any
             JsonArray records = inventoryRecordSets.copy();
             inventoryRecordSets = new JsonArray();
             batchCounter += (records.isEmpty() ? 0 : 1); // increment batch count if we got some tail-end records
-            releaseBatch(new Batch(records, batchCounter, true));
+            releaseBatch(new BatchOfRecords(records, batchCounter, true));
         }
     }
 
-    private void releaseBatch(Batch batch) {
+    private void releaseBatch(BatchOfRecords batch) {
         try {
             //System.out.println("releaseBatch() # "+batch.getBatchNumber() +" with " + batch.size() + " records, batch queue size before put: " + batchQueue.size());
             batchQueue.put(batch);
@@ -79,18 +63,18 @@ public class InventoryBatchUpdating implements RecordReceiver {
     }
 
     private void persistBatch() {
-        Batch batch = batchQueue.peek();
+        BatchOfRecords batch = batchQueue.peek();
         //System.out.println("persistBatch, peeked batch #" + (batch == null ? " null " : batch.getBatchNumber() + " with " + batch.size() + "records, last batch? " + batch.isLastBatchOfFile()));
         if (batch != null) {
             if (batch.size() > 0) {
                 // long batchUpsertStarted = System.currentTimeMillis();
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(response -> {
-                    reporting.incrementRecordsProcessed(batch.size());
+                    job.reporting().incrementRecordsProcessed(batch.size());
                     //System.out.println("persistBatch(), upsert done for batch #" + batch.getBatchNumber() + " with " + batch.size() + " records");
                     reporting(batch);
                     try {
                         //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
-                        Batch takebatch =batchQueue.take();
+                        batchQueue.take();
                         //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
 
                     } catch (InterruptedException ignored) {}
@@ -100,7 +84,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
                 reporting(batch);
                 try {
                     //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
-                    Batch takebatch = batchQueue.take();
+                    batchQueue.take();
                     //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
                 } catch (InterruptedException ignored) {}
 
@@ -108,13 +92,13 @@ public class InventoryBatchUpdating implements RecordReceiver {
         }
     }
 
-    private void reporting(Batch batch) {
+    private void reporting(BatchOfRecords batch) {
         //System.out.println("Report if last batch, last batch? " + batch.isLastBatchOfFile());
         if (batch.isLastBatchOfFile()) {
-            reporting.incrementFilesProcessed();
-            reporting.reportFileStats();
-            reporting.reportFileQueueStats();
-            if (reporting.fileQueueDone()) {
+            job.reporting().incrementFilesProcessed();
+            job.reporting().reportFileStats();
+            job.reporting().reportFileQueueStats();
+            if (job.reporting().fileQueueDone()) {
                 //System.out.println("reporting() no more files in queue, no pending file stats, reset batch counter");
                 batchCounter = 0;
             }
@@ -122,7 +106,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
     }
 
     private final AtomicInteger batchQueueIdleChecks = new AtomicInteger(0);
-    public boolean batchQueueIdle(int idlingChecksThreshold) {
+    public boolean noPendingBatches(int idlingChecksThreshold) {
         if (batchQueue.isEmpty()) {
             if (batchQueueIdleChecks.incrementAndGet() > idlingChecksThreshold) {
                 System.out.println("ID-NE: BatchQueue has been idle for " + idlingChecksThreshold + " consecutive checks.");
