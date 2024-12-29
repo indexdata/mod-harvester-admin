@@ -46,9 +46,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private void releaseBatch(BatchOfRecords batch) {
         try {
-            //System.out.println("releaseBatch() # "+batch.getBatchNumber() +" with " + batch.size() + " records, batch queue size before put: " + batchQueue.size());
             batchQueue.put(batch);
-            //System.out.println("releaseBatch() # "+batch.getBatchNumber() +" with " + batch.size() + ", batch queue size after put: " + batchQueue.size());
             persistBatch();
         } catch (InterruptedException ie) {
             System.out.println("Error: Queue put operation was interrupted.");
@@ -57,51 +55,45 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     @Override
     public void endOfDocument() {
-        //System.out.println("endOfDocument() putting null record ");
         put(null);
-        //System.out.println("endOfDocument() null record put");
     }
 
+    /**
+     * This is the last function of the import pipeline, and since it's asynchronous
+     * it must be in charge of when to invoke reporting. JobHandler will not
+     * otherwise know when the last upsert of a source file of records is done, for example.
+     */
     private void persistBatch() {
         BatchOfRecords batch = batchQueue.peek();
-        //System.out.println("persistBatch, peeked batch #" + (batch == null ? " null " : batch.getBatchNumber() + " with " + batch.size() + "records, last batch? " + batch.isLastBatchOfFile()));
         if (batch != null) {
             if (batch.size() > 0) {
-                // long batchUpsertStarted = System.currentTimeMillis();
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(response -> {
                     job.reporting().incrementRecordsProcessed(batch.size());
-                    //System.out.println("persistBatch(), upsert done for batch #" + batch.getBatchNumber() + " with " + batch.size() + " records");
-                    reporting(batch);
+                    if (batch.isLastBatchOfFile()) {
+                        report(batch);
+                    }
                     try {
-                        //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
                         batchQueue.take();
-                        //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
-
                     } catch (InterruptedException ignored) {}
                 });
             } else { // we get here when the last set of records is exactly 100. We just need to report
-                //System.out.println("persistBatch(), batch #" + batch.getBatchNumber() + " with " + batch.size() + " records, is last batch? " + batch.isLastBatchOfFile());
-                reporting(batch);
+                if (batch.isLastBatchOfFile()) {
+                    report(batch);
+                }
                 try {
-                    //System.out.println("Taking batch from queue with " + batchQueue.size() + " batches");
                     batchQueue.take();
-                    //System.out.println("Took batch #" + takebatch.getBatchNumber() + " from queue, last batch? " + takebatch.isLastBatchOfFile());
                 } catch (InterruptedException ignored) {}
-
             }
         }
     }
 
-    private void reporting(BatchOfRecords batch) {
-        //System.out.println("Report if last batch, last batch? " + batch.isLastBatchOfFile());
-        if (batch.isLastBatchOfFile()) {
-            job.reporting().incrementFilesProcessed();
-            job.reporting().reportFileStats();
-            job.reporting().reportFileQueueStats();
-            if (job.reporting().fileQueueDone()) {
-                //System.out.println("reporting() no more files in queue, no pending file stats, reset batch counter");
-                batchCounter = 0;
-            }
+    private void report(BatchOfRecords batch) {
+        job.reporting().incrementFilesProcessed();
+        job.reporting().reportFileStats();
+        var queueDone = job.fileQueueDone(batch.isLastBatchOfFile());
+        job.reporting().reportFileQueueStats(queueDone);
+        if (queueDone) {
+            batchCounter = 0;
         }
     }
 

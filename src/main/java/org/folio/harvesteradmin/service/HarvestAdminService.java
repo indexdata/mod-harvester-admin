@@ -939,11 +939,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         responseText(routingContext, 200).end(response.toString());
     }
 
-    private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileProcessorVerticles = new ConcurrentHashMap<>();
+    private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileImportVerticles = new ConcurrentHashMap<>();
 
-    private void initializeFileQueueProcessor(String tenant, String jobId, RoutingContext routingContext) {
-        fileProcessorVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
-        String previousMapping = fileProcessorVerticles.get(tenant).putIfAbsent(jobId, "initializing");
+    private void startImportVerticle(String tenant, String jobId, RoutingContext routingContext) {
+        fileImportVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
+        String previousMapping = fileImportVerticles.get(tenant).putIfAbsent(jobId, "initializing");
         if (previousMapping == null) {
             Vertx vertx = Vertx.vertx(new VertxOptions().setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
             vertx.deployVerticle(new JobHandler(tenant, jobId, vertx, routingContext), new DeploymentOptions()
@@ -952,7 +952,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                         if (started.succeeded()) {
                             System.out.println("ID-NE: started verticle for " + tenant + " and job ID " + jobId);
                             System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
-                            fileProcessorVerticles.get(tenant).put(jobId, started.result());
+                            fileImportVerticles.get(tenant).put(jobId, started.result());
                             System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
                         } else {
                             System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and jobID " + jobId);
@@ -976,7 +976,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onComplete(resp -> {
                     if (resp.result().found()) {
                         new FileQueue(vertx, tenant, jobId).addNewFile(fileName, xmlContent);
-                        initializeFileQueueProcessor(tenant, jobId, routingContext);
+                        startImportVerticle(tenant, jobId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobId + "] found.");

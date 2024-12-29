@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
@@ -25,13 +26,14 @@ public class JobHandler extends AbstractVerticle {
     private final FileQueue fileQueue;
     private final Reporting reporting;
     private final InventoryBatchUpdating inventoryUpdater;
+    private final AtomicBoolean passive = new AtomicBoolean(true);
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
 
     public JobHandler(String tenant, String jobId, Vertx vertx, RoutingContext routingContext) {
         this.tenant = tenant;
         this.jobId = jobId;
         fileQueue = new FileQueue(vertx, tenant, jobId);
-        reporting = new Reporting(fileQueue);
+        reporting = new Reporting(this);
         inventoryUpdater = new InventoryBatchUpdating(this, routingContext);
     }
 
@@ -40,10 +42,11 @@ public class JobHandler extends AbstractVerticle {
         System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
         vertx.setPeriodic(200, (r) -> {
             File currentFile = nextFileIfPossible();
-            if (currentFile != null) {  // null if queue is empty or the previous file is still processing
-                var refreshPipeline = reporting.betweenQueuesOfFiles.get(); // Rebuild pipeline once per job
-                reporting.markNextFileProcessing(currentFile.getName());
-                processFile(currentFile,refreshPipeline).onComplete(na -> fileQueue.deleteFile(currentFile))
+            if (currentFile != null) {  // null if queue is empty or a previous file is still processing
+                boolean activating = passive.getAndSet(false); // check if job was passive before this file
+                reporting.nowProcessing(currentFile.getName(), activating); // reset stats if new job was just activated
+                processFile(currentFile, activating) // refresh style sheets from db if new job
+                        .onComplete(na -> fileQueue.deleteFile(currentFile))
                         .onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
             }
         });
@@ -56,6 +59,13 @@ public class JobHandler extends AbstractVerticle {
             return fileQueue.currentlyPromotedFile();
         }
         return null;
+    }
+
+    public boolean fileQueueDone(boolean possibly) {
+        if (possibly && !fileQueue.hasNextFile() && !reporting.pendingFileStats()) {
+            passive.set(true);
+        }
+        return passive.get();
     }
 
     private boolean resumeHaltedProcessing() {
@@ -87,10 +97,8 @@ public class JobHandler extends AbstractVerticle {
     private Future<TransformationPipeline> getTransformationPipeline(String jobId, boolean refresh) {
         Promise<TransformationPipeline> promise = Promise.promise();
         if (TransformationPipeline.hasInstance(tenant, jobId) && !refresh) {
-            //System.out.println("Getting cached transformation pipeline.");
             promise.complete(TransformationPipeline.getInstance(tenant, jobId));
         } else {
-            //System.out.println("Building transformation pipeline from configuration database.");
             new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
                     .compose(resp -> {
                         if (resp.wasOK()) {
@@ -113,6 +121,10 @@ public class JobHandler extends AbstractVerticle {
 
     public Reporting reporting() {
         return reporting;
+    }
+
+    public String getJobId() {
+        return jobId;
     }
 
 }

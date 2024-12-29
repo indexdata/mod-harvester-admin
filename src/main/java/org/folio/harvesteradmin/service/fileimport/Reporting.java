@@ -2,38 +2,30 @@ package org.folio.harvesteradmin.service.fileimport;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Reporting {
 
     private final String jobId;
-    private final FileQueue fileQueue;
-    public final AtomicBoolean betweenQueuesOfFiles = new AtomicBoolean(true);
     private final AtomicLong startTime = new AtomicLong();
     private final AtomicInteger filesProcessed = new AtomicInteger(0);
     private final AtomicInteger recordsProcessed = new AtomicInteger(0);
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
 
-    public Reporting (FileQueue fileQueue) {
-        this.jobId = fileQueue.getJobId();
-        this.fileQueue = fileQueue;
+    public Reporting (JobHandler handler) {
+        this.jobId = handler.getJobId();
     }
 
-    public void markNextFileProcessing(String fileName) {
-        if (betweenQueuesOfFiles.get()) {
-            //System.out.println("nextFileProcessing() queue marked idle, resetting records, files processed, star time ");
+    public void nowProcessing(String fileName, boolean resetCounters) {
+        if (resetCounters) {
             recordsProcessed.set(0);
             filesProcessed.set(0);
             startTime.set(System.currentTimeMillis());
-            betweenQueuesOfFiles.set(false);
         }
         try {
-            //System.out.println("Put FileStats for " + fileName + " in queue.");
             fileStats.put(new FileStats(fileName));
         } catch (InterruptedException ignore) {}
-        //System.out.println(fileStats.size() + " FileStats in queue.");
     }
 
     public void incrementFilesProcessed() {
@@ -64,17 +56,9 @@ public class Reporting {
         } catch (InterruptedException ie) { System.out.println(ie.getMessage());}
     }
 
-    public boolean fileQueueDone() {
-        if (!fileQueue.hasNextFile() && !pendingFileStats()) {
-            betweenQueuesOfFiles.set(true);
-            return true;
-        }
-        return false;
-    }
-
-    public void reportFileQueueStats() {
+    public void reportFileQueueStats(boolean queueDone) {
         long processingTime = (System.currentTimeMillis() - startTime.get());
-        System.out.println((fileQueueDone()? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
+        System.out.println((queueDone ? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + processingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
     }
