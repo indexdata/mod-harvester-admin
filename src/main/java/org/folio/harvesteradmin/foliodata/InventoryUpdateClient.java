@@ -27,7 +27,9 @@ public class InventoryUpdateClient {
 
     public Future<JsonObject> inventoryUpsert (JsonObject recordSets) {
         Buffer records = Buffer.buffer(recordSets.encode().getBytes(StandardCharsets.UTF_8));
-        return okapiClient.request(HttpMethod.PUT,INVENTORY_UPSERT_PATH, records)
+        okapiClient.disableInfoLog();
+        return okapiClient
+                .request(HttpMethod.PUT,INVENTORY_UPSERT_PATH, records)
                 .map(JsonObject::new)
                 .compose(responseJson -> {
                     if (okapiClient.getStatusCode() == 207) {

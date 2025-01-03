@@ -46,6 +46,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private void releaseBatch(BatchOfRecords batch) {
         try {
+            // add batch to a queue of one (thus wait if a batch is in the queue already)
             batchQueue.put(batch);
             persistBatch();
         } catch (InterruptedException ie) {
@@ -67,12 +68,14 @@ public class InventoryBatchUpdating implements RecordReceiver {
         BatchOfRecords batch = batchQueue.peek();
         if (batch != null) {
             if (batch.size() > 0) {
-                updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(response -> {
+                updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(json -> {
                     job.reporting().incrementRecordsProcessed(batch.size());
+                    job.reporting().incrementInventoryMetrics(new InventoryMetrics(json.result().getJsonObject("metrics")));
                     if (batch.isLastBatchOfFile()) {
                         report(batch);
                     }
                     try {
+                        // Open entrance for next batch
                         batchQueue.take();
                     } catch (InterruptedException ignored) {}
                 });
@@ -81,6 +84,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
                     report(batch);
                 }
                 try {
+                    // Open entrance for next batch
                     batchQueue.take();
                 } catch (InterruptedException ignored) {}
             }

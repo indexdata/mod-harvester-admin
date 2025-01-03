@@ -11,6 +11,7 @@ public class Reporting {
     private final AtomicLong startTime = new AtomicLong();
     private final AtomicInteger filesProcessed = new AtomicInteger(0);
     private final AtomicInteger recordsProcessed = new AtomicInteger(0);
+    private final InventoryMetrics inventoryMetrics = new InventoryMetrics();
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
 
     public Reporting (JobHandler handler) {
@@ -32,6 +33,11 @@ public class Reporting {
         filesProcessed.incrementAndGet();
     }
 
+    public void incrementInventoryMetrics(InventoryMetrics metrics) {
+        inventoryMetrics.add(metrics);
+        if (fileStats.peek()!=null) fileStats.peek().addInventoryMetrics(metrics);
+    }
+
     public boolean pendingFileStats() {
         return !fileStats.isEmpty();
     }
@@ -49,6 +55,7 @@ public class Reporting {
                 System.out.println("Job " + jobId + ": File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
                         + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTime()) + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) +
                         " recs/s.)");
+                System.out.println(stats.getInventoryMetrics().report());
                 fileStats.take();
             } else {
                 System.out.println("reportFileStats(): FileStatus queue was empty");
@@ -61,6 +68,8 @@ public class Reporting {
         System.out.println((queueDone ? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + processingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
+        System.out.println(inventoryMetrics.report());
+
     }
 
     private static String processingTimeAsString (long processingTime) {
