@@ -15,11 +15,10 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private final JobHandler job;
     private JsonArray inventoryRecordSets = new JsonArray();
-
-    // Blocking queue of one, acting as a turnstile for batches in order to persist them one at a time
-    private final BlockingQueue<BatchOfRecords> turnstile = new ArrayBlockingQueue<>(1);
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
+
+    private final Turnstile turnstile = new Turnstile();
 
     public InventoryBatchUpdating(JobHandler job, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
@@ -49,14 +48,8 @@ public class InventoryBatchUpdating implements RecordReceiver {
     }
 
     private void releaseBatch(BatchOfRecords batch) {
-        try {
-            // stage next batch for upsert (process will wait if a previous batch is still in the turnstile)
-            turnstile.put(batch);
-            persistBatch().onComplete(na -> {
-                try { turnstile.take(); }
-                catch (InterruptedException e) { throw new RuntimeException(e);}
-            });
-        } catch (InterruptedException ie) { throw new RuntimeException(ie);}
+        turnstile.enterBatch(batch);
+        persistBatch().onComplete(na -> turnstile.exitBatch());
     }
 
     @Override
@@ -71,7 +64,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
      */
     private Future<Void> persistBatch() {
         Promise<Void> promise = Promise.promise();
-        BatchOfRecords batch = turnstile.peek();
+        BatchOfRecords batch = turnstile.viewCurrentBatch();
         if (batch != null) {
             if (batch.size() > 0) {
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(json -> {
@@ -102,17 +95,53 @@ public class InventoryBatchUpdating implements RecordReceiver {
         }
     }
 
-    private final AtomicInteger turnstileEmptyChecks = new AtomicInteger(0);
     public boolean noPendingBatches(int idlingChecksThreshold) {
-        if (turnstile.isEmpty()) {
-            if (turnstileEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
-                System.out.println("ID-NE: Turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
-                turnstileEmptyChecks.set(0);
-                return true;
-            }
-        } else {
-            turnstileEmptyChecks.set(0);
-        }
-        return false;
+        return turnstile.isIdle(idlingChecksThreshold);
     }
+
+
+    /** Class wrapping a blocking queue of one, acting as a turnstile for batches in order to persist them one
+     * at a time with no overlap. */
+    private static class Turnstile {
+
+        private final BlockingQueue<BatchOfRecords> turnstile = new ArrayBlockingQueue<>(1);
+        // Records the number of consecutive checks of whether the queue is idling.
+        private final AtomicInteger turnstileEmptyChecks = new AtomicInteger(0);
+
+        /**
+         * Puts batch in blocking queue-of-one; process waits if previous batch still in queue.
+         */
+        private void enterBatch(BatchOfRecords batch) {
+            try {
+                turnstile.put(batch);
+            } catch (InterruptedException ie) {
+                throw new RuntimeException("Putting next batch in queue-of-one interrupted: " + ie.getMessage());
+            }
+        }
+
+        private void exitBatch() {
+            try {
+                turnstile.take();
+            } catch (InterruptedException ie) {
+                throw new RuntimeException("Taking batch from queue-of-one interrupted: " + ie.getMessage());
+            }
+        }
+
+        private BatchOfRecords viewCurrentBatch() {
+            return turnstile.peek();
+        }
+
+        private boolean isIdle(int idlingChecksThreshold) {
+            if (turnstile.isEmpty()) {
+                if (turnstileEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
+                    System.out.println("ID-NE: Turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
+                    turnstileEmptyChecks.set(0);
+                    return true;
+                }
+            } else {
+                turnstileEmptyChecks.set(0);
+            }
+            return false;
+        }
+   }
 }
