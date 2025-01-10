@@ -101,7 +101,7 @@ public class InventoryMetrics {
     public String toString() {
         StringBuilder str = new StringBuilder();
         for (Entity entity : metrics.keySet()) {
-            str.append(entity + ": ");
+            str.append(entity).append(": ");
             for (Transaction transaction : metrics.get(entity).keySet()) {
                 for (Outcome outcome : metrics.get(entity).get(transaction).keySet()) {
                     int count = this.metrics.get(entity).get(transaction).get(outcome);
@@ -115,47 +115,34 @@ public class InventoryMetrics {
     }
 
     public String report() {
-        StringBuilder str = new StringBuilder();
-        str.append("Instance creates: "
-                + metrics.get(INSTANCE).get(CREATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(INSTANCE).get(CREATE).get(FAILED)
-                + " Skipped: " + metrics.get(INSTANCE).get(CREATE).get(SKIPPED) + "\n");
-        str.append("Instance updates: "
-                + metrics.get(INSTANCE).get(UPDATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(INSTANCE).get(UPDATE).get(FAILED)
-                + " Skipped: " + metrics.get(INSTANCE).get(UPDATE).get(SKIPPED) + "\n");
-        str.append("Instance deletes: "
-                + metrics.get(INSTANCE).get(DELETE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(INSTANCE).get(DELETE).get(FAILED)
-                + " Skipped: " + metrics.get(INSTANCE).get(DELETE).get(SKIPPED) + "\n");
-        str.append("Holdings records creates: "
-                + metrics.get(HOLDINGS_RECORD).get(CREATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(HOLDINGS_RECORD).get(CREATE).get(FAILED)
-                + " Skipped: " + metrics.get(HOLDINGS_RECORD).get(CREATE).get(SKIPPED) + "\n");
-        str.append("Holdings records updates: "
-                + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(FAILED)
-                + " Skipped: " + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(SKIPPED)+ "\n");
-        str.append("Holdings records deletes: "
-                + metrics.get(HOLDINGS_RECORD).get(DELETE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(HOLDINGS_RECORD).get(DELETE).get(FAILED)
-                + " Skipped: " + metrics.get(HOLDINGS_RECORD).get(DELETE).get(SKIPPED)+ "\n");
-        str.append("Item creates: "
-                + metrics.get(ITEM).get(CREATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(ITEM).get(CREATE).get(FAILED)
-                + " Skipped: " + metrics.get(ITEM).get(CREATE).get(SKIPPED)+ "\n");
-        str.append("Item updates: "
-                + metrics.get(ITEM).get(UPDATE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(ITEM).get(UPDATE).get(FAILED)
-                + " Skipped: " + metrics.get(ITEM).get(UPDATE).get(SKIPPED) + "\n");
-        str.append("Item deletes: "
-                + metrics.get(ITEM).get(DELETE).get(COMPLETED) + ". "
-                + " Failed: " + metrics.get(ITEM).get(DELETE).get(FAILED)
-                + " Skipped: " + metrics.get(ITEM).get(DELETE).get(SKIPPED)+ "\n");
-        return str.toString();
+        return "Instance creates: " + metrics.get(INSTANCE).get(CREATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(INSTANCE).get(CREATE).get(FAILED) +
+                " Skipped: " + metrics.get(INSTANCE).get(CREATE).get(SKIPPED) + "\n" +
+                "Instance updates: " + metrics.get(INSTANCE).get(UPDATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(INSTANCE).get(UPDATE).get(FAILED) +
+                " Skipped: " + metrics.get(INSTANCE).get(UPDATE).get(SKIPPED) + "\n" +
+                "Instance deletes: " + metrics.get(INSTANCE).get(DELETE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(INSTANCE).get(DELETE).get(FAILED) +
+                " Skipped: " + metrics.get(INSTANCE).get(DELETE).get(SKIPPED) + "\n" +
+                "Holdings records creates: " + metrics.get(HOLDINGS_RECORD).get(CREATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(HOLDINGS_RECORD).get(CREATE).get(FAILED) +
+                " Skipped: " + metrics.get(HOLDINGS_RECORD).get(CREATE).get(SKIPPED) + "\n" +
+                "Holdings records updates: " + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(FAILED) +
+                " Skipped: " + metrics.get(HOLDINGS_RECORD).get(UPDATE).get(SKIPPED) + "\n" +
+                "Holdings records deletes: " + metrics.get(HOLDINGS_RECORD).get(DELETE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(HOLDINGS_RECORD).get(DELETE).get(FAILED) +
+                " Skipped: " + metrics.get(HOLDINGS_RECORD).get(DELETE).get(SKIPPED) + "\n" +
+                "Item creates: " + metrics.get(ITEM).get(CREATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(ITEM).get(CREATE).get(FAILED) +
+                " Skipped: " + metrics.get(ITEM).get(CREATE).get(SKIPPED) + "\n" +
+                "Item updates: " + metrics.get(ITEM).get(UPDATE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(ITEM).get(UPDATE).get(FAILED) +
+                " Skipped: " + metrics.get(ITEM).get(UPDATE).get(SKIPPED) + "\n" +
+                "Item deletes: " + metrics.get(ITEM).get(DELETE).get(COMPLETED) + ". " +
+                " Failed: " + metrics.get(ITEM).get(DELETE).get(FAILED) +
+                " Skipped: " + metrics.get(ITEM).get(DELETE).get(SKIPPED);
     }
-
-
-    }
+}
 
 

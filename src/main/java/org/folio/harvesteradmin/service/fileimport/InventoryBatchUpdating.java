@@ -13,7 +13,9 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private final JobHandler job;
     private JsonArray inventoryRecordSets = new JsonArray();
-    private final BlockingQueue<BatchOfRecords> batchQueue = new ArrayBlockingQueue<>(1);
+
+    // Blocking queue of one, acting as a turnstile for batches, to upsert them one at a time
+    private final BlockingQueue<BatchOfRecords> turnstile = new ArrayBlockingQueue<>(1);
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
 
@@ -46,8 +48,8 @@ public class InventoryBatchUpdating implements RecordReceiver {
 
     private void releaseBatch(BatchOfRecords batch) {
         try {
-            // add batch to a queue of one (thus wait if a batch is in the queue already)
-            batchQueue.put(batch);
+            // stage next batch for upsert, will wait if a previous batch is still in the turnstile
+            turnstile.put(batch);
             persistBatch();
         } catch (InterruptedException ie) {
             System.out.println("Error: Queue put operation was interrupted.");
@@ -65,7 +67,7 @@ public class InventoryBatchUpdating implements RecordReceiver {
      * otherwise know when the last upsert of a source file of records is done, for example.
      */
     private void persistBatch() {
-        BatchOfRecords batch = batchQueue.peek();
+        BatchOfRecords batch = turnstile.peek();
         if (batch != null) {
             if (batch.size() > 0) {
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(json -> {
@@ -75,8 +77,8 @@ public class InventoryBatchUpdating implements RecordReceiver {
                         report(batch);
                     }
                     try {
-                        // Open entrance for next batch
-                        batchQueue.take();
+                        // Clear the gate for next batch
+                        turnstile.take();
                     } catch (InterruptedException ignored) {}
                 });
             } else { // we get here when the last set of records is exactly 100. We just need to report
@@ -84,8 +86,8 @@ public class InventoryBatchUpdating implements RecordReceiver {
                     report(batch);
                 }
                 try {
-                    // Open entrance for next batch
-                    batchQueue.take();
+                    // Clear the gate for next batch
+                    turnstile.take();
                 } catch (InterruptedException ignored) {}
             }
         }
@@ -101,16 +103,16 @@ public class InventoryBatchUpdating implements RecordReceiver {
         }
     }
 
-    private final AtomicInteger batchQueueIdleChecks = new AtomicInteger(0);
+    private final AtomicInteger turnstileEmptyChecks = new AtomicInteger(0);
     public boolean noPendingBatches(int idlingChecksThreshold) {
-        if (batchQueue.isEmpty()) {
-            if (batchQueueIdleChecks.incrementAndGet() > idlingChecksThreshold) {
-                System.out.println("ID-NE: BatchQueue has been idle for " + idlingChecksThreshold + " consecutive checks.");
-                batchQueueIdleChecks.set(0);
+        if (turnstile.isEmpty()) {
+            if (turnstileEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
+                System.out.println("ID-NE: Turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
+                turnstileEmptyChecks.set(0);
                 return true;
             }
         } else {
-            batchQueueIdleChecks.set(0);
+            turnstileEmptyChecks.set(0);
         }
         return false;
     }

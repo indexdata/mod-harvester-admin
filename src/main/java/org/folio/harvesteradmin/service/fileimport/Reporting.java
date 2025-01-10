@@ -68,7 +68,9 @@ public class Reporting {
         System.out.println((queueDone ? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + processingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
-        System.out.println(inventoryMetrics.report());
+        if (queueDone) {
+            System.out.println(inventoryMetrics.report());
+        }
 
     }
 

@@ -68,6 +68,12 @@ public class JobHandler extends AbstractVerticle {
         return passive.get();
     }
 
+    /**
+     * If there's a file in the processing slot but no activity in the inventory updater, the current job
+     * is assumed to be in a paused state, which could for example be due to a module restart.
+     * @return true if there's a file ostensibly processing but no activity detected in inventory updater
+     * for `idlingChecksThreshold` consecutive checks
+     */
     private boolean resumeHaltedProcessing() {
         return fileQueue.processingSlotTaken() && inventoryUpdater.noPendingBatches(10);
     }
