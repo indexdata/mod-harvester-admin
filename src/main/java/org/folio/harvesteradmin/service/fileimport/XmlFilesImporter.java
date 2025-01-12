@@ -19,27 +19,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
-public class JobHandler extends AbstractVerticle {
+public class XmlFilesImporter extends AbstractVerticle {
 
     private final String tenant;
-    private final String jobId;
+    private final String jobConfigId;
     private final FileQueue fileQueue;
     private final Reporting reporting;
-    private final InventoryBatchUpdating inventoryUpdater;
+    private final InventoryBatchUpdater inventoryUpdater;
     private final AtomicBoolean passive = new AtomicBoolean(true);
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
 
-    public JobHandler(String tenant, String jobId, Vertx vertx, RoutingContext routingContext) {
+    public XmlFilesImporter(String tenant, String jobConfigId, Vertx vertx, RoutingContext routingContext) {
         this.tenant = tenant;
-        this.jobId = jobId;
-        fileQueue = new FileQueue(vertx, tenant, jobId);
+        this.jobConfigId = jobConfigId;
+        fileQueue = new FileQueue(vertx, tenant, jobConfigId);
         reporting = new Reporting(this);
-        inventoryUpdater = new InventoryBatchUpdating(this, routingContext);
+        inventoryUpdater = new InventoryBatchUpdater(this, routingContext);
     }
 
     @Override
     public void start() {
-        System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job ID " + jobId);
+        System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job configuration ID " + jobConfigId);
         vertx.setPeriodic(200, (r) -> {
             File currentFile = nextFileIfPossible();
             if (currentFile != null) {  // null if queue is empty or a previous file is still processing
@@ -82,7 +82,7 @@ public class JobHandler extends AbstractVerticle {
         Promise<Void> promise = Promise.promise();
         try {
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-            getTransformationPipeline(jobId, refreshPipeline)
+            getTransformationPipeline(jobConfigId, refreshPipeline)
                     .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
                     .compose(pipelineToInventory -> vertx
                             .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
@@ -100,25 +100,25 @@ public class JobHandler extends AbstractVerticle {
         return promise.future();
     }
 
-    private Future<TransformationPipeline> getTransformationPipeline(String jobId, boolean refresh) {
+    private Future<TransformationPipeline> getTransformationPipeline(String jobConfigId, boolean refresh) {
         Promise<TransformationPipeline> promise = Promise.promise();
-        if (TransformationPipeline.hasInstance(tenant, jobId) && !refresh) {
-            promise.complete(TransformationPipeline.getInstance(tenant, jobId));
+        if (TransformationPipeline.hasInstance(tenant, jobConfigId) && !refresh) {
+            promise.complete(TransformationPipeline.getInstance(tenant, jobConfigId));
         } else {
-            new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobId)
+            new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobConfigId)
                     .compose(resp -> {
                         if (resp.wasOK()) {
                             JsonObject config = resp.jsonObject();
                             if (config.getJsonObject("transformation") != null && config.getJsonObject("transformation").getString("id") != null) {
                                 return Future.succeededFuture(config.getJsonObject("transformation").getString("id"));
                             } else {
-                                return Future.failedFuture("No transformation ID found in harvestable " + jobId);
+                                return Future.failedFuture("No transformation ID found in harvestable " + jobConfigId);
                             }
                         } else {
                             return Future.failedFuture("Error retrieving harvestable to get transformation ID: " + resp.errorMessage());
                         }
                     })
-                    .compose(transformationId -> TransformationPipeline.create(vertx, tenant, jobId, transformationId))
+                    .compose(transformationId -> TransformationPipeline.create(vertx, tenant, jobConfigId, transformationId))
                     .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()))
                     .onFailure(e -> Future.failedFuture(e.getMessage()));
         }
@@ -129,8 +129,8 @@ public class JobHandler extends AbstractVerticle {
         return reporting;
     }
 
-    public String getJobId() {
-        return jobId;
+    public String getJobConfigId() {
+        return jobConfigId;
     }
 
 }

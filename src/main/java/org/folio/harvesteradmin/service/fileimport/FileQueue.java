@@ -14,10 +14,8 @@ public class FileQueue {
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
-    private final String jobId;
 
-    public FileQueue(Vertx vertx, String tenant, String jobId) {
-        this.jobId = jobId;
+    public FileQueue(Vertx vertx, String tenant, String jobConfigId) {
         this.fs = vertx.fileSystem();
         String sourceFilesRootDir = SOURCE_FILES_ROOT_DIR;
         String tenantRootDir = sourceFilesRootDir + "/" + tenant;
@@ -27,7 +25,7 @@ public class FileQueue {
         if (!fs.existsBlocking(tenantRootDir)) {
             fs.mkdirBlocking(tenantRootDir);
         }
-        jobPath = tenantRootDir + "/" + jobId;
+        jobPath = tenantRootDir + "/" + jobConfigId;
         pathToProcessingSlot = jobPath + "/" + HARVEST_JOB_FILE_PROCESSING_DIR;
         if (! fs.existsBlocking(jobPath)) {
             fs.mkdirsBlocking(pathToProcessingSlot).mkdirBlocking(jobPath + "/tmp");
@@ -89,7 +87,4 @@ public class FileQueue {
         fs.deleteBlocking(file.getPath());
     }
 
-    public String getJobId() {
-        return jobId;
-    }
 }

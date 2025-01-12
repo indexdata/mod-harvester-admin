@@ -39,33 +39,33 @@ public class TransformationPipeline implements RecordReceiver {
         return this;
     }
 
-    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, String jobId, String transformationId) {
+    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, String jobConfigId, String transformationId) {
         Promise<TransformationPipeline> promise = Promise.promise();
         new LegacyHarvesterStorage(vertx, tenant)
                 .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
                 .onSuccess(transformationConfig -> {
                     TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject());
-                    cacheInstance(tenant, jobId, pipeline);
+                    cacheInstance(tenant, jobConfigId, pipeline);
                     promise.complete(pipeline);
                 });
         return promise.future();
     }
 
-    public static boolean hasInstance(String tenant, String jobId) {
+    public static boolean hasInstance(String tenant, String jobConfigId) {
         return (transformationPipelines.containsKey(tenant)
-                && transformationPipelines.get(tenant).containsKey(jobId)
-                && transformationPipelines.get(tenant).get(jobId) != null);
+                && transformationPipelines.get(tenant).containsKey(jobConfigId)
+                && transformationPipelines.get(tenant).get(jobConfigId) != null);
     }
 
-    public static TransformationPipeline getInstance(String tenant, String jobId) {
-        return transformationPipelines.get(tenant).get(jobId);
+    public static TransformationPipeline getInstance(String tenant, String jobConfigId) {
+        return transformationPipelines.get(tenant).get(jobConfigId);
     }
 
-    private static void cacheInstance(String tenant, String jobId,TransformationPipeline pipeline) {
+    private static void cacheInstance(String tenant, String jobConfigId,TransformationPipeline pipeline) {
         if (!transformationPipelines.containsKey(tenant)) {
             transformationPipelines.put(tenant, new HashMap<>());
         }
-        transformationPipelines.get(tenant).put(jobId, pipeline);
+        transformationPipelines.get(tenant).put(jobConfigId, pipeline);
     }
 
     private String transform(String xmlRecord) {

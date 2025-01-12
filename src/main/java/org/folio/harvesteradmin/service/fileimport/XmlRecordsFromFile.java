@@ -18,9 +18,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
     RecordReceiver target;
     String xmlCollectionOfRecords;
 
-
     public XmlRecordsFromFile(String recordsSource) {
-        //System.out.println("XmlRecordsFromFile constructor, thread " + Thread.currentThread().getName());
         this.xmlCollectionOfRecords = recordsSource;
     }
 
@@ -42,7 +40,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
     }
 
     @Override
-    public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+    public void startElement(String uri, String localName, String qName, Attributes attributes) {
 
         if (qName.equalsIgnoreCase("record")) {
             record="";
@@ -57,13 +55,13 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
     }
 
     @Override
-    public void characters(char[] ch, int start, int length) throws SAXException {
+    public void characters(char[] ch, int start, int length)  {
         String text = new String(ch, start, length);
         record += EncodeXmlText.encodeXmlText(text);
     }
 
     @Override
-    public void endElement(String uri, String localName, String qName) throws SAXException {
+    public void endElement(String uri, String localName, String qName)  {
         if (record != null) {
             record += "</" + qName + ">";
             if (qName.equals("record")) {
@@ -79,7 +77,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
     }
 
     @Override
-    public Void call() throws Exception {
+    public Void call() {
         provideRecords();
         return null;
     }

@@ -7,15 +7,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Reporting {
 
-    private final String jobId;
+    private final String jobConfigId;
     private final AtomicLong startTime = new AtomicLong();
     private final AtomicInteger filesProcessed = new AtomicInteger(0);
     private final AtomicInteger recordsProcessed = new AtomicInteger(0);
     private final InventoryMetrics inventoryMetrics = new InventoryMetrics();
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
 
-    public Reporting (JobHandler handler) {
-        this.jobId = handler.getJobId();
+    public Reporting (XmlFilesImporter handler) {
+        this.jobConfigId = handler.getJobConfigId();
     }
 
     public void nowProcessing(String fileName, boolean resetCounters) {
@@ -52,7 +52,7 @@ public class Reporting {
             if (!fileStats.isEmpty()) {
                 FileStats stats = fileStats.peek();
                 assert stats != null;
-                System.out.println("Job " + jobId + ": File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
+                System.out.println("Job " + jobConfigId + ": File #" + filesProcessed.get() + " (" + stats.getFileName() + ") "
                         + stats.getRecordsProcessed() + " records in " + processingTimeAsString(stats.processingTime()) + " (" + (stats.getRecordsProcessed() * 1000L / stats.processingTime()) +
                         " recs/s.)");
                 System.out.println(stats.getInventoryMetrics().report());
@@ -65,7 +65,7 @@ public class Reporting {
 
     public void reportFileQueueStats(boolean queueDone) {
         long processingTime = (System.currentTimeMillis() - startTime.get());
-        System.out.println((queueDone ? "Done processing queue for job " : "Job ") + jobId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
+        System.out.println((queueDone ? "Done processing queue for job " : "Job ") + jobConfigId + ": " + filesProcessed + " file(s) with " + recordsProcessed.get() +
                 " records processed in " + processingTimeAsString(processingTime) + " (" +
                 (recordsProcessed.get() * 1000L / processingTime) + " recs/s.)");
         if (queueDone) {

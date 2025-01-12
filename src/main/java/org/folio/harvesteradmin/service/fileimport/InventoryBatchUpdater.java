@@ -11,16 +11,16 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class InventoryBatchUpdating implements RecordReceiver {
+public class InventoryBatchUpdater implements RecordReceiver {
 
-    private final JobHandler job;
+    private final XmlFilesImporter job;
     private JsonArray inventoryRecordSets = new JsonArray();
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
 
     private final Turnstile turnstile = new Turnstile();
 
-    public InventoryBatchUpdating(JobHandler job, RoutingContext routingContext) {
+    public InventoryBatchUpdater(XmlFilesImporter job, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
         this.job = job;
     }
