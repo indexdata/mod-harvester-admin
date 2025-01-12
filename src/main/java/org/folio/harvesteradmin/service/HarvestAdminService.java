@@ -25,9 +25,6 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -42,7 +39,7 @@ import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.harvesteradmin.service.fileimport.FileQueue;
-import org.folio.harvesteradmin.service.fileimport.XmlFilesImporter;
+import org.folio.harvesteradmin.service.fileimport.XmlFilesImportVerticle;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -939,30 +936,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         responseText(routingContext, 200).end(response.toString());
     }
 
-    private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileImportVerticles = new ConcurrentHashMap<>();
-
-    private static void startImportVerticle(String tenant, String importConfigurationId, RoutingContext routingContext) {
-        fileImportVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
-        String previousMapping = fileImportVerticles.get(tenant).putIfAbsent(importConfigurationId, "initializing");
-        if (previousMapping == null) {
-            Vertx vertx = Vertx.vertx(new VertxOptions().setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
-            vertx.deployVerticle(new XmlFilesImporter(tenant, importConfigurationId, vertx, routingContext), new DeploymentOptions()
-                    .setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
-                    started -> {
-                        if (started.succeeded()) {
-                            System.out.println("ID-NE: started verticle for " + tenant + " and configuration ID " + importConfigurationId);
-                            System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
-                            fileImportVerticles.get(tenant).put(importConfigurationId, started.result());
-                            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
-                        } else {
-                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and import configuration ID " + importConfigurationId);
-                        }
-                    });
-        } else {
-            System.out.println("ID-NE: Continuing with already existing verticle for tenant " + tenant + " and import configuration ID " + importConfigurationId);
-        }
-    }
-
     private void stageXmlRecordsFile(Vertx vertx, RoutingContext routingContext) {
 
         final long fileStartTime = System.currentTimeMillis();
@@ -976,7 +949,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onComplete(resp -> {
                     if (resp.result().found()) {
                         new FileQueue(vertx, tenant, jobConfigId).addNewFile(fileName, xmlContent);
-                        startImportVerticle(tenant, jobConfigId, routingContext);
+                        XmlFilesImportVerticle.launchVerticle(tenant, jobConfigId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No harvest config with id [" + jobConfigId + "] found.");

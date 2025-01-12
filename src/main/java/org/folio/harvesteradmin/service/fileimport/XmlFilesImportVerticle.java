@@ -1,9 +1,6 @@
 package org.folio.harvesteradmin.service.fileimport;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
+import io.vertx.core.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
@@ -15,11 +12,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 
-public class XmlFilesImporter extends AbstractVerticle {
+public class XmlFilesImportVerticle extends AbstractVerticle {
 
     private final String tenant;
     private final String jobConfigId;
@@ -28,13 +28,36 @@ public class XmlFilesImporter extends AbstractVerticle {
     private final InventoryBatchUpdater inventoryUpdater;
     private final AtomicBoolean passive = new AtomicBoolean(true);
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
+    private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileImportVerticles = new ConcurrentHashMap<>();
 
-    public XmlFilesImporter(String tenant, String jobConfigId, Vertx vertx, RoutingContext routingContext) {
+    public XmlFilesImportVerticle(String tenant, String jobConfigId, Vertx vertx, RoutingContext routingContext) {
         this.tenant = tenant;
         this.jobConfigId = jobConfigId;
         fileQueue = new FileQueue(vertx, tenant, jobConfigId);
         reporting = new Reporting(this);
         inventoryUpdater = new InventoryBatchUpdater(this, routingContext);
+    }
+
+    public static void launchVerticle(String tenant, String importConfigurationId, RoutingContext routingContext) {
+        fileImportVerticles.putIfAbsent(tenant, new ConcurrentHashMap<>());
+        String previousMapping = fileImportVerticles.get(tenant).putIfAbsent(importConfigurationId, "initializing");
+        if (previousMapping == null) {
+            Vertx vertx = Vertx.vertx(new VertxOptions().setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES));
+            vertx.deployVerticle(new XmlFilesImportVerticle(tenant, importConfigurationId, vertx, routingContext), new DeploymentOptions()
+                    .setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
+                    started -> {
+                        if (started.succeeded()) {
+                            System.out.println("ID-NE: started verticle for " + tenant + " and configuration ID " + importConfigurationId);
+                            System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
+                            fileImportVerticles.get(tenant).put(importConfigurationId, started.result());
+                            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
+                        } else {
+                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and import configuration ID " + importConfigurationId);
+                        }
+                    });
+        } else {
+            System.out.println("ID-NE: Continuing with already existing verticle for tenant " + tenant + " and import configuration ID " + importConfigurationId);
+        }
     }
 
     @Override

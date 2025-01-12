@@ -13,14 +13,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryBatchUpdater implements RecordReceiver {
 
-    private final XmlFilesImporter job;
+    private final XmlFilesImportVerticle job;
     private JsonArray inventoryRecordSets = new JsonArray();
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
 
     private final Turnstile turnstile = new Turnstile();
 
-    public InventoryBatchUpdater(XmlFilesImporter job, RoutingContext routingContext) {
+    public InventoryBatchUpdater(XmlFilesImportVerticle job, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
         this.job = job;
     }

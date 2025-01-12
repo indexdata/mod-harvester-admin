@@ -14,7 +14,7 @@ public class Reporting {
     private final InventoryMetrics inventoryMetrics = new InventoryMetrics();
     private final BlockingQueue<FileStats> fileStats = new ArrayBlockingQueue<>(2);
 
-    public Reporting (XmlFilesImporter handler) {
+    public Reporting (XmlFilesImportVerticle handler) {
         this.jobConfigId = handler.getJobConfigId();
     }
 
