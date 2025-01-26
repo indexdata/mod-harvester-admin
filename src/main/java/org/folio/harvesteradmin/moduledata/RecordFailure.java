@@ -104,7 +104,7 @@ public class RecordFailure extends StoredEntity {
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        + schema + "." + Tables.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
+        + schema + "." + Tables.harvest_job + "(" + HarvestJob.Field.ID.columnName() + "), "
         + Column.record_number + " TEXT, "
         + Column.time_stamp + " TIMESTAMP, "
         + Column.record_errors + " JSONB NOT NULL, "

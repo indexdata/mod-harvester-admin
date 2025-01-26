@@ -157,17 +157,17 @@ transfer-encoding: chunked
 
 #### 2) Create transformation steps
 
-A pipeline can be composed of multiple steps and each step can be an XSLT transformation or a custom Java-based
+A pipeline can be composed of multiple steps and each stepDefinition can be an XSLT transformation or a custom Java-based
 transformation.
 
-POST step objects to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be
-embedded in JSON. Alternatively just the step metadata can be posted, followed by a PUT of the transformation script as
+POST stepDefinition objects to `/harvester-admin/steps`. It can include the transformation XSLT which must be escaped to be
+embedded in JSON. Alternatively just the stepDefinition metadata can be posted, followed by a PUT of the transformation script as
 an XSLT document.
 
 ```
 {
   "name": "Copy XML",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "outputFormat" : "XML",
   "type" : "XmlTransformStep"
@@ -184,7 +184,7 @@ transfer-encoding: chunked
 
 {
   "acl" : "diku",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "name" : "Copy XML",
   "outputFormat" : "XML",
@@ -209,7 +209,7 @@ Say the XSLT script has this content:
 </xsl:stylesheet>
 ```
 
-Then this XSLT can be PUT to `/harvester-admin/steps/{step-id}/script?name=Copy+XML`,
+Then this XSLT can be PUT to `/harvester-admin/steps/{stepDefinition-id}/script?name=Copy+XML`,
 here `/harvester-admin/steps/563244948367770/script`, and the result would be
 
 GET /harvester-admin/steps/563244948367770:
@@ -217,7 +217,7 @@ GET /harvester-admin/steps/563244948367770:
 ```
 {
   "acl" : "diku",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "name" : "Copy XML",
   "outputFormat" : "XML",
@@ -229,18 +229,18 @@ GET /harvester-admin/steps/563244948367770:
 }
 ```
 
-The response on the GET above shows the stylesheet included in the step JSON, with quotes escaped and line feeds
-inserted. Sending this object instead would have had the same effect as sending first the step and then the script.
+The response on the GET above shows the stylesheet included in the stepDefinition JSON, with quotes escaped and line feeds
+inserted. Sending this object instead would have had the same effect as sending first the stepDefinition and then the script.
 
 The following curl script would POST two steps and PUT the XSLTs. It uses `jq` to capture the IDs of the steps, which
-would not be necessary with the XSLT included in the step JSON.
+would not be necessary with the XSLT included in the stepDefinition JSON.
 
 ```
 curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Content-Type: application/json" \
 -d '
 {
   "name": "Copy XML",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "outputFormat" : "XML",
   "type" : "XmlTransformStep"
@@ -269,7 +269,7 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
 -d '
 {
   "name": "Copy XML Again",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "outputFormat" : "XML",
   "type" : "XmlTransformStep"
@@ -311,12 +311,12 @@ service and importing/POSTing it to another.
   "parallel" : "false",
   "stepAssociations" : [ {
       "position" : "1",
-      "step": {
+      "stepDefinition": {
         "name" : "Copy XML"
       }
     }, {
       "position" : "2",
-      "step": {
+      "stepDefinition": {
         "name" : "Copy XML again"
       }
     }
@@ -337,12 +337,12 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
   "parallel" : "false",
   "stepAssociations" : [ {
       "position" : "1",
-      "step": {
+      "stepDefinition": {
         "name" : "Copy XML"
       }
     }, {
       "position" : "2",
-      "step": {
+      "stepDefinition": {
         "name" : "Copy XML again"
       }
     }
@@ -369,10 +369,10 @@ transfer-encoding: chunked
   "stepAssociations" : [ {
     "id" : "464431555010095",
     "position" : "1",
-    "step" : {
+    "stepDefinition" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step",
+      "description" : "Minimal stepDefinition",
       "inputFormat" : "XML",
       "name" : "Copy XML",
       "outputFormat" : "XML",
@@ -385,10 +385,10 @@ transfer-encoding: chunked
   }, {
     "id" : "773419215379837",
     "position" : "2",
-    "step" : {
+    "stepDefinition" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step",
+      "description" : "Minimal stepDefinition",
       "inputFormat" : "XML",
       "name" : "Copy XML Again",
       "outputFormat" : "XML",
@@ -407,7 +407,7 @@ transfer-encoding: chunked
 #### 4) Assign transformation steps to the pipeline in the desired order of execution.
 
 In the example above, the steps where included with the POST of the pipeline but alternatively the steps could be added
-one by one using the `/harvester-admin/tsas` (transformation-step-associations) endpoint.
+one by one using the `/harvester-admin/tsas` (transformation-stepDefinition-associations) endpoint.
 
 Say, the transformation POST body was instead:
 
@@ -422,9 +422,9 @@ Say, the transformation POST body was instead:
 ```
 
 then the steps could be added through tsas afterwards. Likewise for the transformation pipeline that was created with
-two steps. The following scripts will add a third step in second position.
+two steps. The following scripts will add a third stepDefinition in second position.
 
-Create the new step:
+Create the new stepDefinition:
 
 ```
 curl -i -w '\n' \
@@ -432,7 +432,7 @@ curl -i -w '\n' \
 -d '
 {
   "name": "New Second Step",
-  "description" : "Minimal step",
+  "description" : "Minimal stepDefinition",
   "inputFormat" : "XML",
   "outputFormat" : "XML",
   "type" : "XmlTransformStep"
@@ -465,7 +465,7 @@ curl -i -w '\n' -H "x-okapi-tenant: $tenant" -H "x-okapi-token: $token" -H "Cont
 -d '
 {
   "position" : "2",
-  "step" : {
+  "stepDefinition" : {
     "name" : "New Second Step"
   },
   "transformationName": "A transformation"
@@ -485,10 +485,10 @@ The resulting transformation pipeline would be something like:
   "stepAssociations" : [ {
     "id" : "713325705981288",
     "position" : "1",
-    "step" : {
+    "stepDefinition" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step",
+      "description" : "Minimal stepDefinition",
       "inputFormat" : "XML",
       "name" : "Copy XML",
       "outputFormat" : "XML",
@@ -501,10 +501,10 @@ The resulting transformation pipeline would be something like:
   }, {
     "id" : "570064169942393",
     "position" : "2",
-    "step" : {
+    "stepDefinition" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step",
+      "description" : "Minimal stepDefinition",
       "inputFormat" : "XML",
       "name" : "New Second Step",
       "outputFormat" : "XML",
@@ -517,10 +517,10 @@ The resulting transformation pipeline would be something like:
   }, {
     "id" : "373552657153015",
     "position" : "3",
-    "step" : {
+    "stepDefinition" : {
       "entityType" : "xmlTransformationStep",
       "acl" : "diku",
-      "description" : "Minimal step",
+      "description" : "Minimal stepDefinition",
       "inputFormat" : "XML",
       "name" : "Copy XML Again",
       "outputFormat" : "XML",
@@ -538,7 +538,7 @@ The resulting transformation pipeline would be something like:
 
 In order to fix the description of this transformation, take the JSON response above, change the description to "
 transformation pipeline with three XSLT steps" and PUT it to `/harvester-admin/transformations/770158869141425`. When
-doing that, the contents of each step, like the XSLT, is ignored, whereas the PUT would change the number and positions
+doing that, the contents of each stepDefinition, like the XSLT, is ignored, whereas the PUT would change the number and positions
 of steps if the PUT JSON changed any of that.
 
 #### 5) Create the harvest job configuration
@@ -654,10 +654,10 @@ transfer-encoding: chunked
     "stepAssociations" : [ {
       "id" : "713325705981288",
       "position" : "1",
-      "step" : {
+      "stepDefinition" : {
         "entityType" : "xmlTransformationStep",
         "acl" : "diku",
-        "description" : "Minimal step",
+        "description" : "Minimal stepDefinition",
         "inputFormat" : "XML",
         "name" : "Copy XML",
         "outputFormat" : "XML",
@@ -670,10 +670,10 @@ transfer-encoding: chunked
     }, {
       "id" : "570064169942393",
       "position" : "2",
-      "step" : {
+      "stepDefinition" : {
         "entityType" : "xmlTransformationStep",
         "acl" : "diku",
-        "description" : "Minimal step",
+        "description" : "Minimal stepDefinition",
         "inputFormat" : "XML",
         "name" : "New Second Step",
         "outputFormat" : "XML",
@@ -686,10 +686,10 @@ transfer-encoding: chunked
     }, {
       "id" : "373552657153015",
       "position" : "3",
-      "step" : {
+      "stepDefinition" : {
         "entityType" : "xmlTransformationStep",
         "acl" : "diku",
-        "description" : "Minimal step",
+        "description" : "Minimal stepDefinition",
         "inputFormat" : "XML",
         "name" : "Copy XML Again",
         "outputFormat" : "XML",

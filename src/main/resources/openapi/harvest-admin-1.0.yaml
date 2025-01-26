@@ -1267,6 +1267,244 @@ paths:
         "201":
           description: No content
 
+  /harvester-admin/import-configs:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create import configuration
+      operationId: postImportConfig
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/importConfigPostPut"
+        required: true
+      responses:
+        "201":
+          description: Import configuration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/importConfigGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_steps:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create step
+      operationId: _postStep
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/step"
+        required: true
+      responses:
+        "201":
+          description: Step created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_steps/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Step identifier
+        schema:
+          type: string
+    get:
+      operationId: _getStep
+      description: Get detailed transformation step definition record
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: _putStep
+      description: Update a transformation step definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/step"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: _deleteStep
+      description: Delete a transformation step definition
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_steps/{id}/script:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Step identifier
+        schema:
+          type: string
+    get:
+      operationId: _getScript
+      description: Get transformation step script
+      responses:
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/script"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: _putScript
+      description: Update a transformation step script
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/script"
+      responses:
+        "204":
+          description: OK, no content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_transformations:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    post:
+      description: Create transformation pipeline
+      operationId: _postTransformation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationGet"
+        required: true
+      responses:
+        "201":
+          description: Transformation pipeline created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_transformations/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Transformation pipeline identifier
+        schema:
+          type: string
+    get:
+      operationId: _getTransformation
+      description: Get transformation pipeline record
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationGet"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: _putTransformation
+      description: Update a transformation pipeline
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationGet"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/step"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: _deleteTransformation
+      description: Delete a transformation pipeline
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
 components:
   responses:
     trait_400:
@@ -1341,3 +1579,7 @@ components:
       $ref: schemas/failedRecordPreviousJob.json
     failedRecordsPreviousJob:
       $ref: schemas/failedRecordsPreviousJob.json
+    importConfigPostPut:
+      $ref: schemas/importConfigPostPut.json
+    importConfigGet:
+      $ref: schemas/importConfigGet.json

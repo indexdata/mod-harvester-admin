@@ -34,7 +34,7 @@ public class LogLine extends StoredEntity {
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
 
-  public enum LogLineField implements Field {
+  public enum Field implements EntityField {
     ID("id", "id", PgColumn.Type.UUID, false, false, true),
     HARVEST_JOB_ID("harvestJobId", "harvest_job_id", PgColumn.Type.UUID, false, true),
     SEQUENCE_NUMBER("sequenceNumber", "seq", PgColumn.Type.INTEGER, false, false),
@@ -68,14 +68,14 @@ public class LogLine extends StoredEntity {
       return false;
     }
 
-    LogLineField(String propertyName,
-                 String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
+    Field(String propertyName,
+          String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable) {
       this(propertyName, columnName, type, nullable, queryable, false);
     }
 
-    LogLineField(String propertyName,
-                 String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
-                 Boolean primaryKey) {
+    Field(String propertyName,
+          String columnName, PgColumn.Type type, Boolean nullable, Boolean queryable,
+          Boolean primaryKey) {
       this.propertyName = propertyName;
       this.queryable = queryable;
       this.column = new PgColumn(columnName, type, nullable, primaryKey);
@@ -85,7 +85,7 @@ public class LogLine extends StoredEntity {
   @Override
   public Map<String, PgColumn> getFieldMap() {
     return Arrays.stream(
-        LogLineField.values()).collect(Collectors.toMap(f -> f.propertyName, f -> f.column));
+        Field.values()).collect(Collectors.toMap(f -> f.propertyName, f -> f.column));
   }
 
   /**
@@ -134,14 +134,14 @@ public class LogLine extends StoredEntity {
   public String makeCreateTableSql(String schema) {
     return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.log_statement
         + "("
-        + LogLineField.ID.columnName() + " UUID PRIMARY KEY, "
-        + LogLineField.HARVEST_JOB_ID.columnName() + " UUID NOT NULL REFERENCES "
-        + schema + "." + Tables.harvest_job + "(" + HarvestJobField.ID.columnName() + "), "
-        + LogLineField.SEQUENCE_NUMBER.columnName() + " INTEGER NOT NULL, "
-        + LogLineField.TIME_STAMP.columnName() + " TIMESTAMP NOT NULL, "
-        + LogLineField.LOG_LEVEL.columnName() + " TEXT NOT NULL, "
-        + LogLineField.JOB_LABEL.columnName() + " TEXT NOT NULL, "
-        + LogLineField.LOG_STATEMENT.columnName() + " TEXT NOT NULL"
+        + Field.ID.columnName() + " UUID PRIMARY KEY, "
+        + Field.HARVEST_JOB_ID.columnName() + " UUID NOT NULL REFERENCES "
+        + schema + "." + Tables.harvest_job + "(" + HarvestJob.Field.ID.columnName() + "), "
+        + Field.SEQUENCE_NUMBER.columnName() + " INTEGER NOT NULL, "
+        + Field.TIME_STAMP.columnName() + " TIMESTAMP NOT NULL, "
+        + Field.LOG_LEVEL.columnName() + " TEXT NOT NULL, "
+        + Field.JOB_LABEL.columnName() + " TEXT NOT NULL, "
+        + Field.LOG_STATEMENT.columnName() + " TEXT NOT NULL"
         + ")";
   }
 
@@ -149,14 +149,14 @@ public class LogLine extends StoredEntity {
   public RowMapper<StoredEntity> getRowMapper() {
     return row -> {
       LogLine logLine = new LogLine();
-      logLine.id = row.getUUID(LogLineField.ID.columnName());
-      logLine.harvestJobId = row.getUUID(LogLineField.HARVEST_JOB_ID.columnName());
+      logLine.id = row.getUUID(Field.ID.columnName());
+      logLine.harvestJobId = row.getUUID(Field.HARVEST_JOB_ID.columnName());
       // Display in original legacy harvester date format, not the pg date format (supports importing the output)
-      logLine.timeStamp = row.getLocalDateTime(LogLineField.TIME_STAMP.columnName())
+      logLine.timeStamp = row.getLocalDateTime(Field.TIME_STAMP.columnName())
               .toString().replace("T", " ").replace(".",",");
-      logLine.logLevel = row.getString(LogLineField.LOG_LEVEL.columnName());
-      logLine.jobLabel = row.getString(LogLineField.JOB_LABEL.columnName());
-      logLine.line = row.getString(LogLineField.LOG_STATEMENT.columnName());
+      logLine.logLevel = row.getString(Field.LOG_LEVEL.columnName());
+      logLine.jobLabel = row.getString(Field.JOB_LABEL.columnName());
+      logLine.line = row.getString(Field.LOG_STATEMENT.columnName());
       return logLine;
     };
   }
@@ -167,22 +167,22 @@ public class LogLine extends StoredEntity {
   public String makeInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Tables.log_statement
         + " ("
-        + LogLineField.ID.columnName() + ", "
-        + LogLineField.HARVEST_JOB_ID.columnName() + ", "
-        + LogLineField.SEQUENCE_NUMBER.columnName() + ", "
-        + LogLineField.TIME_STAMP.columnName() + ", "
-        + LogLineField.LOG_LEVEL.columnName() + ", "
-        + LogLineField.JOB_LABEL.columnName() + ", "
-        + LogLineField.LOG_STATEMENT.columnName()
+        + Field.ID.columnName() + ", "
+        + Field.HARVEST_JOB_ID.columnName() + ", "
+        + Field.SEQUENCE_NUMBER.columnName() + ", "
+        + Field.TIME_STAMP.columnName() + ", "
+        + Field.LOG_LEVEL.columnName() + ", "
+        + Field.JOB_LABEL.columnName() + ", "
+        + Field.LOG_STATEMENT.columnName()
         + ")"
         + " VALUES ("
-        + "#{" + LogLineField.ID.columnName() + "}, "
-        + "#{" + LogLineField.HARVEST_JOB_ID.columnName() + "}, "
-        + "#{" + LogLineField.SEQUENCE_NUMBER.columnName() + "}, "
-        + "TO_TIMESTAMP(#{" + LogLineField.TIME_STAMP.columnName() + "},'" + DATE_FORMAT + "'), "
-        + "#{" + LogLineField.LOG_LEVEL.columnName() + "}, "
-        + "#{" + LogLineField.JOB_LABEL.columnName() + "}, "
-        + "#{" + LogLineField.LOG_STATEMENT.columnName() + "}"
+        + "#{" + Field.ID.columnName() + "}, "
+        + "#{" + Field.HARVEST_JOB_ID.columnName() + "}, "
+        + "#{" + Field.SEQUENCE_NUMBER.columnName() + "}, "
+        + "TO_TIMESTAMP(#{" + Field.TIME_STAMP.columnName() + "},'" + DATE_FORMAT + "'), "
+        + "#{" + Field.LOG_LEVEL.columnName() + "}, "
+        + "#{" + Field.JOB_LABEL.columnName() + "}, "
+        + "#{" + Field.LOG_STATEMENT.columnName() + "}"
         + ")";
   }
 
@@ -194,13 +194,13 @@ public class LogLine extends StoredEntity {
         entity -> {
           LogLine logLine = (LogLine) entity;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(LogLineField.ID.columnName(), logLine.id);
-          parameters.put(LogLineField.HARVEST_JOB_ID.columnName(), logLine.harvestJobId);
-          parameters.put(LogLineField.SEQUENCE_NUMBER.columnName(), logLine.sequenceNumber);
-          parameters.put(LogLineField.TIME_STAMP.columnName(), logLine.timeStamp);
-          parameters.put(LogLineField.LOG_LEVEL.columnName(), logLine.logLevel);
-          parameters.put(LogLineField.JOB_LABEL.columnName(), logLine.jobLabel);
-          parameters.put(LogLineField.LOG_STATEMENT.columnName(), logLine.line);
+          parameters.put(Field.ID.columnName(), logLine.id);
+          parameters.put(Field.HARVEST_JOB_ID.columnName(), logLine.harvestJobId);
+          parameters.put(Field.SEQUENCE_NUMBER.columnName(), logLine.sequenceNumber);
+          parameters.put(Field.TIME_STAMP.columnName(), logLine.timeStamp);
+          parameters.put(Field.LOG_LEVEL.columnName(), logLine.logLevel);
+          parameters.put(Field.JOB_LABEL.columnName(), logLine.jobLabel);
+          parameters.put(Field.LOG_STATEMENT.columnName(), logLine.line);
           return parameters;
         });
   }
@@ -209,7 +209,7 @@ public class LogLine extends StoredEntity {
   public PgCqlDefinition getQueryableFields() {
     PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
     pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
-    for (LogLineField field : LogLineField.values()) {
+    for (Field field : Field.values()) {
       if (field.queryable) {
         pgCqlDefinition.addField(field.propertyName(), field.pgColumn().pgCqlField());
       }
@@ -219,8 +219,8 @@ public class LogLine extends StoredEntity {
 
   public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
     SqlQuery sql = super.makeSqlFromCqlQuery(routingContext, schemaDotTable);
-    sql.withAdditionalOrderByField(LogLineField.TIME_STAMP.columnName());
-    sql.withAdditionalOrderByField(LogLineField.SEQUENCE_NUMBER.columnName());
+    sql.withAdditionalOrderByField(Field.TIME_STAMP.columnName());
+    sql.withAdditionalOrderByField(Field.SEQUENCE_NUMBER.columnName());
     return sql;
   }
 
@@ -233,11 +233,11 @@ public class LogLine extends StoredEntity {
    */
   public JsonObject asJson() {
     JsonObject json = new JsonObject();
-    json.put("id", this.id.toString());
-    json.put("timeStamp", this.timeStamp);
-    json.put("logLevel", this.logLevel);
-    json.put("jobLabel", this.jobLabel);
-    json.put("line", this.line);
+    json.put(Field.ID.propertyName, this.id.toString());
+    json.put(Field.TIME_STAMP.propertyName, this.timeStamp);
+    json.put(Field.LOG_LEVEL.propertyName, this.logLevel);
+    json.put(Field.JOB_LABEL.propertyName, this.jobLabel);
+    json.put(Field.LOG_STATEMENT.propertyName, this.line);
     return json;
   }
 

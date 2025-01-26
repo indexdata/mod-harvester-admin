@@ -5,6 +5,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.RowMapper;
@@ -56,7 +57,84 @@ public class ModuleStorageAccess {
     }
   }
 
-  /**
+  public Future<UUID> storeImportConfig(ImportConfig importConfig) {
+      return SqlTemplate.forUpdate(pool.getPool(),
+                      importConfig.makeInsertTemplate(pool.getSchema()))
+              .mapFrom(importConfig.getTupleMapper())
+              .execute(importConfig)
+              .onSuccess(res -> logger.info("Saved import configuration"))
+              .onFailure(res -> logger.error("Couldn't save import configuration: " + res.getMessage()))
+              .map(importConfig.record.id());
+  }
+
+  public Future<UUID> storeStep(Step definition) {
+      return SqlTemplate.forUpdate(pool.getPool(),
+                      definition.makeInsertTemplate(pool.getSchema()))
+              .mapFrom(definition.getTupleMapper())
+              .execute(definition)
+              .onSuccess(res -> logger.info("Saved transform step"))
+              .onFailure(res -> logger.error("Couldn't save transform step: " + res.getMessage()))
+              .map(definition.record.id());
+
+  }
+
+  public Future<Step> getStepById(UUID id) {
+      return SqlTemplate.forQuery(pool.getPool(),
+                      "SELECT * "
+                              + "FROM " + schemaDotTable(Tables.step) + " "
+                              + "WHERE id = #{id}")
+              .mapTo(new Step().getRowMapper())
+              .execute(Collections.singletonMap("id", id))
+              .map(rows -> {
+                  RowIterator<Entity> iterator = rows.iterator();
+                  return iterator.hasNext() ? (Step) iterator.next() : null;
+              });
+  }
+
+    public Future<String> getScript(RoutingContext routingContext) {
+        String id = routingContext.request().getParam("id");
+        return getScript(UUID.fromString(id));
+    }
+
+    public Future<String> getScript(UUID stepId) {
+        Promise<String> promise = Promise.promise();
+        getStepById(stepId).onComplete(step -> {
+            if (step.result() != null) {
+                String script = step.result().record.script();
+                script = script.replaceAll("\\r[\\n]?", System.lineSeparator());
+                promise.complete(script);
+            } else {
+                promise.fail("Did not find step with ID " + stepId + " to GET script from");
+            }
+        });
+        return promise.future();
+    }
+
+    public Future<UUID> storeTransformation(Entity definition) {
+        return SqlTemplate.forUpdate(pool.getPool(),
+                        definition.makeInsertTemplate(pool.getSchema()))
+                .mapFrom(definition.getTupleMapper())
+                .execute(definition)
+                .onSuccess(res -> logger.info("Saved transformation pipeline"))
+                .onFailure(res -> logger.error("Couldn't save transformation pipeline: " + res.getMessage()))
+                .map(((Transformation)definition).record.id());
+
+    }
+
+    public Future<Transformation> getTransformationById(UUID id) {
+        return SqlTemplate.forQuery(pool.getPool(),
+                        "SELECT * "
+                                + "FROM " + schemaDotTable(Tables.transformation) + " "
+                                + "WHERE id = #{id}")
+                .mapTo(new Transformation().getRowMapper())
+                .execute(Collections.singletonMap("id", id))
+                .map(rows -> {
+                    RowIterator<Entity> iterator = rows.iterator();
+                    return iterator.hasNext() ? (Transformation) iterator.next() : null;
+                });
+    }
+
+    /**
    * Stores a harvest job.
    */
   public Future<UUID> storeHarvestJob(HarvestJob harvestJob) {
@@ -122,7 +200,7 @@ public class ModuleStorageAccess {
   public Future<Void> storeFailedRecords(UUID harvestJobId, List<StoredEntity> failedRecords) {
     if (failedRecords != null && ! failedRecords.isEmpty()) {
         return SqlTemplate.forUpdate(pool.getPool(),
-          RecordFailure.entity().makeInsertTemplate(pool.getSchema()))
+          new RecordFailure().makeInsertTemplate(pool.getSchema()))
           .mapFrom(RecordFailure.entity().getTupleMapper())
           .executeBatch(failedRecords)
           .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
@@ -221,7 +299,7 @@ public class ModuleStorageAccess {
           SqlQuery query) {
     List<RecordFailure> recordFailures = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(), query.getQueryWithLimits())
-        .mapTo(RecordFailure.entity().getRowMapper())
+        .mapTo(new RecordFailure().getRowMapper())
         .execute(null)
         .onSuccess(rows -> {
           for (StoredEntity entity : rows) {
@@ -240,7 +318,7 @@ public class ModuleStorageAccess {
             "SELECT * "
                 + "FROM " + schemaDotTable(Tables.record_failure) + " "
                 + "WHERE id = #{id} ")
-        .mapTo(RecordFailure.entity().getRowMapper())
+        .mapTo(new RecordFailure().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onComplete(rows -> {
           if (rows.succeeded()) {
@@ -269,7 +347,7 @@ public class ModuleStorageAccess {
         logger.info("Found job to delete: " + previousJob.result().getId());
         SqlTemplate.forUpdate(pool.getPool(),
                 "DELETE FROM " + schemaDotTable(Tables.log_statement)
-                    + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID + " = #{id} ")
+                    + " WHERE " + LogLine.Field.HARVEST_JOB_ID + " = #{id} ")
             .execute(Collections.singletonMap("id", id))
             .onComplete(deletedLogs -> {
               if (deletedLogs.succeeded()) {
@@ -281,7 +359,7 @@ public class ModuleStorageAccess {
                       if (deletedFailedRecords.succeeded()) {
                         SqlTemplate.forUpdate(pool.getPool(),
                                 "DELETE FROM " + schemaDotTable(Tables.harvest_job)
-                                    + " WHERE " + HarvestJobField.ID + " = #{id} ")
+                                    + " WHERE " + HarvestJob.Field.ID + " = #{id} ")
                             .execute(Collections.singletonMap("id", id))
                             .onComplete(deletedJobRun -> {
                               if (deletedJobRun.succeeded()) {
@@ -312,25 +390,25 @@ public class ModuleStorageAccess {
       Promise<Void> promise = Promise.promise();
       return SqlTemplate.forUpdate(pool.getPool(),
                       "DELETE FROM " + schemaDotTable(Tables.log_statement)
-                              + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID +
-                              "    IN (SELECT " + HarvestJobField.ID +
+                              + " WHERE " + LogLine.Field.HARVEST_JOB_ID +
+                              "    IN (SELECT " + HarvestJob.Field.ID +
                               "        FROM " + schemaDotTable(Tables.harvest_job) +
-                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
+                              "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} )")
               .execute(Collections.singletonMap("untilDate", untilDate))
               .onComplete(deletedLogs -> {
                   if (deletedLogs.succeeded()) {
                       SqlTemplate.forUpdate(pool.getPool(),
                                       "DELETE FROM " + schemaDotTable(Tables.record_failure)
                                               + " WHERE " + RecordFailure.Column.harvest_job_id +
-                                              "    IN (SELECT " + HarvestJobField.ID +
+                                              "    IN (SELECT " + HarvestJob.Field.ID +
                                               "        FROM " + schemaDotTable(Tables.harvest_job) +
-                                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
+                                              "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} )")
                               .execute(Collections.singletonMap("untilDate", untilDate))
                               .onComplete(deletedFailedRecords -> {
                                   if (deletedFailedRecords.succeeded()) {
                                       SqlTemplate.forUpdate(pool.getPool(),
                                                       "DELETE FROM " + schemaDotTable(Tables.harvest_job) +
-                                                      "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} ")
+                                                      "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} ")
                                               .execute(Collections.singletonMap("untilDate", untilDate))
                                               .onSuccess( result -> {
                                                   logger.info("Timer process purged " + result.rowCount() + " harvest job runs from before " + untilDate);

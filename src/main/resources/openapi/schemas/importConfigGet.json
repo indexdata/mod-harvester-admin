@@ -1,0 +1,38 @@
+{
+  "description": "Configuration of import",
+  "type": "object",
+  "properties": {
+    "id" : {
+      "description": "unique identifier for the config - a UUID",
+      "type": "string"
+    },
+    "name": {
+      "description": "The name of the harvest configuration at the time of logging the harvest run.",
+      "type": "string"
+    },
+    "type" : {
+      "description": "The type of harvest job (bulk XML or OAI-PMH)",
+      "type": "string"
+    },
+    "url" : {
+      "description": "The URL(s) used for retrieving the records that were harvested during this job.",
+      "type": "string"
+    },
+    "allowErrors" : {
+      "description": "Indicates whether the job was configured to continue in case of (certain classes of) errors.",
+      "type": "boolean"
+    },
+    "recordLimit" : {
+      "description": "Indicates the limit -- if any -- on the maximum number of records to load according to the configuration.",
+      "type": "integer"
+    },
+    "transformationId": {
+      "description": "unique identifier for the transformation pipeline - a UUID",
+      "type": "string"
+    },
+    "storageId": {
+      "description": "unique identifier for the storage pipeline - a UUID",
+      "type": "string"
+    }
+  }
+}
