@@ -23,6 +23,10 @@ import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.*;
 import org.folio.tlib.postgres.TenantPgPool;
 
+import static org.folio.harvesteradmin.moduledata.HarvestJob.ID;
+import static org.folio.harvesteradmin.moduledata.HarvestJob.STARTED;
+import static org.folio.harvesteradmin.moduledata.LogLine.HARVEST_JOB_ID;
+
 public class ModuleStorageAccess {
   TenantPgPool pool;
   private static final Logger logger = LogManager.getLogger(ModuleStorageAccess.class);
@@ -144,7 +148,7 @@ public class ModuleStorageAccess {
         .execute(harvestJob)
         .onSuccess(res -> logger.info("Saved harvest job"))
         .onFailure(res -> logger.error("Couldn't save harvest job: " + res.getMessage()))
-        .map(harvestJob.getId());
+        .map(harvestJob.record.id());
   }
 
   /**
@@ -154,7 +158,7 @@ public class ModuleStorageAccess {
     if (log != null) {
       BufferedReader bufReader = new BufferedReader(new StringReader(log));
       try {
-        List<StoredEntity> logLines = new ArrayList<>();
+        List<Entity> logLines = new ArrayList<>();
         String line;
         int sequence = 0;
         int nonMatches = 0;
@@ -165,7 +169,7 @@ public class ModuleStorageAccess {
             str.setCharAt(10,' ');
             str.setCharAt(19,',');
             LogLine logLine = new LogLine(harvestJobId, str.toString(), ++sequence);
-            if (logLine.getId() != null) {
+            if (logLine.record.id() != null) {
               logLines.add(logLine);
             } else {
               logger.error("Could not parse " + line);
@@ -178,8 +182,8 @@ public class ModuleStorageAccess {
             + (nonMatches > 0
             ? "There were " + nonMatches + " log statements that could not be parsed!" : ""));
         return SqlTemplate.forUpdate(pool.getPool(),
-            LogLine.entity().makeInsertTemplate(pool.getSchema()))
-            .mapFrom(LogLine.entity().getTupleMapper())
+            new LogLine().makeInsertTemplate(pool.getSchema()))
+            .mapFrom(new LogLine().getTupleMapper())
             .executeBatch(logLines)
             .onFailure(res -> logger.error("Didn't save log lines: " + res.getMessage()))
             .mapEmpty();
@@ -197,11 +201,11 @@ public class ModuleStorageAccess {
   /**
    * Stores failed records.
    */
-  public Future<Void> storeFailedRecords(UUID harvestJobId, List<StoredEntity> failedRecords) {
+  public Future<Void> storeFailedRecords(UUID harvestJobId, List<Entity> failedRecords) {
     if (failedRecords != null && ! failedRecords.isEmpty()) {
         return SqlTemplate.forUpdate(pool.getPool(),
           new RecordFailure().makeInsertTemplate(pool.getSchema()))
-          .mapFrom(RecordFailure.entity().getTupleMapper())
+          .mapFrom(new RecordFailure().getTupleMapper())
           .executeBatch(failedRecords)
           .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
           .mapEmpty();
@@ -219,10 +223,10 @@ public class ModuleStorageAccess {
   public Future<List<HarvestJob>> getPreviousJobs(String query) {
     List<HarvestJob> previousJobs = new ArrayList<>();
     return SqlTemplate.forQuery(pool.getPool(), query)
-        .mapTo(HarvestJob.entity().getRowMapper())
+        .mapTo(new HarvestJob().getRowMapper())
         .execute(null)
         .onSuccess(rows -> {
-          for (StoredEntity entity : rows) {
+          for (Entity entity : rows) {
             previousJobs.add((HarvestJob) entity);
           }
         }).map(previousJobs);
@@ -236,10 +240,10 @@ public class ModuleStorageAccess {
             "SELECT * "
                 + "FROM " + schemaDotTable(Tables.harvest_job) + " "
                 + "WHERE id = #{id}")
-        .mapTo(HarvestJob.entity().getRowMapper())
+        .mapTo(new HarvestJob().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .map(rows -> {
-          RowIterator<StoredEntity> iterator = rows.iterator();
+          RowIterator<Entity> iterator = rows.iterator();
           return iterator.hasNext() ? (HarvestJob) iterator.next() : null;
         });
   }
@@ -253,10 +257,10 @@ public class ModuleStorageAccess {
     String query = queryFromCql
             .withAdditionalWhereClause("harvest_job_id = #{id}").toString();
     SqlTemplate.forQuery(pool.getPool(), query)
-        .mapTo(LogLine.entity().getRowMapper())
+        .mapTo(new LogLine().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onSuccess(rows -> {
-          for (StoredEntity entity : rows) {
+          for (Entity entity : rows) {
             log.append(entity).append(System.lineSeparator());
           }
           promise.complete(log.toString());
@@ -275,11 +279,11 @@ public class ModuleStorageAccess {
     final JsonArray array = new JsonArray();
     String query = queryFromCql.withAdditionalWhereClause("harvest_job_id = #{id}").toString();
     SqlTemplate.forQuery(pool.getPool(), query)
-        .mapTo(LogLine.entity().getRowMapper())
+        .mapTo(new LogLine().getRowMapper())
         .execute(Collections.singletonMap("id", id))
         .onSuccess(rows -> {
-          for (StoredEntity entity : rows) {
-            array.add(((LogLine) entity).asJson());
+          for (Entity entity : rows) {
+            array.add(entity.asJson());
           }
           JsonObject json = new JsonObject();
           json.put("logLines", array);
@@ -302,7 +306,7 @@ public class ModuleStorageAccess {
         .mapTo(new RecordFailure().getRowMapper())
         .execute(null)
         .onSuccess(rows -> {
-          for (StoredEntity entity : rows) {
+          for (Entity entity : rows) {
             recordFailures.add((RecordFailure) entity);
           }
         }).map(recordFailures);
@@ -344,22 +348,22 @@ public class ModuleStorageAccess {
       if (previousJob.result() == null) {
         promise.fail("No job history found with job ID " + id + ". Nothing deleted.");
       } else {
-        logger.info("Found job to delete: " + previousJob.result().getId());
+        logger.info("Found job to delete: " + previousJob.result().record.id());
         SqlTemplate.forUpdate(pool.getPool(),
                 "DELETE FROM " + schemaDotTable(Tables.log_statement)
-                    + " WHERE " + LogLine.Field.HARVEST_JOB_ID + " = #{id} ")
+                    + " WHERE " + new LogLine().dbColumnName(LogLine.HARVEST_JOB_ID) + " = #{id} ")
             .execute(Collections.singletonMap("id", id))
             .onComplete(deletedLogs -> {
               if (deletedLogs.succeeded()) {
                 SqlTemplate.forUpdate(pool.getPool(),
                         "DELETE FROM " + schemaDotTable(Tables.record_failure)
-                            + " WHERE " + RecordFailure.Column.harvest_job_id + " = #{id} ")
+                            + " WHERE " + new RecordFailure().dbColumnName(RecordFailure.HARVEST_JOB_ID) + " = #{id} ")
                     .execute(Collections.singletonMap("id", id))
                     .onComplete(deletedFailedRecords -> {
                       if (deletedFailedRecords.succeeded()) {
                         SqlTemplate.forUpdate(pool.getPool(),
                                 "DELETE FROM " + schemaDotTable(Tables.harvest_job)
-                                    + " WHERE " + HarvestJob.Field.ID + " = #{id} ")
+                                    + " WHERE " + new HarvestJob().field(HarvestJob.ID).columnName() + " = #{id} ")
                             .execute(Collections.singletonMap("id", id))
                             .onComplete(deletedJobRun -> {
                               if (deletedJobRun.succeeded()) {
@@ -390,25 +394,25 @@ public class ModuleStorageAccess {
       Promise<Void> promise = Promise.promise();
       return SqlTemplate.forUpdate(pool.getPool(),
                       "DELETE FROM " + schemaDotTable(Tables.log_statement)
-                              + " WHERE " + LogLine.Field.HARVEST_JOB_ID +
-                              "    IN (SELECT " + HarvestJob.Field.ID +
+                              + " WHERE " + new LogLine().dbColumnName(HARVEST_JOB_ID) +
+                              "    IN (SELECT " + new HarvestJob().dbColumnName(ID) +
                               "        FROM " + schemaDotTable(Tables.harvest_job) +
-                              "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} )")
+                              "        WHERE " + new HarvestJob().dbColumnName(STARTED) + " < #{untilDate} )")
               .execute(Collections.singletonMap("untilDate", untilDate))
               .onComplete(deletedLogs -> {
                   if (deletedLogs.succeeded()) {
                       SqlTemplate.forUpdate(pool.getPool(),
                                       "DELETE FROM " + schemaDotTable(Tables.record_failure)
-                                              + " WHERE " + RecordFailure.Column.harvest_job_id +
-                                              "    IN (SELECT " + HarvestJob.Field.ID +
+                                              + " WHERE " + new RecordFailure().dbColumnName(RecordFailure.HARVEST_JOB_ID) +
+                                              "    IN (SELECT " + new HarvestJob().dbColumnName(HarvestJob.ID) +
                                               "        FROM " + schemaDotTable(Tables.harvest_job) +
-                                              "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} )")
+                                              "        WHERE " + new HarvestJob().dbColumnName(HarvestJob.STARTED) + " < #{untilDate} )")
                               .execute(Collections.singletonMap("untilDate", untilDate))
                               .onComplete(deletedFailedRecords -> {
                                   if (deletedFailedRecords.succeeded()) {
                                       SqlTemplate.forUpdate(pool.getPool(),
                                                       "DELETE FROM " + schemaDotTable(Tables.harvest_job) +
-                                                      "        WHERE " + HarvestJob.Field.STARTED + " < #{untilDate} ")
+                                                      "        WHERE " + new HarvestJob().dbColumnName(HarvestJob.STARTED) + " < #{untilDate} ")
                                               .execute(Collections.singletonMap("untilDate", untilDate))
                                               .onSuccess( result -> {
                                                   logger.info("Timer process purged " + result.rowCount() + " harvest job runs from before " + untilDate);

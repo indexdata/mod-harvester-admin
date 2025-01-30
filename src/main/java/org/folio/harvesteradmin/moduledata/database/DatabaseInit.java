@@ -11,9 +11,9 @@ public class DatabaseInit {
      */
     public static Future<Void> createDatabase(TenantPgPool pool) {
         String schema = pool.getSchema();
-        return pool.query(HarvestJob.entity().makeCreateTableSql(schema)).execute()
-                .compose(ignore -> pool.query(LogLine.entity().makeCreateTableSql(schema)).execute())
-                .compose(ignore -> pool.query(RecordFailure.entity().makeCreateTableSql(schema)).execute())
+        return pool.query(new HarvestJob().makeCreateTableSql(schema)).execute()
+                .compose(ignore -> pool.query(new LogLine().makeCreateTableSql(schema)).execute())
+                .compose(ignore -> pool.query(new RecordFailure().makeCreateTableSql(schema)).execute())
                 .compose(ignore -> pool.query(createRecordFailureView(schema)).execute())
                 .compose(ignore -> pool.query(new Step().makeCreateTableSql(schema)).execute())
                 .compose(ignore -> pool.query(new Transformation().makeCreateTableSql(schema)).execute())

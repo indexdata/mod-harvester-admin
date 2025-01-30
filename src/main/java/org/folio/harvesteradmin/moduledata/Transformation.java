@@ -17,7 +17,6 @@ public class Transformation extends Entity {
     public Record record;
 
     // Data definitions
-    private static final Tables TABLE = Tables.transformation;
     private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID = "ID", NAME = "NAME", TYPE = "TYPE", DESCRIPTION = "DESCRIPTION";
     static {
@@ -29,7 +28,7 @@ public class Transformation extends Entity {
 
     @Override
     public Tables table() {
-        return TABLE;
+        return Tables.transformation;
     }
 
     @Override

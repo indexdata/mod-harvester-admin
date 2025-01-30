@@ -20,11 +20,14 @@ public class Step extends Entity {
 
     // Step record (the data)
     public record Record(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                         String outputFormat, String testData, String testOutput, String script) { }
+                         String outputFormat, String testData, String testOutput, String script) {
+        JsonObject asJson() {
+            return null;
+        }
+    }
     public Record record;
 
     // Data definitions
-    private static final Tables TABLE = Tables.step;
     public static final String ID="ID", NAME="NAME", TYPE="TYPE", DESCRIPTION="DESCRIPTION", INPUT_FORMAT="INPUT_FORMAT",
             OUTPUT_FORMAT="OUTPUT_FORMAT", TEST_DATA="TEST_DATA", TEST_OUTPUT="TEST_OUTPUT", SCRIPT = "SCRIPT";
     private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -42,7 +45,7 @@ public class Step extends Entity {
 
     @Override
     public Tables table() {
-        return TABLE;
+        return Tables.step;
     }
 
     @Override
@@ -118,15 +121,15 @@ public class Step extends Entity {
         return TupleMapper.mapper(
                 step -> {
                     Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), record.id());
-                    parameters.put(dbColumnName(NAME), record.name());
-                    parameters.put(dbColumnName(TYPE), record.type());
-                    parameters.put(dbColumnName(DESCRIPTION), record.description());
-                    parameters.put(dbColumnName(INPUT_FORMAT), record.inputFormat());
-                    parameters.put(dbColumnName(OUTPUT_FORMAT), record.outputFormat());
-                    parameters.put(dbColumnName(TEST_DATA), record.testData());
-                    parameters.put(dbColumnName(TEST_OUTPUT), record.testOutput());
-                    parameters.put(dbColumnName(SCRIPT), record.script());
+                    parameters.put(dbColumnName(ID), record.id);
+                    parameters.put(dbColumnName(NAME), record.name);
+                    parameters.put(dbColumnName(TYPE), record.type);
+                    parameters.put(dbColumnName(DESCRIPTION), record.description);
+                    parameters.put(dbColumnName(INPUT_FORMAT), record.inputFormat);
+                    parameters.put(dbColumnName(OUTPUT_FORMAT), record.outputFormat);
+                    parameters.put(dbColumnName(TEST_DATA), record.testData);
+                    parameters.put(dbColumnName(TEST_OUTPUT), record.testOutput);
+                    parameters.put(dbColumnName(SCRIPT), record.script);
                     return parameters;
                 });
     }
@@ -138,7 +141,7 @@ public class Step extends Entity {
      */
     @Override
     public String makeInsertTemplate(String schema) {
-        return "INSERT INTO " + schema + "." + TABLE
+        return "INSERT INTO " + schema + "." + table()
                 + " ("
                 + dbColumnName(ID) + ", "
                 + dbColumnName(NAME) + ", "

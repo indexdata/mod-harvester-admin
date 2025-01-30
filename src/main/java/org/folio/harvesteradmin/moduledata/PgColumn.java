@@ -19,7 +19,8 @@ public class PgColumn {
     BIGINT,
     TIMESTAMP,
     UUID,
-    BOOLEAN
+    BOOLEAN,
+    JSONB
 
   }
 

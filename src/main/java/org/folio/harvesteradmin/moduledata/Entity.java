@@ -138,15 +138,15 @@ public abstract class Entity {
         return clause;
     }
     // short hands for field properties
-    Field field(String fieldCode) {
+    public Field field(String fieldCode) {
         return fields().get(fieldCode);
     }
 
-    String jsonPropertyName(String key) {
+    public String jsonPropertyName(String key) {
         return field(key).jsonPropertyName();
     }
 
-    String dbColumnName(String key) {
+    public String dbColumnName(String key) {
         return field(key).columnName();
     }
 

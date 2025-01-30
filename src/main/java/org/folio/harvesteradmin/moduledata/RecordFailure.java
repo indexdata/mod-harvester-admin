@@ -21,29 +21,45 @@ import org.folio.tlib.postgres.cqlfield.PgCqlFieldTimestamp;
 /** Logic for persisting in RECORD_FAILURE and retrieving from RECORD_FAILURE_VIEW.
  *
  */
-public class RecordFailure extends StoredEntity {
+public class RecordFailure extends Entity {
 
-  private UUID id;
-  private Long harvestableId;
-  private String harvestableName;
-  private UUID harvestJobId;
-  private String recordNumber;
-  private String timeStamp;
-  private String originalRecord;
-  private JsonArray recordErrors;
-  private JsonObject transformedRecord;
+  public Record record;
+  public record Record(UUID id, UUID harvestJobId, String recordNumber, String timeStamp,
+                       JsonArray recordErrors, String originalRecord, JsonObject transformedRecord,
+                       Long harvestableId, String harvestableName) {}
 
-  public enum Column {
-    id,
-    harvest_job_id,
-    record_number,
-    time_stamp,
-    record_errors,
-    original_record,
-    transformed_record,
-    harvestable_id,  // view column
-    harvestable_name // view column
+  @Override
+  public Tables table() {
+    return Tables.record_failure;
+  }
 
+  // Fields map.
+  private static final Map<String, org.folio.harvesteradmin.moduledata.Field> FIELDS = new HashMap<>();
+  // Field keys.
+  public static String ID="ID", HARVEST_JOB_ID="HARVEST_JOB_ID", RECORD_NUMBER="RECORD_NUMBER", TIME_STAMP="TIME_STAMP",
+          RECORD_ERRORS="RECORD_ERRORS", ORIGINAL_RECORD="ORIGINAL_RECORD", TRANSFORMED_RECORD="TRANSFORMED_RECORD",
+          HARVESTABLE_ID="HARVESTABLE_ID", HARVESTABLE_NAME="HARVESTABLE_NAME";
+  // Populate.
+  static {
+    FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false, true));
+    FIELDS.put(HARVEST_JOB_ID, new Field("harvestJobId", "harvest_job_id", PgColumn.Type.UUID, false, true));
+    FIELDS.put(RECORD_NUMBER, new Field("recordNumber", "record_number", PgColumn.Type.TEXT, true, true));
+    FIELDS.put(TIME_STAMP, new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, false));
+    FIELDS.put(RECORD_ERRORS, new Field("recordErrors", "record_errors", PgColumn.Type.JSONB, true, false));
+    FIELDS.put(ORIGINAL_RECORD, new Field("originalRecord", "original_record", PgColumn.Type.TEXT, false, false));
+    FIELDS.put(TRANSFORMED_RECORD, new Field("transformedRecord", "transformed_record", PgColumn.Type.JSONB, true, true));
+    FIELDS.put(HARVESTABLE_ID, new Field("harvestableId", "harvestable_id", PgColumn.Type.INTEGER, false, true));
+    FIELDS.put(HARVESTABLE_NAME, new Field("harvestableName", "harvestable_name", PgColumn.Type.TEXT, true, true));
+  }
+  // Get.
+  @Override
+  public Map<String, Field> fields() {
+    return FIELDS;
+  }
+
+  @Override
+  public Entity fromJson(JsonObject json) {
+    return null;
   }
 
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS";
@@ -62,37 +78,39 @@ public class RecordFailure extends StoredEntity {
       {"Nov", "11"},
       {"Dec", "12"}}).collect(Collectors.toMap(month -> month[0], month -> month[1]));
 
-  public static RecordFailure entity() {
-    return new RecordFailure();
-  }
-
   /**
    * Constructor.
    */
-  public static RecordFailure fromLegacyHarvesterJson(UUID harvestJobId, JsonObject json) {
-    RecordFailure recordFailure = new RecordFailure();
-    recordFailure.id = UUID.randomUUID();
-    recordFailure.harvestJobId = harvestJobId;
-    recordFailure.recordNumber = json.getString("recordNumber").replace(".xml", "");
+  public RecordFailure fromLegacyHarvesterJson(UUID harvestJobId, JsonObject json) {
     String[] legacyDate = json.getString("timeStamp").split(" ");
-    recordFailure.timeStamp =
-        legacyDate[5] + "-" + months.get(legacyDate[1]) + "-" + legacyDate[2] + " " + legacyDate[3];
-    recordFailure.originalRecord = json.getString("original");
-    recordFailure.transformedRecord = json.getJsonObject("transformedRecord");
-    recordFailure.recordErrors = json.getJsonArray("recordErrors");
-    return recordFailure;
+
+    record = new Record(
+            UUID.randomUUID(),
+            harvestJobId,
+            json.getString("recordNumber").replace(".xml", ""),
+            legacyDate[5] + "-" + months.get(legacyDate[1]) + "-" + legacyDate[2] + " " + legacyDate[3],
+    json.getJsonArray("recordErrors"),
+            json.getString("original"),
+    json.getJsonObject("transformedRecord"),
+            null,
+            null);
+    return this;
   }
 
-  public static RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
-    RecordFailure recordFailure = new RecordFailure();
-    recordFailure.id = UUID.fromString(json.getString("id"));
-    recordFailure.harvestJobId = harvestJobId;
-    recordFailure.recordNumber = json.getString("recordNumber");
-    recordFailure.timeStamp = json.getString("timeStamp").replace("T", " ");
-    recordFailure.originalRecord = json.getString("originalRecord");
-    recordFailure.transformedRecord = json.getJsonObject("transformedRecord");
-    recordFailure.recordErrors = json.getJsonArray("recordErrors");
-    return recordFailure;
+  public RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
+    record = new Record(
+            UUID.fromString(json.getString("id")),
+            harvestJobId,
+            json.getString("recordNumber"),
+            json.getString("timeStamp").replace("T", " "),
+            json.getJsonArray("recordErrors"),
+            json.getString("originalRecord"),
+            json.getJsonObject("transformedRecord"),
+            // harvestableId present in view but not in physical table
+            null,
+            // harvestableName present in view but not in physical table
+            null);
+    return this;
 
   }
 
@@ -102,33 +120,28 @@ public class RecordFailure extends StoredEntity {
   public String makeCreateTableSql(String schema) {
     return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.record_failure
         + "("
-        + Column.id + " UUID PRIMARY KEY, "
-        + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
-        + schema + "." + Tables.harvest_job + "(" + HarvestJob.Field.ID.columnName() + "), "
-        + Column.record_number + " TEXT, "
-        + Column.time_stamp + " TIMESTAMP, "
-        + Column.record_errors + " JSONB NOT NULL, "
-        + Column.original_record + " TEXT NOT NULL, "
-        + Column.transformed_record + " JSONB NOT NULL"
+        + dbColumnName(ID) + " UUID PRIMARY KEY, "
+        + dbColumnName(HARVEST_JOB_ID) + " UUID NOT NULL REFERENCES "
+        + schema + "." + Tables.harvest_job + "(" + new HarvestJob().field(HarvestJob.ID).columnName() + "), "
+        + dbColumnName(RECORD_NUMBER) + " TEXT, "
+        + dbColumnName(TIME_STAMP) + " TIMESTAMP, "
+        + dbColumnName(RECORD_ERRORS) + " JSONB NOT NULL, "
+        + dbColumnName(ORIGINAL_RECORD) + " TEXT NOT NULL, "
+        + dbColumnName(TRANSFORMED_RECORD) + " JSONB NOT NULL"
         + ")";
   }
 
   /**
    * Maps rows from RECORD_FAILURE_VIEW to RecordFailure object.
    */
-  public RowMapper<StoredEntity> getRowMapper() {
+  public RowMapper<Entity> getRowMapper() {
     return row -> {
-      RecordFailure recordFailure = new RecordFailure();
-      recordFailure.id = row.getUUID(Column.id.name());
-      recordFailure.harvestableId = row.getLong(Column.harvestable_id.name());
-      recordFailure.harvestableName = row.getString(Column.harvestable_name.name());
-      recordFailure.harvestJobId = row.getUUID(Column.harvest_job_id.name());
-      recordFailure.recordNumber = row.getString(Column.record_number.name());
-      recordFailure.timeStamp = row.getLocalDateTime(Column.time_stamp.name()).toString();
-      recordFailure.recordErrors = row.getJsonArray(Column.record_errors.name());
-      recordFailure.originalRecord = row.getString(Column.original_record.name());
-      recordFailure.transformedRecord = row.getJsonObject(Column.transformed_record.name());
-      return recordFailure;
+      record = new Record(row.getUUID(dbColumnName(ID)), row.getUUID(dbColumnName(HARVEST_JOB_ID)),
+row.getString(dbColumnName(RECORD_NUMBER)), row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
+       row.getJsonArray(dbColumnName(RECORD_ERRORS)),row.getString(dbColumnName(ORIGINAL_RECORD)),
+              row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)), row.getLong(dbColumnName(HARVESTABLE_ID)),
+      row.getString(dbColumnName(HARVESTABLE_NAME)));
+      return this;
     };
 
   }
@@ -137,78 +150,52 @@ public class RecordFailure extends StoredEntity {
   public String makeInsertTemplate(String schema) {
     return "INSERT INTO " + schema + "." + Tables.record_failure
         + " ("
-        + Column.id + ", "
-        + Column.harvest_job_id + ", "
-        + Column.record_number + ", "
-        + Column.time_stamp + ", "
-        + Column.record_errors + ", "
-        + Column.original_record + ", "
-        + Column.transformed_record
+        + dbColumnName(ID) + ", "
+        + dbColumnName(HARVEST_JOB_ID) + ", "
+        + dbColumnName(RECORD_NUMBER) + ", "
+        + dbColumnName(TIME_STAMP) + ", "
+        + dbColumnName(RECORD_ERRORS) + ", "
+        + dbColumnName(ORIGINAL_RECORD) + ", "
+        + dbColumnName(TRANSFORMED_RECORD)
         + ")"
         + " VALUES ("
-        + "#{" + Column.id + "}, "
-        + "#{" + Column.harvest_job_id + "}, "
-        + "#{" + Column.record_number + "}, "
-        + "TO_TIMESTAMP(#{" + Column.time_stamp + "},'" + DATE_FORMAT + "'), "
-        + "#{" + Column.record_errors + "}, "
-        + "#{" + Column.original_record + "}, "
-        + "#{" + Column.transformed_record + "}"
+        + "#{" + dbColumnName(ID) + "}, "
+        + "#{" + dbColumnName(HARVEST_JOB_ID) + "}, "
+        + "#{" + dbColumnName(RECORD_NUMBER) + "}, "
+        + "TO_TIMESTAMP(#{" + dbColumnName(TIME_STAMP) + "},'" + DATE_FORMAT + "'), "
+        + "#{" + dbColumnName(RECORD_ERRORS) + "}, "
+        + "#{" + dbColumnName(ORIGINAL_RECORD) + "}, "
+        + "#{" + dbColumnName(TRANSFORMED_RECORD) + "}"
         + ")";
   }
 
   @Override
-  public TupleMapper<StoredEntity> getTupleMapper() {
+  public TupleMapper<Entity> getTupleMapper() {
     return TupleMapper.mapper(
         recordFailure -> {
-          RecordFailure entity = (RecordFailure) recordFailure;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(Column.id.name(), entity.id);
-          parameters.put(Column.harvest_job_id.name(), entity.harvestJobId);
-          parameters.put(Column.record_number.name(), entity.recordNumber);
-          parameters.put(Column.time_stamp.name(), entity.timeStamp);
-          parameters.put(Column.original_record.name(), entity.originalRecord);
-          parameters.put(Column.transformed_record.name(), entity.transformedRecord);
-          parameters.put(Column.record_errors.name(), entity.recordErrors);
+          parameters.put(dbColumnName(ID), record.id);
+          parameters.put(dbColumnName(HARVEST_JOB_ID), record.harvestJobId);
+          parameters.put(dbColumnName(RECORD_NUMBER), record.recordNumber);
+          parameters.put(dbColumnName(TIME_STAMP), record.timeStamp);
+          parameters.put(dbColumnName(RECORD_ERRORS), record.recordErrors);
+          parameters.put(dbColumnName(ORIGINAL_RECORD), record.originalRecord);
+          parameters.put(dbColumnName(TRANSFORMED_RECORD), record.transformedRecord);
           return parameters;
         });
   }
 
-  @Override
-  public PgCqlDefinition getQueryableFields() {
-    PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
-    pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
-    pgCqlDefinition.addField("recordNumber", new PgCqlFieldText().withExact().withLikeOps());
-    pgCqlDefinition.addField("harvestableId", new PgCqlFieldNumber());
-    pgCqlDefinition.addField(
-        "harvestableName", new PgCqlFieldText().withExact().withLikeOps().withFullText());
-    pgCqlDefinition.addField("timeStamp", new PgCqlFieldTimestamp());
-    return pgCqlDefinition;
-  }
-
-  @Override
-  public Map<String, PgColumn> getFieldMap() {
-    Map<String, PgColumn> map = new HashMap<>();
-    map.put("recordNumber", new PgColumn("record_number", PgColumn.Type.TEXT, false, false));
-    map.put("timeStamp", new PgColumn("time_stamp", PgColumn.Type.TIMESTAMP, false, false));
-    map.put("harvestableId", new PgColumn("harvestable_id", PgColumn.Type.BIGINT, true, false));
-    map.put("harvestableName", new PgColumn("harvestable_name", PgColumn.Type.TEXT, true, false));
-    return map;
-  }
-
-  /**
-   * Gets JSON representation.
-   */
   public JsonObject asJson() {
     JsonObject json = new JsonObject();
-    json.put("id", id);
-    json.put("harvestJobId", harvestJobId);
-    json.put("harvestableId", harvestableId);
-    json.put("harvestableName", harvestableName);
-    json.put("recordNumber", recordNumber);
-    json.put("timeStamp", timeStamp);
-    json.put("recordErrors", recordErrors);
-    json.put("originalRecord", originalRecord);
-    json.put("transformedRecord", transformedRecord);
+    json.put(jsonPropertyName(ID), record.id);
+    json.put(jsonPropertyName(HARVEST_JOB_ID), record.harvestJobId);
+    json.put(jsonPropertyName(HARVESTABLE_ID), record.harvestableId);
+    json.put(jsonPropertyName(HARVESTABLE_NAME), record.harvestableName);
+    json.put(jsonPropertyName(RECORD_NUMBER), record.recordNumber);
+    json.put(jsonPropertyName(TIME_STAMP), record.timeStamp);
+    json.put(jsonPropertyName(RECORD_ERRORS), record.recordErrors);
+    json.put(jsonPropertyName(ORIGINAL_RECORD), record.originalRecord);
+    json.put(jsonPropertyName(TRANSFORMED_RECORD), record.transformedRecord);
     return json;
   }
 

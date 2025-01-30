@@ -22,7 +22,6 @@ public class ImportConfig extends Entity {
             URL="URL", ALLOW_ERRORS="ALLOW_ERRORS", RECORD_LIMIT="RECORD_LIMIT", BATCH_SIZE="BATCH_SIZE",
             TRANSFORMATION_ID="TRANSFORMATION_ID", STORAGE_ID="STORAGE_ID";
 
-    private static final Tables table = Tables.import_config;
     private static final Map<String, Field> IMPORT_CONFIG_FIELDS = new HashMap<>();
     static {
         IMPORT_CONFIG_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
@@ -38,7 +37,7 @@ public class ImportConfig extends Entity {
 
     @Override
     public Tables table() {
-        return table;
+        return Tables.import_config;
     }
 
     @Override
