@@ -18,19 +18,16 @@ import java.util.UUID;
 
 public class Step extends Entity {
 
-    // Step record (the data)
+    // Step record, the entity data.
     public record Record(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                          String outputFormat, String testData, String testOutput, String script) {
-        JsonObject asJson() {
-            return null;
-        }
     }
     public Record record;
 
-    // Data definitions
+    // Static map of Entity Fields.
+    private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID="ID", NAME="NAME", TYPE="TYPE", DESCRIPTION="DESCRIPTION", INPUT_FORMAT="INPUT_FORMAT",
             OUTPUT_FORMAT="OUTPUT_FORMAT", TEST_DATA="TEST_DATA", TEST_OUTPUT="TEST_OUTPUT", SCRIPT = "SCRIPT";
-    private static final Map<String, Field> FIELDS = new HashMap<>();
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
@@ -42,18 +39,15 @@ public class Step extends Entity {
         FIELDS.put(TEST_OUTPUT, new Field("testOutput", "test_output", PgColumn.Type.TEXT, true, false));
         FIELDS.put(SCRIPT, new Field("script", "script", PgColumn.Type.TEXT, true, false));
     }
-
-    @Override
-    public Tables table() {
-        return Tables.step;
-    }
-
     @Override
     public Map<String, Field> fields() {
         return FIELDS;
     }
 
-    // Data mappings for steps (JSON->POJO->PG, PG->POJO->JSON)
+    @Override
+    public Tables table() {
+        return Tables.step;
+    }
 
     /**
      * Creates record from JSON.
@@ -119,51 +113,20 @@ public class Step extends Entity {
     @Override
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
-                step -> {
+                entity -> {
+                    Record rec = ((Step) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), record.id);
-                    parameters.put(dbColumnName(NAME), record.name);
-                    parameters.put(dbColumnName(TYPE), record.type);
-                    parameters.put(dbColumnName(DESCRIPTION), record.description);
-                    parameters.put(dbColumnName(INPUT_FORMAT), record.inputFormat);
-                    parameters.put(dbColumnName(OUTPUT_FORMAT), record.outputFormat);
-                    parameters.put(dbColumnName(TEST_DATA), record.testData);
-                    parameters.put(dbColumnName(TEST_OUTPUT), record.testOutput);
-                    parameters.put(dbColumnName(SCRIPT), record.script);
+                    parameters.put(dbColumnName(ID), rec.id);
+                    parameters.put(dbColumnName(NAME), rec.name);
+                    parameters.put(dbColumnName(TYPE), rec.type);
+                    parameters.put(dbColumnName(DESCRIPTION), rec.description);
+                    parameters.put(dbColumnName(INPUT_FORMAT), rec.inputFormat);
+                    parameters.put(dbColumnName(OUTPUT_FORMAT), rec.outputFormat);
+                    parameters.put(dbColumnName(TEST_DATA), rec.testData);
+                    parameters.put(dbColumnName(TEST_OUTPUT), rec.testOutput);
+                    parameters.put(dbColumnName(SCRIPT), rec.script);
                     return parameters;
                 });
-    }
-
-    /**
-     * Creates insert SQL statement applying the tuple mapper
-     * @param schema The tenant
-     * @return SQL statements as a string
-     */
-    @Override
-    public String makeInsertTemplate(String schema) {
-        return "INSERT INTO " + schema + "." + table()
-                + " ("
-                + dbColumnName(ID) + ", "
-                + dbColumnName(NAME) + ", "
-                + dbColumnName(TYPE) + ", "
-                + dbColumnName(DESCRIPTION) + ", "
-                + dbColumnName(INPUT_FORMAT) + ", "
-                + dbColumnName(OUTPUT_FORMAT) + ", "
-                + dbColumnName(TEST_DATA) + ", "
-                + dbColumnName(TEST_OUTPUT) + ", "
-                + dbColumnName(SCRIPT)
-                + ")"
-                + " VALUES ("
-                + "#{" + dbColumnName(ID) + "}, "
-                + "#{" + dbColumnName(NAME) + "}, "
-                + "#{" + dbColumnName(TYPE) + "}, "
-                + "#{" + dbColumnName(DESCRIPTION) + "}, "
-                + "#{" + dbColumnName(INPUT_FORMAT) + "}, "
-                + "#{" + dbColumnName(OUTPUT_FORMAT) + "}, "
-                + "#{" + dbColumnName(TEST_DATA) + "}, "
-                + "#{" + dbColumnName(TEST_OUTPUT) + "}, "
-                + "#{" + dbColumnName(SCRIPT) + "} "
-               + ")";
     }
 
     /**

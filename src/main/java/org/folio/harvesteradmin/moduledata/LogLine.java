@@ -4,31 +4,26 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
-import org.folio.tlib.postgres.PgCqlDefinition;
-import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
 
 public class LogLine extends Entity {
 
+  // Log statement record, the entity data
   public Record record;
   public record Record(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {}
 
-  // Fields map.
-  private static final Map<String, org.folio.harvesteradmin.moduledata.Field> FIELDS = new HashMap<>();
-  // Field keys.
+  // Static map of Entity Fields.
+  private static final Map<String, Field> FIELDS = new HashMap<>();
   public static String ID="ID", HARVEST_JOB_ID="HARVEST_JOB_ID", SEQUENCE_NUMBER="SEQUENCE_NUMBER", TIME_STAMP="TIME_STAMP",
   LOG_LEVEL="LOG_LEVEL", JOB_LABEL="JOB_LABEL", LOG_STATEMENT="LOG_STATEMENT";
-  // Populate.
   static {
     FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false, true));
     FIELDS.put(HARVEST_JOB_ID, new Field("harvestJobId", "harvest_job_id", PgColumn.Type.UUID, false, true));
@@ -38,7 +33,6 @@ public class LogLine extends Entity {
     FIELDS.put(JOB_LABEL, new Field("jobLabel", "job_label", PgColumn.Type.TEXT, false, true));
     FIELDS.put(LOG_STATEMENT, new Field("line", "statement", PgColumn.Type.TEXT, false, true));
   }
-  // Get.
   @Override
   public Map<String, Field> fields() {
     return FIELDS;
@@ -47,8 +41,6 @@ public class LogLine extends Entity {
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS,MS";
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
-
-
 
   /**
    * Constructor.
@@ -62,6 +54,7 @@ public class LogLine extends Entity {
 
     Matcher matcher = logPattern.matcher(line);
     if (matcher.matches()) {
+      System.out.println("Setting log line record");
       record = new Record(
               UUID.randomUUID(),
               harvestJobId,
@@ -75,15 +68,20 @@ public class LogLine extends Entity {
     }
   }
 
+  @Override
+  public Tables table() {
+    return Tables.log_statement;
+  }
+
   /**
    * CREATE TABLE SQL template.
    */
   public String makeCreateTableSql(String schema) {
-    return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.log_statement
+    return  "CREATE TABLE IF NOT EXISTS " + schema + "." + table()
         + "("
         + dbColumnName(ID) + " UUID PRIMARY KEY, "
-        + dbColumnName(HARVEST_JOB_ID) + " UUID NOT NULL REFERENCES "
-        + schema + "." + Tables.harvest_job + "(" + new HarvestJob().dbColumnName(ID) + "), "
+        + dbColumnName(HARVEST_JOB_ID) + " UUID NOT NULL "
+        + " REFERENCES " + schema + "." + Tables.harvest_job + " (" + new HarvestJob().dbColumnName(ID) + "), "
         + dbColumnName(SEQUENCE_NUMBER) + " INTEGER NOT NULL, "
         + dbColumnName(TIME_STAMP) + " TIMESTAMP NOT NULL, "
         + dbColumnName(LOG_LEVEL) + " TEXT NOT NULL, "
@@ -113,7 +111,7 @@ public class LogLine extends Entity {
    * INSERT INTO statement.
    */
   public String makeInsertTemplate(String schema) {
-    return "INSERT INTO " + schema + "." + Tables.log_statement
+    return "INSERT INTO " + schema + "." + table()
         + " ("
         + dbColumnName(ID) + ", "
         + dbColumnName(HARVEST_JOB_ID) + ", "
@@ -140,15 +138,15 @@ public class LogLine extends Entity {
   public TupleMapper<Entity> getTupleMapper() {
     return TupleMapper.mapper(
         entity -> {
-          LogLine logLine = (LogLine) entity;
+          Record rec = ((LogLine) entity).record;
           Map<String, Object> parameters = new HashMap<>();
-          parameters.put(dbColumnName(ID), record.id);
-          parameters.put(dbColumnName(HARVEST_JOB_ID), record.harvestJobId);
-          parameters.put(dbColumnName(SEQUENCE_NUMBER), record.sequenceNumber);
-          parameters.put(dbColumnName(TIME_STAMP), record.timeStamp);
-          parameters.put(dbColumnName(LOG_LEVEL), record.logLevel);
-          parameters.put(dbColumnName(JOB_LABEL), record.jobLabel);
-          parameters.put(dbColumnName(LOG_STATEMENT), record.line);
+          parameters.put(dbColumnName(ID), rec.id);
+          parameters.put(dbColumnName(HARVEST_JOB_ID), rec.harvestJobId);
+          parameters.put(dbColumnName(SEQUENCE_NUMBER), rec.sequenceNumber);
+          parameters.put(dbColumnName(TIME_STAMP), rec.timeStamp);
+          parameters.put(dbColumnName(LOG_LEVEL), rec.logLevel);
+          parameters.put(dbColumnName(JOB_LABEL), rec.jobLabel);
+          parameters.put(dbColumnName(LOG_STATEMENT), rec.line);
           return parameters;
         });
   }
@@ -164,11 +162,6 @@ public class LogLine extends Entity {
   public String toString() {
     return record.toString();
     //return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);
-  }
-
-  @Override
-  public Tables table() {
-    return Tables.log_statement;
   }
 
   @Override

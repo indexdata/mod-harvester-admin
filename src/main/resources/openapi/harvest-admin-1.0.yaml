@@ -1272,6 +1272,18 @@ paths:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
       - $ref: headers/okapi-url.yaml
+    get:
+      operationId: getImportConfigs
+      description: Get import configuration records
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/importConfigs"
+        "500":
+          $ref: "#/components/responses/trait_500"
     post:
       description: Create import configuration
       operationId: postImportConfig
@@ -1424,6 +1436,27 @@ paths:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
       - $ref: headers/okapi-url.yaml
+    get:
+      description: Get transformation definitions
+      operationId: _getTransformations
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transformation pipelines returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformations"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
     post:
       description: Create transformation pipeline
       operationId: _postTransformation
@@ -1504,6 +1537,107 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/_tsas:
+    get:
+      operationId: _getTsas
+      description: Get transformation step associations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociations"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    post:
+      operationId: _postTsa
+      description: Create new transformation step association
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationStepAssociation"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: _deleteTsas
+      description: Delete all transformation step associations
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/_tsas/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Association identifier
+        schema:
+          type: string
+    get:
+      operationId: _getTsa
+      description: Get a transformation step association
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    put:
+      operationId: _putTsa
+      description: Update a transformation step association
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/transformationStepAssociation"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/transformationStepAssociation"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: _deleteTsa
+      description: Delete a transformation step association
+      responses:
+        "204":
+          description: No content
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
 
 components:
   responses:
@@ -1583,3 +1717,5 @@ components:
       $ref: schemas/importConfigPostPut.json
     importConfigGet:
       $ref: schemas/importConfigGet.json
+    importConfigs:
+      $ref: schemas/importConfigs.json

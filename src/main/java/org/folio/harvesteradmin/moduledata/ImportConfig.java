@@ -4,25 +4,26 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import org.folio.harvesteradmin.moduledata.database.Tables;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 public class ImportConfig extends Entity {
 
-    // Import config record
+    // Import config record, the entity data.
     public record Record(UUID id, String name, String type, String URL, Boolean allowErrors,
                          Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
     }
+
     public Record record;
 
-    // Data definitions
-
-    public static final String ID = "ID", NAME="NAME", TYPE="TYPE",
-            URL="URL", ALLOW_ERRORS="ALLOW_ERRORS", RECORD_LIMIT="RECORD_LIMIT", BATCH_SIZE="BATCH_SIZE",
-            TRANSFORMATION_ID="TRANSFORMATION_ID", STORAGE_ID="STORAGE_ID";
-
+    // Static map of Entity Fields.
     private static final Map<String, Field> IMPORT_CONFIG_FIELDS = new HashMap<>();
+    public static final String ID = "ID", NAME = "NAME", TYPE = "TYPE",
+            URL = "URL", ALLOW_ERRORS = "ALLOW_ERRORS", RECORD_LIMIT = "RECORD_LIMIT", BATCH_SIZE = "BATCH_SIZE",
+            TRANSFORMATION_ID = "TRANSFORMATION_ID", STORAGE_ID = "STORAGE_ID";
+
     static {
         IMPORT_CONFIG_FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         IMPORT_CONFIG_FIELDS.put(NAME, new Field("name", "name", PgColumn.Type.TEXT, false, true));
@@ -36,17 +37,11 @@ public class ImportConfig extends Entity {
     }
 
     @Override
-    public Tables table() {
-        return Tables.import_config;
-    }
-
-    @Override
     public Map<String, Field> fields() {
         return IMPORT_CONFIG_FIELDS;
     }
 
     public ImportConfig fromJson(JsonObject importConfigJson) {
-        System.out.println("importConfig.fromJson: " + importConfigJson.getString(jsonPropertyName(NAME)));
         record = new Record(
                 UUID.fromString(importConfigJson.getString(jsonPropertyName(ID))),
                 importConfigJson.getString(jsonPropertyName(NAME)),
@@ -55,9 +50,8 @@ public class ImportConfig extends Entity {
                 Boolean.valueOf(importConfigJson.getString(jsonPropertyName(ALLOW_ERRORS))),
                 importConfigJson.getInteger(jsonPropertyName(RECORD_LIMIT)),
                 importConfigJson.getInteger(jsonPropertyName(BATCH_SIZE)),
-                Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), UUID.randomUUID()),
-                UUID.fromString("aa97fbcd-f0ff-45e1-83a3-d76e003fab19")); //UUID.fromString(importConfigJson.getString(jsonPropertyName(STORAGE_ID))));
-        System.out.println("after importConfig.fromJson");
+                Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), null),
+                Util.getUUID(importConfigJson, jsonPropertyName(STORAGE_ID), null));
         return this;
     }
 
@@ -65,15 +59,15 @@ public class ImportConfig extends Entity {
     public RowMapper<Entity> getRowMapper() {
         return row -> {
             record = new Record(
-            row.getUUID(dbColumnName(ID)),
-            row.getString(dbColumnName(NAME)),
-            row.getString(dbColumnName(TYPE)),
-            row.getString(dbColumnName(URL)),
-            row.getBoolean(dbColumnName(ALLOW_ERRORS)),
-            row.getInteger(dbColumnName(RECORD_LIMIT)),
-            row.getInteger(dbColumnName(BATCH_SIZE)),
-            row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-            row.getUUID(dbColumnName(STORAGE_ID)));
+                    row.getUUID(dbColumnName(ID)),
+                    row.getString(dbColumnName(NAME)),
+                    row.getString(dbColumnName(TYPE)),
+                    row.getString(dbColumnName(URL)),
+                    row.getBoolean(dbColumnName(ALLOW_ERRORS)),
+                    row.getInteger(dbColumnName(RECORD_LIMIT)),
+                    row.getInteger(dbColumnName(BATCH_SIZE)),
+                    row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+                    row.getUUID(dbColumnName(STORAGE_ID)));
             return this;
         };
     }
@@ -81,50 +75,24 @@ public class ImportConfig extends Entity {
     @Override
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
-                importConfig -> {
+                entity -> {
+                    Record rec = ((ImportConfig) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), record.id());
-                    parameters.put(dbColumnName(NAME), record.name());
-                    parameters.put(dbColumnName(TYPE), record.type());
-                    parameters.put(dbColumnName(URL), record.URL());
-                    parameters.put(dbColumnName(ALLOW_ERRORS), record.allowErrors());
-                    if (record.recordLimit() != null) {
-                        parameters.put(dbColumnName(RECORD_LIMIT), record.recordLimit());
+                    parameters.put(dbColumnName(ID), rec.id);
+                    parameters.put(dbColumnName(NAME), rec.name);
+                    parameters.put(dbColumnName(TYPE), rec.type);
+                    parameters.put(dbColumnName(URL), rec.URL);
+                    parameters.put(dbColumnName(ALLOW_ERRORS), rec.allowErrors());
+                    if (rec.recordLimit() != null) {
+                        parameters.put(dbColumnName(RECORD_LIMIT), rec.recordLimit());
                     }
-                    if (record.batchSize() != null) {
-                        parameters.put(dbColumnName(BATCH_SIZE), record.batchSize());
+                    if (rec.batchSize() != null) {
+                        parameters.put(dbColumnName(BATCH_SIZE), rec.batchSize());
                     }
-                    parameters.put(dbColumnName(TRANSFORMATION_ID), record.transformationId());
-                    parameters.put(dbColumnName(STORAGE_ID), record.storageId());
+                    parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId());
+                    parameters.put(dbColumnName(STORAGE_ID), rec.storageId());
                     return parameters;
                 });
-    }
-
-    @Override
-    public String makeInsertTemplate(String schema) {
-        return "INSERT INTO " + schema + "." + Tables.import_config
-                + " ("
-                + dbColumnName(ID) + ", "
-                + dbColumnName(NAME) + ", "
-                + dbColumnName(TYPE) + ", "
-                + dbColumnName(URL) + ", "
-                + dbColumnName(ALLOW_ERRORS) + ", "
-                + dbColumnName(RECORD_LIMIT) + ", "
-                + dbColumnName(BATCH_SIZE) + ", "
-                + dbColumnName(TRANSFORMATION_ID) + ", "
-                + dbColumnName(STORAGE_ID)
-                + ")"
-                + " VALUES ("
-                + "#{" + dbColumnName(ID) + "}, "
-                + "#{" + dbColumnName(NAME) + "}, "
-                + "#{" + dbColumnName(TYPE) + "}, "
-                + "#{" + dbColumnName(URL) + "}, "
-                + "#{" + dbColumnName(ALLOW_ERRORS) + "}, "
-                + "#{" + dbColumnName(RECORD_LIMIT) + "}, "
-                + "#{" + dbColumnName(BATCH_SIZE) + "}, "
-                + "#{" + dbColumnName(TRANSFORMATION_ID) + "}, "
-                + "#{" + dbColumnName(STORAGE_ID) + "}"
-                + ")";
     }
 
     /**
@@ -144,6 +112,27 @@ public class ImportConfig extends Entity {
             json.put(jsonPropertyName(STORAGE_ID), record.storageId().toString());
         }
         return json;
+    }
+
+    @Override
+    public Tables table() {
+        return Tables.import_config;
+    }
+
+    public String makeCreateTableSql(String schema) {
+        return "CREATE TABLE IF NOT EXISTS " + schema + "." + table()
+                + "("
+                + field(ID).pgColumnDdl() + ", "
+                + field(NAME).pgColumnDdl() + ", "
+                + field(TYPE).pgColumnDdl() + ", "
+                + field(URL).pgColumnDdl() + ", "
+                + field(ALLOW_ERRORS).pgColumnDdl() + ", "
+                + field(RECORD_LIMIT).pgColumnDdl() + ", "
+                + field(BATCH_SIZE).pgColumnDdl() + ", "
+                + field(TRANSFORMATION_ID).pgColumnDdl()
+                + " REFERENCES " + schema + "." + Tables.transformation + " (" + new Transformation().dbColumnName(Transformation.ID) + "), "
+                + field(STORAGE_ID).pgColumnDdl()
+                + ")";
     }
 
 }

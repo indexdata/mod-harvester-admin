@@ -1,0 +1,14 @@
+{
+  "description": "Result set import job configurations.",
+  "type": "object",
+  "properties": {
+    "previousJobs": {
+      "description": "List of import configurations",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "importConfigGet.json"
+      }
+    }
+  }
+}

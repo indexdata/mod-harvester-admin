@@ -3,7 +3,6 @@ package org.folio.harvesteradmin.service;
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.getIntOrDefault;
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.pagingPlainText;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
-import static org.folio.harvesteradmin.moduledata.HarvestJob.*;
 import static org.folio.harvesteradmin.utils.Miscellaneous.getPeriod;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
@@ -172,6 +171,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
+                .operation("getImportConfigs")
+                .handler(ctx -> getImportConfigs(vertx, ctx)
+                        .onFailure(cause -> exceptionResponse(cause, ctx)))
+                .failureHandler(this::routerExceptionResponse);
+        routerBuilder
                 .operation("_postStep")
                 .handler(ctx -> _postStep(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
@@ -192,8 +196,25 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
+                .operation("_getTransformations")
+                .handler(ctx -> _getTransformations(vertx, ctx)
+                        .onFailure(cause -> exceptionResponse(cause, ctx)))
+                .failureHandler(this::routerExceptionResponse);
+
+        routerBuilder
                 .operation("_postTransformation")
                 .handler(ctx -> _postTransformation(vertx, ctx)
+                        .onFailure(cause -> exceptionResponse(cause, ctx)))
+                .failureHandler(this::routerExceptionResponse);
+
+        routerBuilder
+                .operation("_getTsa")
+                .handler(ctx -> _getTransformationStepById(vertx, ctx)
+                        .onFailure(cause -> exceptionResponse(cause, ctx)))
+                .failureHandler(this::routerExceptionResponse);
+        routerBuilder
+                .operation("_postTsa")
+                .handler(ctx -> _postTransformationStep(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
 
@@ -744,6 +765,45 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
+    private Future<Void> getImportConfigs(Vertx vertx, RoutingContext routingContext) {
+        String tenant = TenantUtil.tenant(routingContext);
+        ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+        SqlQuery query;
+        try {
+            query = new ImportConfig()
+                    .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(new ImportConfig().table()));
+        } catch (PgCqlException pce) {
+            responseText(routingContext, 400)
+                    .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + routingContext.request().absoluteURI());
+            return Future.succeededFuture();
+        } catch (Exception e) {
+            return Future.failedFuture(e.getMessage());
+        }
+        return moduleStorage.getImportConfigs(query.getQueryWithLimits()).onComplete(
+                result -> {
+                    if (result.succeeded()) {
+                        JsonObject responseJson = new JsonObject();
+                        JsonArray importConfigs = new JsonArray();
+                        responseJson.put("importConfigs", importConfigs);
+                        List<ImportConfig> records = result.result();
+                        for (ImportConfig rec : records) {
+                            importConfigs.add(rec.asJson());
+                        }
+                        moduleStorage.getCount(query.getCountingSql()).onComplete(
+                                count -> {
+                                    responseJson.put("totalRecords", count.result());
+                                    responseJson(routingContext, 200).end(responseJson.encodePrettily());
+                                }
+                        );
+                    } else {
+                        responseText(routingContext, 500)
+                                .end("Problem retrieving jobs: " + result.cause().getMessage());
+                    }
+                }
+        ).mapEmpty();
+
+    }
+
     private Future<Void> _postStep(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         Step step = new Step().fromJson(routingContext.body().asJsonObject());
@@ -799,6 +859,71 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                         responseText(routingContext, 404).end("Transformation " + id + " not found.");
                     } else {
                         responseJson(routingContext, 200).end(transformation.asJson().encodePrettily());
+                    }
+                })
+                .mapEmpty();
+    }
+
+    private Future<Void> _getTransformations(Vertx vertx, RoutingContext routingContext) {
+        String tenant = TenantUtil.tenant(routingContext);
+        ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+        Transformation entity = new Transformation();
+        SqlQuery query;
+        try {
+            query = entity
+                    .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(entity.table()));
+        } catch (PgCqlException pce) {
+            responseText(routingContext, 400)
+                    .end("Could not execute query to retrieve transformations: " + pce.getMessage() + " Request:" + routingContext.request().absoluteURI());
+            return Future.succeededFuture();
+        } catch (Exception e) {
+            return Future.failedFuture(e.getMessage());
+        }
+        return moduleStorage.getTransformations(query.getQueryWithLimits()).onComplete(
+                result -> {
+                    if (result.succeeded()) {
+                        JsonObject responseJson = new JsonObject();
+                        JsonArray jsonRecords = new JsonArray();
+                        responseJson.put("transformations", jsonRecords);
+                        List<Transformation> recs = result.result();
+                        for (Transformation rec : recs) {
+                            jsonRecords.add(rec.asJson());
+                        }
+                        moduleStorage.getCount(query.getCountingSql()).onComplete(
+                                count -> {
+                                    responseJson.put("totalRecords", count.result());
+                                    responseJson(routingContext, 200).end(responseJson.encodePrettily());
+                                }
+                        );
+                    } else {
+                        responseText(routingContext, 500)
+                                .end("Problem retrieving jobs: " + result.cause().getMessage());
+                    }
+                }
+        ).mapEmpty();
+
+    }
+
+
+    private Future<Void> _postTransformationStep(Vertx vertx, RoutingContext routingContext) {
+        String tenant = TenantUtil.tenant(routingContext);
+        Entity transformationStep = new TransformationStep().fromJson(routingContext.body().asJsonObject());
+        return new ModuleStorageAccess(vertx, tenant).storeTransformationStep(transformationStep)
+                .onSuccess(id ->
+                        responseJson(routingContext, 201).end(transformationStep.asJson().encodePrettily()))
+                .mapEmpty();
+    }
+
+    private Future<Void> _getTransformationStepById(Vertx vertx, RoutingContext routingContext) {
+        String tenant = TenantUtil.tenant(routingContext);
+        RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+        UUID id = UUID.fromString(params.pathParameter("id").getString());
+        return new ModuleStorageAccess(vertx, tenant).getTransformationStepById(id)
+                .onSuccess(transformationStep -> {
+                    if (transformationStep == null) {
+                        responseText(routingContext, 404).end("Transformation step " + id + " not found.");
+                    } else {
+                        responseJson(routingContext, 200).end(transformationStep.asJson().encodePrettily());
                     }
                 })
                 .mapEmpty();

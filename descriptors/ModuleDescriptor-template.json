@@ -241,6 +241,10 @@
           "pathPattern": "/harvester-admin/import-configs",
           "permissionsRequired": []
         }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-configs",
+          "permissionsRequired": []
+        }, {
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/_steps",
           "permissionsRequired": []
@@ -258,6 +262,10 @@
           "permissionsRequired": []
         }, {
           "methods": ["GET"],
+          "pathPattern": "/harvester-admin/_transformations",
+          "permissionsRequired": []
+        },{
+          "methods": ["GET"],
           "pathPattern": "/harvester-admin/_transformations/{id}",
           "permissionsRequired": []
         }, {
@@ -267,6 +275,30 @@
           "modulePermissions": [
             "inventory-update.batch-by-hrid.collection.put"
           ]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/_tsas",
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/_tsas",
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.post"]
+        }, {
+          "methods": ["PUT"],
+          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.put"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "permissionsRequired": ["harvester-admin.transformations-steps.item.delete"]
+        }, {
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/_tsas",
+          "permissionsRequired": ["harvester-admin.transformations-steps.collection.delete"]
         }
       ]
     },

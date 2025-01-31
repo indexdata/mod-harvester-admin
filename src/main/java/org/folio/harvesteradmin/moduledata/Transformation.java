@@ -11,12 +11,12 @@ import java.util.UUID;
 
 public class Transformation extends Entity {
 
-    // Transformation record
+    // Transformation record, the entity data.
     public record Record(UUID id, String name, boolean enabled, String description, String type) {
     }
     public Record record;
 
-    // Data definitions
+    // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
     public static final String ID = "ID", NAME = "NAME", TYPE = "TYPE", DESCRIPTION = "DESCRIPTION";
     static {
@@ -25,15 +25,14 @@ public class Transformation extends Entity {
         FIELDS.put(DESCRIPTION, new Field("description", "description", PgColumn.Type.TEXT, true, true));
         FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, true, true));
     }
+    @Override
+    public Map<String, Field> fields() {
+        return FIELDS;
+    }
 
     @Override
     public Tables table() {
         return Tables.transformation;
-    }
-
-    @Override
-    public Map<String, Field> fields() {
-        return FIELDS;
     }
 
     public Entity fromJson(JsonObject json) {
@@ -56,7 +55,6 @@ public class Transformation extends Entity {
         return json;
     }
 
-
     @Override
     public RowMapper<Entity> getRowMapper() {
             return row -> {
@@ -73,31 +71,14 @@ public class Transformation extends Entity {
     @Override
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
-                step -> {
+                entity -> {
+                    Record rec = ((Transformation) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), record.id());
-                    parameters.put(dbColumnName(NAME), record.name());
-                    parameters.put(dbColumnName(TYPE), record.type());
-                    parameters.put(dbColumnName(DESCRIPTION), record.description());
+                    parameters.put(dbColumnName(ID), rec.id());
+                    parameters.put(dbColumnName(NAME), rec.name());
+                    parameters.put(dbColumnName(TYPE), rec.type());
+                    parameters.put(dbColumnName(DESCRIPTION), rec.description());
                     return parameters;
                 });
     }
-
-    @Override
-    public String makeInsertTemplate(String schema) {
-        return "INSERT INTO " + schema + "." + Tables.transformation
-                + " ("
-                + dbColumnName(ID) + ", "
-                + dbColumnName(NAME) + ", "
-                + dbColumnName(TYPE) + ", "
-                + dbColumnName(DESCRIPTION)
-                + ")"
-                + " VALUES ("
-                + "#{" + dbColumnName(ID) + "}, "
-                + "#{" + dbColumnName(NAME) + "}, "
-                + "#{" + dbColumnName(TYPE) + "}, "
-                + "#{" + dbColumnName(DESCRIPTION) + "} "
-                + ")";
-    }
-
 }

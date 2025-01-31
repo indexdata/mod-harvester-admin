@@ -25,8 +25,30 @@ public abstract class Entity {
     public abstract Tables table();
 
     /**
-     * Implement to provide a map of the fields (Field) of the implementing entity
-     * @return Map Fields by field keys to be used for finding queryable fields, if possible for creating the database table and more.
+     * Represents a field of an entity, containing JSON property name, database column name and other features of the field.
+     * @param jsonPropertyName
+     * @param columnName
+     * @param pgType
+     * @param nullable
+     * @param queryable
+     * @param primaryKey
+     */
+    public record Field(String jsonPropertyName, String columnName, PgColumn.Type pgType, boolean nullable, boolean queryable, boolean primaryKey) {
+        public Field(String jsonPropertyName, String columnName, PgColumn.Type pgType, boolean nullable, boolean queryable) {
+            this(jsonPropertyName, columnName, pgType, nullable, queryable, false);
+        }
+        public PgColumn pgColumn() {
+            return new PgColumn(columnName, pgType, nullable, primaryKey);
+        }
+
+        public String pgColumnDdl() {
+            return pgColumn().getColumnDdl();
+        }
+    }
+
+    /**
+     * Implement to provide a map of the {@link Field} fields of the implementing entity
+     * @return Map fields by field keys to be used for finding queryable fields or, if possible, for creating the database table and more.
      */
     public abstract Map<String, Field> fields();
 
@@ -61,6 +83,30 @@ public abstract class Entity {
     }
 
     /**
+     * Vert.x / Postgres template for table insert, using a tuple mapper.
+     * This base implementation assumes a simple one-to-one mapping of values to columns. It should be
+     * overridden if some entity fields should not be included in the insert statement (virtual fields for example)
+     * or additional hardcoded insert values should be applied or some transformations need to happen to the values
+     * on the fly, like date or time formatting.
+     */
+    public String makeInsertTemplate(String schema) {
+        StringBuilder listOfColumns = new StringBuilder();
+        StringBuilder listOfValues = new StringBuilder();
+        fields().keySet().forEach(field -> {
+            listOfColumns.append(dbColumnName(field)).append(",");
+            listOfValues.append("#{").append(dbColumnName(field)).append("},");
+        });
+        listOfColumns.deleteCharAt(listOfColumns.length()-1);
+        listOfValues.deleteCharAt(listOfValues.length()-1);
+        String insert = "INSERT INTO " + schema + "." + table()
+                + " (" + listOfColumns + ")"
+                + " VALUES (" + listOfValues + ")";
+        System.out.println("SQL " + insert);
+        return insert;
+    }
+
+
+    /**
      * Gets vert.x row mapper: Postgres select list results mapped to i.e. JSON or data object.
      */
     public abstract RowMapper<Entity> getRowMapper();
@@ -70,10 +116,6 @@ public abstract class Entity {
      */
     public abstract TupleMapper<Entity> getTupleMapper();
 
-    /**
-     * Vert.x / Postgres template for table insert, using a tuple mapper.
-     */
-    public abstract String makeInsertTemplate(String schema);
 
     /**
      * Gets Postgres/CQL definition, containing listing of queryable fields.
@@ -81,7 +123,7 @@ public abstract class Entity {
     public PgCqlDefinition getQueryableFields(){
         PgCqlDefinition pgCqlDefinition = PgCqlDefinition.create();
         pgCqlDefinition.addField("cql.allRecords", new PgCqlFieldAlwaysMatches());
-        for (org.folio.harvesteradmin.moduledata.Field entityField : fields().values()) {
+        for (Field entityField : fields().values()) {
             if (entityField.queryable()) {
                 pgCqlDefinition.addField(entityField.jsonPropertyName(), entityField.pgColumn().pgCqlField());
             }

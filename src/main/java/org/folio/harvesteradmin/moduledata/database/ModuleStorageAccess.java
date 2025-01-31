@@ -71,7 +71,19 @@ public class ModuleStorageAccess {
               .map(importConfig.record.id());
   }
 
-  public Future<UUID> storeStep(Step definition) {
+    public Future<List<ImportConfig>> getImportConfigs(String query) {
+        List<ImportConfig> records = new ArrayList<>();
+        return SqlTemplate.forQuery(pool.getPool(), query)
+                .mapTo(new ImportConfig().getRowMapper())
+                .execute(null)
+                .onSuccess(rows -> {
+                    for (Entity entity : rows) {
+                        records.add((ImportConfig) entity);
+                    }
+                }).map(records);
+    }
+
+    public Future<UUID> storeStep(Step definition) {
       return SqlTemplate.forUpdate(pool.getPool(),
                       definition.makeInsertTemplate(pool.getSchema()))
               .mapFrom(definition.getTupleMapper())
@@ -138,6 +150,44 @@ public class ModuleStorageAccess {
                 });
     }
 
+    public Future<List<Transformation>> getTransformations(String query) {
+        List<Transformation> records = new ArrayList<>();
+        return SqlTemplate.forQuery(pool.getPool(), query)
+                .mapTo(new Transformation().getRowMapper())
+                .execute(null)
+                .onSuccess(rows -> {
+                    for (Entity entity : rows) {
+                        records.add((Transformation) entity);
+                    }
+                }).map(records);
+    }
+
+
+    public Future<UUID> storeTransformationStep(Entity definition) {
+        return SqlTemplate.forUpdate(pool.getPool(),
+                        definition.makeInsertTemplate(pool.getSchema()))
+                .mapFrom(definition.getTupleMapper())
+                .execute(definition)
+                .onSuccess(res -> logger.info("Saved transformation step association"))
+                .onFailure(res -> logger.error("Couldn't save transformation step association: " + res.getMessage()))
+                .map(((TransformationStep)definition).record.id());
+
+    }
+
+    public Future<TransformationStep> getTransformationStepById(UUID id) {
+        return SqlTemplate.forQuery(pool.getPool(),
+                        "SELECT * "
+                                + "FROM " + schemaDotTable(Tables.transformation_step) + " "
+                                + "WHERE id = #{id}")
+                .mapTo(new Step().getRowMapper())
+                .execute(Collections.singletonMap("id", id))
+                .map(rows -> {
+                    RowIterator<Entity> iterator = rows.iterator();
+                    return iterator.hasNext() ? (TransformationStep) iterator.next() : null;
+                });
+    }
+
+
     /**
    * Stores a harvest job.
    */
@@ -176,6 +226,11 @@ public class ModuleStorageAccess {
               nonMatches++;
             }
           }
+        }
+        for (Entity ll : logLines) {
+            if (((LogLine) ll).record == null) {
+                System.out.println("Found null record");
+            }
         }
         logger.info("Parsed " + sequence + " log lines in "
             + (System.currentTimeMillis() - startParse) / 1000 + " seconds."

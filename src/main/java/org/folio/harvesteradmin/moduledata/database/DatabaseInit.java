@@ -18,6 +18,7 @@ public class DatabaseInit {
                 .compose(ignore -> pool.query(new Step().makeCreateTableSql(schema)).execute())
                 .compose(ignore -> pool.query(new Transformation().makeCreateTableSql(schema)).execute())
                 .compose(ignore -> pool.query(new ImportConfig().makeCreateTableSql(schema)).execute())
+                .compose(ignore -> pool.query(new TransformationStep().makeCreateTableSql(schema)).execute())
                 .mapEmpty();
 
         /* Template for processing parameters in init.
