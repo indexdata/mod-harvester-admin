@@ -245,10 +245,18 @@
           "pathPattern": "/harvester-admin/import-configs",
           "permissionsRequired": []
         }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-configs/{id}",
+          "permissionsRequired": []
+        },{
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/_steps",
           "permissionsRequired": []
         }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/_steps",
+          "permissionsRequired": []
+        },{
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/_steps/{id}",
           "permissionsRequired": []

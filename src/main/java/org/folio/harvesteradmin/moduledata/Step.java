@@ -18,6 +18,13 @@ import java.util.UUID;
 
 public class Step extends Entity {
 
+    public Step() {}
+
+    public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
+                String outputFormat, String testData, String testOutput, String script) {
+        record = new Record(
+                id, name, enabled, description, type, inputFormat, outputFormat, testData, testOutput, script);
+    }
     // Step record, the entity data.
     public record Record(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                          String outputFormat, String testData, String testOutput, String script) {
@@ -45,6 +52,16 @@ public class Step extends Entity {
     }
 
     @Override
+    public String jsonCollectionName() {
+        return "steps";
+    }
+
+    @Override
+    public String entityName() {
+        return "Step";
+    }
+
+    @Override
     public Tables table() {
         return Tables.step;
     }
@@ -55,7 +72,7 @@ public class Step extends Entity {
      * @return Data object
      */
     public Step fromJson(JsonObject stepJson) {
-        record = new Record(
+        return new Step(
                 UUID.fromString(stepJson.getString(jsonPropertyName(ID))),
                 stepJson.getString(jsonPropertyName(NAME)),
                 true,
@@ -66,7 +83,6 @@ public class Step extends Entity {
                 stepJson.getString(jsonPropertyName(TEST_DATA)),
                 stepJson.getString(jsonPropertyName(TEST_OUTPUT)),
                 stepJson.getString(jsonPropertyName(SCRIPT)));
-        return this;
     }
 
     public JsonObject asJson() {
@@ -90,20 +106,17 @@ public class Step extends Entity {
      */
     @Override
     public RowMapper<Entity> getRowMapper() {
-        return row -> {
-            record = new Record(
-                    row.getUUID(dbColumnName(ID)),
-                    row.getString(dbColumnName(NAME)),
-                    true,
-                    row.getString(dbColumnName(TYPE)),
-                    row.getString(dbColumnName(DESCRIPTION)),
-                    row.getString(dbColumnName(INPUT_FORMAT)),
-                    row.getString(dbColumnName(OUTPUT_FORMAT)),
-                    row.getString(dbColumnName(TEST_DATA)),
-                    row.getString(dbColumnName(TEST_OUTPUT)),
-                    row.getString(dbColumnName(SCRIPT)));
-            return this;
-        };
+        return row -> new Step(
+                row.getUUID(dbColumnName(ID)),
+                row.getString(dbColumnName(NAME)),
+                true,
+                row.getString(dbColumnName(TYPE)),
+                row.getString(dbColumnName(DESCRIPTION)),
+                row.getString(dbColumnName(INPUT_FORMAT)),
+                row.getString(dbColumnName(OUTPUT_FORMAT)),
+                row.getString(dbColumnName(TEST_DATA)),
+                row.getString(dbColumnName(TEST_OUTPUT)),
+                row.getString(dbColumnName(SCRIPT)));
     }
 
     /**

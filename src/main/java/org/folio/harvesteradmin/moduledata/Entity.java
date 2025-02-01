@@ -192,4 +192,16 @@ public abstract class Entity {
         return field(key).columnName();
     }
 
+    /**
+     * For building JSON collection response
+     * @return the JSON property name for a collection of the entity
+     */
+    public abstract String jsonCollectionName();
+
+    /**
+     * For logging and response messages.
+     * @return label to display in messages.
+     */
+    public abstract String entityName();
+
 }

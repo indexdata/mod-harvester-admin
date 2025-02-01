@@ -11,11 +11,17 @@ import java.util.UUID;
 
 public class ImportConfig extends Entity {
 
+    public ImportConfig(){}
+
+    public ImportConfig(UUID id, String name, String type, String URL, Boolean allowErrors,
+                        Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
+        record = new Record(id, name, type, URL, allowErrors, recordLimit, batchSize, transformationId, storageId);
+    }
+
     // Import config record, the entity data.
     public record Record(UUID id, String name, String type, String URL, Boolean allowErrors,
                          Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
     }
-
     public Record record;
 
     // Static map of Entity Fields.
@@ -41,8 +47,18 @@ public class ImportConfig extends Entity {
         return IMPORT_CONFIG_FIELDS;
     }
 
+    @Override
+    public String jsonCollectionName() {
+        return "importConfigs";
+    }
+
+    @Override
+    public String entityName() {
+        return "Import config";
+    }
+
     public ImportConfig fromJson(JsonObject importConfigJson) {
-        record = new Record(
+        return new ImportConfig(
                 UUID.fromString(importConfigJson.getString(jsonPropertyName(ID))),
                 importConfigJson.getString(jsonPropertyName(NAME)),
                 importConfigJson.getString(jsonPropertyName(TYPE)),
@@ -52,24 +68,20 @@ public class ImportConfig extends Entity {
                 importConfigJson.getInteger(jsonPropertyName(BATCH_SIZE)),
                 Util.getUUID(importConfigJson, jsonPropertyName(TRANSFORMATION_ID), null),
                 Util.getUUID(importConfigJson, jsonPropertyName(STORAGE_ID), null));
-        return this;
     }
 
     @Override
     public RowMapper<Entity> getRowMapper() {
-        return row -> {
-            record = new Record(
-                    row.getUUID(dbColumnName(ID)),
-                    row.getString(dbColumnName(NAME)),
-                    row.getString(dbColumnName(TYPE)),
-                    row.getString(dbColumnName(URL)),
-                    row.getBoolean(dbColumnName(ALLOW_ERRORS)),
-                    row.getInteger(dbColumnName(RECORD_LIMIT)),
-                    row.getInteger(dbColumnName(BATCH_SIZE)),
-                    row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-                    row.getUUID(dbColumnName(STORAGE_ID)));
-            return this;
-        };
+        return row -> new ImportConfig(
+                row.getUUID(dbColumnName(ID)),
+                row.getString(dbColumnName(NAME)),
+                row.getString(dbColumnName(TYPE)),
+                row.getString(dbColumnName(URL)),
+                row.getBoolean(dbColumnName(ALLOW_ERRORS)),
+                row.getInteger(dbColumnName(RECORD_LIMIT)),
+                row.getInteger(dbColumnName(BATCH_SIZE)),
+                row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+                row.getUUID(dbColumnName(STORAGE_ID)));
     }
 
     @Override

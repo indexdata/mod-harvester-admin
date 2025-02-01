@@ -18,6 +18,15 @@ import java.util.stream.Stream;
  */
 public class RecordFailure extends Entity {
 
+    public RecordFailure() {}
+
+    public RecordFailure(UUID id, UUID harvestJobId, String recordNumber, String timeStamp,
+                         JsonArray recordErrors, String originalRecord, JsonObject transformedRecord,
+                         Long harvestableId, String harvestableName) {
+        record = new Record(
+                id, harvestJobId, recordNumber, timeStamp, recordErrors, originalRecord, transformedRecord, harvestableId, harvestableName);
+    }
+
     // Record failure record, the entity data.
     public Record record;
 
@@ -48,6 +57,16 @@ public class RecordFailure extends Entity {
     @Override
     public Map<String, Field> fields() {
         return FIELDS;
+    }
+
+    @Override
+    public String jsonCollectionName() {
+        return "failedRecords";
+    }
+
+    @Override
+    public String entityName() {
+        return "Record failure";
     }
 
     @Override
@@ -109,19 +128,16 @@ public class RecordFailure extends Entity {
      */
     @Override
     public RowMapper<Entity> getRowMapper() {
-        return row -> {
-            record = new Record(
-                    row.getUUID(dbColumnName(ID)),
-                    row.getUUID(dbColumnName(HARVEST_JOB_ID)),
-                    row.getString(dbColumnName(RECORD_NUMBER)),
-                    row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
-                    row.getJsonArray(dbColumnName(RECORD_ERRORS)),
-                    row.getString(dbColumnName(ORIGINAL_RECORD)),
-                    row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)),
-                    row.getLong(dbColumnName(HARVESTABLE_ID)),
-                    row.getString(dbColumnName(HARVESTABLE_NAME)));
-            return this;
-        };
+        return row -> new RecordFailure(
+                row.getUUID(dbColumnName(ID)),
+                row.getUUID(dbColumnName(HARVEST_JOB_ID)),
+                row.getString(dbColumnName(RECORD_NUMBER)),
+                row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString(),
+                row.getJsonArray(dbColumnName(RECORD_ERRORS)),
+                row.getString(dbColumnName(ORIGINAL_RECORD)),
+                row.getJsonObject(dbColumnName(TRANSFORMED_RECORD)),
+                row.getLong(dbColumnName(HARVESTABLE_ID)),
+                row.getString(dbColumnName(HARVESTABLE_NAME)));
     }
 
     @Override

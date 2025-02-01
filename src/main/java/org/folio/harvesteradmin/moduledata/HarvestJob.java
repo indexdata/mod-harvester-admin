@@ -14,10 +14,30 @@ import java.util.UUID;
 
 public class HarvestJob extends Entity {
 
+    public HarvestJob() {}
+
+    public HarvestJob(UUID id, long harvestableId, String name, String type, String url, Boolean allowErrors,
+                      Integer recordLimit, Integer batchSize, String transformation, String storage,
+                      String status,
+                      String started,
+                      String finished, Integer amountHarvested,
+                      String message) {
+        record = new Record(
+                id, harvestableId, name, type, url, allowErrors, recordLimit, batchSize, transformation, storage, status, started, finished, amountHarvested, message);
+    }
+
     // Harvest job record, the entity data
     public Record record;
-    public record Record(UUID id, long harvestableId, String name, String type, String url, Boolean allowErrors,
-                         Integer recordLimit, Integer batchSize, String transformation, String storage,
+    public record Record(UUID id,
+                         long harvestableId,
+                         String name,
+                         String type,
+                         String url,
+                         Boolean allowErrors,
+                         Integer recordLimit,
+                         Integer batchSize,
+                         String transformation,
+                         String storage,
                          String status,
                          String started,
                          String finished, Integer amountHarvested,
@@ -69,7 +89,7 @@ public class HarvestJob extends Entity {
                 harvestable.getString("lastHarvestStarted") : overrides.getString(jsonPropertyName(STARTED));
         String finished = overrides.isEmpty() ? harvestable.getString("lastHarvestFinished") : overrides.getString(jsonPropertyName(FINISHED));
 
-        record = new Record(
+        return new HarvestJob(
                 UUID.randomUUID(),
                 Long.parseLong(harvestable.getString("id")),
                 harvestable.getString("name"),
@@ -87,7 +107,6 @@ public class HarvestJob extends Entity {
                         overrides.getString(jsonPropertyName(AMOUNT_HARVESTED)) : harvestable.getString("amountHarvested")),
                 overrides.isEmpty() ?
                         harvestable.getString("message") : overrides.getString(jsonPropertyName(MESSAGE)));
-        return this;
     }
 
     /**
@@ -99,7 +118,7 @@ public class HarvestJob extends Entity {
     public HarvestJob fromJson(JsonObject harvestJobJson) {
         String started = harvestJobJson.getString(jsonPropertyName(STARTED));
         String finished = harvestJobJson.getString(jsonPropertyName(FINISHED));
-        record = new Record(
+        return new HarvestJob(
                 UUID.fromString(harvestJobJson.getString(jsonPropertyName(ID))),
                 harvestJobJson.getLong(jsonPropertyName(HARVESTABLE_ID)),
                 harvestJobJson.getString(jsonPropertyName(HARVESTABLE_NAME)),
@@ -116,7 +135,6 @@ public class HarvestJob extends Entity {
                         harvestJobJson.getString(jsonPropertyName(FINISHED)) : null,
                 harvestJobJson.getInteger(jsonPropertyName(AMOUNT_HARVESTED)),
                 harvestJobJson.getString(jsonPropertyName(MESSAGE)));
-        return this;
     }
 
     @Override
@@ -193,6 +211,16 @@ public class HarvestJob extends Entity {
         return pgCqlDefinition;
     }
 
+    @Override
+    public String jsonCollectionName() {
+        return "previousJobs";
+    }
+
+    @Override
+    public String entityName() {
+        return "Past job";
+    }
+
     /**
      * Maps values of the POJO into table columns for insert-into statement.
      */
@@ -233,24 +261,22 @@ public class HarvestJob extends Entity {
      * Maps values from columns of a row to properties of the POJO.
      */
     public RowMapper<Entity> getRowMapper() {
-        return row -> {
-            record = new Record(row.getUUID(dbColumnName(ID)),
-                    row.getLong(dbColumnName(HARVESTABLE_ID)),
-                    row.getString(dbColumnName(HARVESTABLE_NAME)),
-                    row.getString(dbColumnName(HARVESTABLE_TYPE)),
-                    row.getString(dbColumnName(URL)),
-                    row.getBoolean(dbColumnName(ALLOW_ERRORS)),
-                    (row.getValue(dbColumnName(RECORD_LIMIT)) != null ? row.getInteger(dbColumnName(RECORD_LIMIT)) : null),
-                    row.getInteger(dbColumnName(BATCH_SIZE)),
-                    row.getString(dbColumnName(TRANSFORMATION)),
-                    row.getString(dbColumnName(STORAGE)),
-                    row.getString(dbColumnName(STATUS)),
-                    row.getLocalDateTime(dbColumnName(STARTED)).toString(),
-                    (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
-                    (row.getValue(dbColumnName(AMOUNT_HARVESTED)) != null ? row.getInteger(dbColumnName(AMOUNT_HARVESTED)) : null),
-                    row.getString(dbColumnName(MESSAGE)));
-            return this;
-        };
+        return row -> new HarvestJob(
+                row.getUUID(dbColumnName(ID)),
+                row.getLong(dbColumnName(HARVESTABLE_ID)),
+                row.getString(dbColumnName(HARVESTABLE_NAME)),
+                row.getString(dbColumnName(HARVESTABLE_TYPE)),
+                row.getString(dbColumnName(URL)),
+                row.getBoolean(dbColumnName(ALLOW_ERRORS)),
+                (row.getValue(dbColumnName(RECORD_LIMIT)) != null ? row.getInteger(dbColumnName(RECORD_LIMIT)) : null),
+                row.getInteger(dbColumnName(BATCH_SIZE)),
+                row.getString(dbColumnName(TRANSFORMATION)),
+                row.getString(dbColumnName(STORAGE)),
+                row.getString(dbColumnName(STATUS)),
+                row.getLocalDateTime(dbColumnName(STARTED)).toString(),
+                (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
+                (row.getValue(dbColumnName(AMOUNT_HARVESTED)) != null ? row.getInteger(dbColumnName(AMOUNT_HARVESTED)) : null),
+                row.getString(dbColumnName(MESSAGE)));
     }
 
 }

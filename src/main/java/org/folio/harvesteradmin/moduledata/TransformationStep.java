@@ -11,6 +11,12 @@ import java.util.UUID;
 
 public class TransformationStep extends Entity {
 
+    public TransformationStep() {}
+
+    public TransformationStep(UUID id, UUID transformationId, UUID stepId, Integer position) {
+        record = new Record(id, transformationId, stepId, position);
+    }
+
     // Transformation/Step association record, the entity data.
     public record Record(UUID id, UUID transformationId, UUID stepId, Integer position) {
     }
@@ -21,8 +27,8 @@ public class TransformationStep extends Entity {
     public static final String ID = "ID", TRANSFORMATION_ID = "TRANSFORMATION_ID", STEP_ID = "STEP_ID", POSITION="POSITION";
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
-        FIELDS.put(TRANSFORMATION_ID,new Field("transformationId", "transformation_id", PgColumn.Type.UUID, false, true));
-        FIELDS.put(STEP_ID, new Field("stepId", "stepId", PgColumn.Type.UUID, true, true));
+        FIELDS.put(TRANSFORMATION_ID,new Field("transformation", "transformation_id", PgColumn.Type.UUID, false, true));
+        FIELDS.put(STEP_ID, new Field("step", "step_id", PgColumn.Type.UUID, true, true));
         FIELDS.put(POSITION, new Field("position", "position", PgColumn.Type.INTEGER, false, false));
     }
     @Override
@@ -31,13 +37,22 @@ public class TransformationStep extends Entity {
     }
 
     @Override
+    public String jsonCollectionName() {
+        return "transformationStepAssociations";
+    }
+
+    @Override
+    public String entityName() {
+        return "Transformation-step association";
+    }
+
+    @Override
     public Entity fromJson(JsonObject json) {
-        record = new Record(
+        return new TransformationStep(
                 UUID.fromString(json.getString(jsonPropertyName(ID))),
                 UUID.fromString(json.getString(jsonPropertyName(TRANSFORMATION_ID))),
-                UUID.fromString(json.getString(jsonPropertyName(STEP_ID))),
-                json.getInteger(jsonPropertyName(POSITION)));
-        return this;
+                UUID.fromString(json.getJsonObject(jsonPropertyName(STEP_ID)).getString("id")),
+                Integer.parseInt(json.getString(jsonPropertyName(POSITION))));
     }
 
     @Override
@@ -45,21 +60,19 @@ public class TransformationStep extends Entity {
         JsonObject json = new JsonObject();
         json.put(jsonPropertyName(ID), record.id);
         json.put(jsonPropertyName(TRANSFORMATION_ID), record.transformationId);
-        json.put(jsonPropertyName(STEP_ID), record.stepId);
+        JsonObject step = new JsonObject().put("id", record.stepId);
+        json.put(jsonPropertyName(STEP_ID), step);
         json.put(jsonPropertyName(POSITION), record.position);
         return json;
     }
 
     @Override
     public RowMapper<Entity> getRowMapper() {
-        return row -> {
-            record = new Record(
-                    row.getUUID(dbColumnName(ID)),
-                    row.getUUID(dbColumnName(TRANSFORMATION_ID)),
-                    row.getUUID(dbColumnName(STEP_ID)),
-                    row.getInteger(dbColumnName(POSITION)));
-            return this;
-        };
+        return row -> new TransformationStep(
+               row.getUUID(dbColumnName(ID)),
+               row.getUUID(dbColumnName(TRANSFORMATION_ID)),
+               row.getUUID(dbColumnName(STEP_ID)),
+               row.getInteger(dbColumnName(POSITION)));
     }
 
     @Override

@@ -16,6 +16,29 @@ import org.folio.harvesteradmin.moduledata.database.Tables;
 
 public class LogLine extends Entity {
 
+  public LogLine() {}
+
+  public LogLine(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {
+    record = new Record(id, harvestJobId, timeStamp, logLevel, jobLabel, line, sequenceNumber);
+  }
+
+  public LogLine(UUID harvestJobId, String line, int sequenceNumber) {
+    Matcher matcher = logPattern.matcher(line);
+    if (matcher.matches()) {
+      System.out.println("Setting log line record");
+      record = new Record(
+              UUID.randomUUID(),
+              harvestJobId,
+              matcher.group(1).trim(),
+              matcher.group(2).trim(),
+              matcher.group(3),
+              matcher.group(4),
+              sequenceNumber);
+    } else {
+      record = new Record(null, null, null, null, null, null, -1);
+    }
+  }
+
   // Log statement record, the entity data
   public Record record;
   public record Record(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {}
@@ -38,6 +61,16 @@ public class LogLine extends Entity {
     return FIELDS;
   }
 
+  @Override
+  public String jsonCollectionName() {
+    return "logLines";
+  }
+
+  @Override
+  public String entityName() {
+    return "Log line";
+  }
+
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS,MS";
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
@@ -45,28 +78,6 @@ public class LogLine extends Entity {
   /**
    * Constructor.
    */
-  public LogLine() {}
-
-  /**
-   * Constructor.
-   */
-  public LogLine(UUID harvestJobId, String line, int sequenceNumber) {
-
-    Matcher matcher = logPattern.matcher(line);
-    if (matcher.matches()) {
-      System.out.println("Setting log line record");
-      record = new Record(
-              UUID.randomUUID(),
-              harvestJobId,
-              matcher.group(1).trim(),
-              matcher.group(2).trim(),
-              matcher.group(3),
-              matcher.group(4),
-              sequenceNumber);
-    } else {
-      record = new Record(null, null, null, null, null, null, -1);
-    }
-  }
 
   @Override
   public Tables table() {
@@ -92,19 +103,16 @@ public class LogLine extends Entity {
 
   @Override
   public RowMapper<Entity> getRowMapper() {
-    return row -> {
-      record = new Record(
-              row.getUUID(dbColumnName(ID)),
-              row.getUUID(dbColumnName(HARVEST_JOB_ID)),
-              // Present in original legacy harvester date format, not the pg date format (supports importing the output)
-              row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString()
-                      .replace("T", " ").replace(".",","),
-              row.getString(dbColumnName(LOG_LEVEL)),
-              row.getString(dbColumnName(JOB_LABEL)),
-              row.getString(dbColumnName(LOG_STATEMENT)),
-              row.getInteger(dbColumnName(SEQUENCE_NUMBER)));
-      return this;
-    };
+    return row -> new LogLine(
+            row.getUUID(dbColumnName(ID)),
+            row.getUUID(dbColumnName(HARVEST_JOB_ID)),
+            // Present in original legacy harvester date format, not the pg date format (supports importing the output)
+            row.getLocalDateTime(dbColumnName(TIME_STAMP)).toString()
+                    .replace("T", " ").replace(".",","),
+            row.getString(dbColumnName(LOG_LEVEL)),
+            row.getString(dbColumnName(JOB_LABEL)),
+            row.getString(dbColumnName(LOG_STATEMENT)),
+            row.getInteger(dbColumnName(SEQUENCE_NUMBER)));
   }
 
   /**

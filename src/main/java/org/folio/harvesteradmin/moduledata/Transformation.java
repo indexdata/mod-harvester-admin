@@ -11,6 +11,12 @@ import java.util.UUID;
 
 public class Transformation extends Entity {
 
+    public Transformation() {}
+
+    public Transformation(UUID id, String name, boolean enabled, String description, String type) {
+        record = new Record(id, name, enabled, description, type);
+    }
+
     // Transformation record, the entity data.
     public record Record(UUID id, String name, boolean enabled, String description, String type) {
     }
@@ -35,14 +41,23 @@ public class Transformation extends Entity {
         return Tables.transformation;
     }
 
+    @Override
+    public String jsonCollectionName() {
+        return "transformations";
+    }
+
+    @Override
+    public String entityName() {
+        return "Transformation pipeline";
+    }
+
     public Entity fromJson(JsonObject json) {
-        record = new Record(
+        return new Transformation(
                 UUID.fromString(json.getString(jsonPropertyName(ID))),
                 json.getString(jsonPropertyName(NAME)),
                 true,
                 json.getString(jsonPropertyName(TYPE)),
                 json.getString(jsonPropertyName(DESCRIPTION)));
-        return this;
     }
 
     public JsonObject asJson() {
@@ -57,15 +72,12 @@ public class Transformation extends Entity {
 
     @Override
     public RowMapper<Entity> getRowMapper() {
-            return row -> {
-                record = new Record(
-                        row.getUUID(dbColumnName(ID)),
-                        row.getString(dbColumnName(NAME)),
-                        true,
-                        row.getString(dbColumnName(TYPE)),
-                        row.getString(dbColumnName(DESCRIPTION)));
-                return this;
-            };
+            return row -> new Transformation(
+                    row.getUUID(dbColumnName(ID)),
+                    row.getString(dbColumnName(NAME)),
+                    true,
+                    row.getString(dbColumnName(TYPE)),
+                    row.getString(dbColumnName(DESCRIPTION)));
     }
 
     @Override
