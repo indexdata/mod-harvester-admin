@@ -15,14 +15,14 @@ public class ImportConfig extends Entity {
 
     public ImportConfig(UUID id, String name, String type, String URL, Boolean allowErrors,
                         Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
-        record = new Record(id, name, type, URL, allowErrors, recordLimit, batchSize, transformationId, storageId);
+        record = new ImportConfigRecord(id, name, type, URL, allowErrors, recordLimit, batchSize, transformationId, storageId);
     }
 
     // Import config record, the entity data.
-    public record Record(UUID id, String name, String type, String URL, Boolean allowErrors,
-                         Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
+    public record ImportConfigRecord(UUID id, String name, String type, String URL, Boolean allowErrors,
+                                      Integer recordLimit, Integer batchSize, UUID transformationId, UUID storageId) {
     }
-    public Record record;
+    public ImportConfigRecord record;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> IMPORT_CONFIG_FIELDS = new HashMap<>();
@@ -88,7 +88,7 @@ public class ImportConfig extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((ImportConfig) entity).record;
+                    ImportConfigRecord rec = ((ImportConfig) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);

@@ -104,24 +104,39 @@ public class ModuleStorageAccess {
                 .map(UUID.fromString(entity.asJson().getString("id")));
     }
 
-    public Future<List<Entity>> getEntities(String query, Entity entity) {
+    public Future<Void> storeEntities(Entity definition, List<Entity> entities) {
+        if (entities!=null && !entities.isEmpty()) {
+            return SqlTemplate.forUpdate(pool.getPool(),
+                            definition.makeInsertTemplate(pool.getSchema()))
+                    .mapFrom(definition.getTupleMapper())
+                    .executeBatch(entities)
+                    .onSuccess(res -> logger.info("Saved batch of " + definition.entityName().toLowerCase()))
+                    .onFailure(res -> logger.error("Couldn't save batch of " + definition.entityName().toLowerCase() + ": " + res.getMessage()))
+                    .mapEmpty();
+        } else {
+            return Future.succeededFuture();
+        }
+    }
+
+
+    public Future<List<Entity>> getEntities(String query, Entity definition) {
         List<Entity> records = new ArrayList<>();
         return SqlTemplate.forQuery(pool.getPool(), query)
-                .mapTo(entity.getRowMapper())
+                .mapTo(definition.getRowMapper())
                 .execute(null)
                 .onSuccess(rows -> {
-                    for (Entity instance : rows) {
-                        records.add(instance);
+                    for (Entity record : rows) {
+                        records.add(record);
                     }
                 }).map(records);
     }
 
-    public Future<Entity> getEntityById(UUID id, Entity entity) {
+    public Future<Entity> getEntityById(UUID id, Entity definition) {
         return SqlTemplate.forQuery(pool.getPool(),
                         "SELECT * "
-                                + "FROM " + schemaDotTable(entity.table()) + " "
+                                + "FROM " + schemaDotTable(definition.table()) + " "
                                 + "WHERE id = #{id}")
-                .mapTo(entity.getRowMapper())
+                .mapTo(definition.getRowMapper())
                 .execute(Collections.singletonMap("id", id))
                 .map(rows -> {
                     RowIterator<Entity> iterator = rows.iterator();
@@ -199,13 +214,11 @@ public class ModuleStorageAccess {
                     .executeBatch(failedRecords)
                     .onFailure(res -> logger.error("Didn't save record failures: " + res.getMessage()))
                     .mapEmpty();
-
         } else {
             logger.info("No failure records to store for harvest job " + harvestJobId);
             return Future.succeededFuture();
         }
     }
-
 
     /**
      * Gets previous jobs from module's storage.

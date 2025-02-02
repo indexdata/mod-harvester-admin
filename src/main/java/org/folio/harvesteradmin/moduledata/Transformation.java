@@ -14,13 +14,11 @@ public class Transformation extends Entity {
     public Transformation() {}
 
     public Transformation(UUID id, String name, boolean enabled, String description, String type) {
-        record = new Record(id, name, enabled, description, type);
+        record = new TransformationRecord(id, name, enabled, description, type);
     }
 
-    // Transformation record, the entity data.
-    public record Record(UUID id, String name, boolean enabled, String description, String type) {
-    }
-    public Record record;
+    public record TransformationRecord(UUID id, String name, boolean enabled, String description, String type) {}
+    public TransformationRecord record;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -62,11 +60,11 @@ public class Transformation extends Entity {
 
     public JsonObject asJson() {
         JsonObject json = new JsonObject();
-        json.put(jsonPropertyName(ID), record.id());
-        json.put(jsonPropertyName(NAME), record.name());
-        json.put(jsonPropertyName(TYPE), record.type());
-        json.put("enabled", record.enabled());
-        json.put(jsonPropertyName(DESCRIPTION), record.description());
+        json.put(jsonPropertyName(ID), record.id);
+        json.put(jsonPropertyName(NAME), record.name);
+        json.put(jsonPropertyName(TYPE), record.type);
+        json.put("enabled", record.enabled);
+        json.put(jsonPropertyName(DESCRIPTION), record.description);
         return json;
     }
 
@@ -84,12 +82,12 @@ public class Transformation extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((Transformation) entity).record;
+                    TransformationRecord rec = ((Transformation) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
-                    parameters.put(dbColumnName(ID), rec.id());
-                    parameters.put(dbColumnName(NAME), rec.name());
-                    parameters.put(dbColumnName(TYPE), rec.type());
-                    parameters.put(dbColumnName(DESCRIPTION), rec.description());
+                    parameters.put(dbColumnName(ID), rec.id);
+                    parameters.put(dbColumnName(NAME), rec.name);
+                    parameters.put(dbColumnName(TYPE), rec.type);
+                    parameters.put(dbColumnName(DESCRIPTION), rec.description);
                     return parameters;
                 });
     }

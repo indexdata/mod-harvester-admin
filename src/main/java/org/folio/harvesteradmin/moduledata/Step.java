@@ -22,14 +22,14 @@ public class Step extends Entity {
 
     public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
                 String outputFormat, String testData, String testOutput, String script) {
-        record = new Record(
+        record = new StepRecord(
                 id, name, enabled, description, type, inputFormat, outputFormat, testData, testOutput, script);
     }
     // Step record, the entity data.
-    public record Record(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                         String outputFormat, String testData, String testOutput, String script) {
+    public record StepRecord(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
+                              String outputFormat, String testData, String testOutput, String script) {
     }
-    public Record record;
+    public StepRecord record;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -59,6 +59,10 @@ public class Step extends Entity {
     @Override
     public String entityName() {
         return "Step";
+    }
+
+    public String getScript() {
+        return record.script;
     }
 
     @Override
@@ -127,7 +131,7 @@ public class Step extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((Step) entity).record;
+                    StepRecord rec = ((Step) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);

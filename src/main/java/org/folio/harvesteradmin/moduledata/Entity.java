@@ -107,12 +107,12 @@ public abstract class Entity {
 
 
     /**
-     * Gets vert.x row mapper: Postgres select list results mapped to i.e. JSON or data object.
+     * Creates vert.x row mapper that maps a database select result row onto data object(s).
      */
     public abstract RowMapper<Entity> getRowMapper();
 
     /**
-     * Gets vert.x tuple mapper - Postgres insert values list, ie from JSON or data object.
+     * Creates vert.x tuple mapper that maps Postgres column names to field values.
      */
     public abstract TupleMapper<Entity> getTupleMapper();
 

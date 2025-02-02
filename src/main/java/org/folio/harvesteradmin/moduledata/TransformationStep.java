@@ -14,13 +14,12 @@ public class TransformationStep extends Entity {
     public TransformationStep() {}
 
     public TransformationStep(UUID id, UUID transformationId, UUID stepId, Integer position) {
-        record = new Record(id, transformationId, stepId, position);
+        record = new TransformationStepRecord(id, transformationId, stepId, position);
     }
 
     // Transformation/Step association record, the entity data.
-    public record Record(UUID id, UUID transformationId, UUID stepId, Integer position) {
-    }
-    public Record record;
+    public record TransformationStepRecord(UUID id, UUID transformationId, UUID stepId, Integer position) {}
+    public TransformationStepRecord record;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -29,7 +28,7 @@ public class TransformationStep extends Entity {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(TRANSFORMATION_ID,new Field("transformation", "transformation_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(STEP_ID, new Field("step", "step_id", PgColumn.Type.UUID, true, true));
-        FIELDS.put(POSITION, new Field("position", "position", PgColumn.Type.INTEGER, false, false));
+        FIELDS.put(POSITION, new Field("position", "position", PgColumn.Type.INTEGER, false, true));
     }
     @Override
     public Map<String, Field> fields() {
@@ -79,7 +78,7 @@ public class TransformationStep extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((TransformationStep) entity).record;
+                    TransformationStepRecord rec = ((TransformationStep) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(TRANSFORMATION_ID), rec.transformationId);

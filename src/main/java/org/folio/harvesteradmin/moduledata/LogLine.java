@@ -16,17 +16,20 @@ import org.folio.harvesteradmin.moduledata.database.Tables;
 
 public class LogLine extends Entity {
 
+  public LogLineRecord record;
+  public record LogLineRecord(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {}
+
   public LogLine() {}
 
   public LogLine(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {
-    record = new Record(id, harvestJobId, timeStamp, logLevel, jobLabel, line, sequenceNumber);
+    record = new LogLineRecord(id, harvestJobId, timeStamp, logLevel, jobLabel, line, sequenceNumber);
   }
 
   public LogLine(UUID harvestJobId, String line, int sequenceNumber) {
     Matcher matcher = logPattern.matcher(line);
     if (matcher.matches()) {
       System.out.println("Setting log line record");
-      record = new Record(
+      record = new LogLineRecord(
               UUID.randomUUID(),
               harvestJobId,
               matcher.group(1).trim(),
@@ -35,13 +38,9 @@ public class LogLine extends Entity {
               matcher.group(4),
               sequenceNumber);
     } else {
-      record = new Record(null, null, null, null, null, null, -1);
+      record = new LogLineRecord(null, null, null, null, null, null, -1);
     }
   }
-
-  // Log statement record, the entity data
-  public Record record;
-  public record Record(UUID id, UUID harvestJobId, String timeStamp, String logLevel, String jobLabel, String line, int sequenceNumber) {}
 
   // Static map of Entity Fields.
   private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -74,10 +73,6 @@ public class LogLine extends Entity {
   private static final String DATE_FORMAT = "YYYY-MM-DD HH24:MI:SS,MS";
   private static final Pattern logPattern // (timestamp) (level) (job) (statement)
       = Pattern.compile("([0-9\\- :,]{23}) ([A-Z]{4,5}) {1,2}(\\[.*?\\(.*?\\)]) (.*)");
-
-  /**
-   * Constructor.
-   */
 
   @Override
   public Tables table() {
@@ -146,7 +141,7 @@ public class LogLine extends Entity {
   public TupleMapper<Entity> getTupleMapper() {
     return TupleMapper.mapper(
         entity -> {
-          Record rec = ((LogLine) entity).record;
+          LogLineRecord rec = ((LogLine) entity).record;
           Map<String, Object> parameters = new HashMap<>();
           parameters.put(dbColumnName(ID), rec.id);
           parameters.put(dbColumnName(HARVEST_JOB_ID), rec.harvestJobId);
@@ -159,7 +154,6 @@ public class LogLine extends Entity {
         });
   }
 
-
   public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
     SqlQuery sql = super.makeSqlFromCqlQuery(routingContext, schemaDotTable);
     sql.withAdditionalOrderByField(dbColumnName(TIME_STAMP));
@@ -168,8 +162,7 @@ public class LogLine extends Entity {
   }
 
   public String toString() {
-    return record.toString();
-    //return String.format("%s %-5s %s %s",this.timeStamp, this.logLevel, this.jobLabel, this.line);
+    return String.format("%s %-5s %s %s",record.timeStamp, record.logLevel, record.jobLabel, record.line);
   }
 
   @Override

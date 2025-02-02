@@ -22,26 +22,26 @@ public class HarvestJob extends Entity {
                       String started,
                       String finished, Integer amountHarvested,
                       String message) {
-        record = new Record(
+        record = new HarvestJobRecord(
                 id, harvestableId, name, type, url, allowErrors, recordLimit, batchSize, transformation, storage, status, started, finished, amountHarvested, message);
     }
 
     // Harvest job record, the entity data
-    public Record record;
-    public record Record(UUID id,
-                         long harvestableId,
-                         String name,
-                         String type,
-                         String url,
-                         Boolean allowErrors,
-                         Integer recordLimit,
-                         Integer batchSize,
-                         String transformation,
-                         String storage,
-                         String status,
-                         String started,
-                         String finished, Integer amountHarvested,
-                         String message) {
+    public HarvestJobRecord record;
+    public record HarvestJobRecord(UUID id,
+                                   long harvestableId,
+                                   String name,
+                                   String type,
+                                   String url,
+                                   Boolean allowErrors,
+                                   Integer recordLimit,
+                                   Integer batchSize,
+                                   String transformation,
+                                   String storage,
+                                   String status,
+                                   String started,
+                                   String finished, Integer amountHarvested,
+                                   String message) {
     }
 
     // Static map of Entity Fields.
@@ -227,7 +227,7 @@ public class HarvestJob extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((HarvestJob) entity).record;
+                    HarvestJobRecord rec = ((HarvestJob) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(HARVESTABLE_ID), rec.harvestableId);

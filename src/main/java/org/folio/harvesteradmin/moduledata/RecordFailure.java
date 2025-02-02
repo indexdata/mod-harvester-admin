@@ -23,17 +23,16 @@ public class RecordFailure extends Entity {
     public RecordFailure(UUID id, UUID harvestJobId, String recordNumber, String timeStamp,
                          JsonArray recordErrors, String originalRecord, JsonObject transformedRecord,
                          Long harvestableId, String harvestableName) {
-        record = new Record(
+        record = new RecordFailureRecord(
                 id, harvestJobId, recordNumber, timeStamp, recordErrors, originalRecord, transformedRecord, harvestableId, harvestableName);
     }
 
     // Record failure record, the entity data.
-    public Record record;
+    public RecordFailureRecord record;
 
-    public record Record(UUID id, UUID harvestJobId, String recordNumber, String timeStamp,
-                         JsonArray recordErrors, String originalRecord, JsonObject transformedRecord,
-                         Long harvestableId, String harvestableName) {
-    }
+    public record RecordFailureRecord(UUID id, UUID harvestJobId, String recordNumber, String timeStamp,
+                                       JsonArray recordErrors, String originalRecord, JsonObject transformedRecord,
+                                       Long harvestableId, String harvestableName) {}
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
@@ -96,7 +95,7 @@ public class RecordFailure extends Entity {
     public RecordFailure fromLegacyHarvesterJson(UUID harvestJobId, JsonObject json) {
         String[] legacyDate = json.getString("timeStamp").split(" ");
 
-        record = new Record(
+        record = new RecordFailureRecord(
                 UUID.randomUUID(),
                 harvestJobId,
                 json.getString("recordNumber").replace(".xml", ""),
@@ -110,7 +109,7 @@ public class RecordFailure extends Entity {
     }
 
     public RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
-        record = new Record(
+        record = new RecordFailureRecord(
                 UUID.fromString(json.getString("id")),
                 harvestJobId,
                 json.getString("recordNumber"),
@@ -167,7 +166,7 @@ public class RecordFailure extends Entity {
     public TupleMapper<Entity> getTupleMapper() {
         return TupleMapper.mapper(
                 entity -> {
-                    Record rec = ((RecordFailure) entity).record;
+                    RecordFailureRecord rec = ((RecordFailure) entity).record;
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(HARVEST_JOB_ID), rec.harvestJobId);
