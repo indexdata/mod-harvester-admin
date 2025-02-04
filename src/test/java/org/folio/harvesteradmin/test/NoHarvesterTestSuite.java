@@ -7,6 +7,7 @@ import io.restassured.http.ContentType;
 import io.restassured.http.Header;
 import io.restassured.response.ExtractableResponse;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -32,10 +33,11 @@ import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.test.Statics.BASE_URI_OKAPI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(VertxUnitRunner.class)
 public class NoHarvesterTestSuite {
-    private static final Logger logger = LoggerFactory.getLogger("HarvesterAdminTestSuite");
+    private static final Logger logger = LoggerFactory.getLogger(NoHarvesterTestSuite.class);
 
     static Vertx vertx;
 
@@ -44,10 +46,6 @@ public class NoHarvesterTestSuite {
     public static final Header OKAPI_TENANT = new Header(XOkapiHeaders.TENANT, TENANT);
     public static final Header OKAPI_URL = new Header(XOkapiHeaders.URL, BASE_URI_OKAPI);
     public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN, "eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
-
-
-    public NoHarvesterTestSuite() {
-    }
 
     @ClassRule
     public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
@@ -123,14 +121,92 @@ public class NoHarvesterTestSuite {
                 .then().statusCode(204);
     }
 
+    public ValidatableResponse canGetPreviousJobs(String parameters) {
+      var harvestJob = new JsonObject()
+          .put("name", "busy bee")
+          .put("harvestableId", 789)
+          .put("type", "xmlBulk")
+          .put("url", "http://fileserver/xml/")
+          .put("allowErrors", true)
+          .put("transformation", "12345")
+          .put("storage", "Batch Upsert Inventory")
+          .put("status", "OK")
+          .put("started", "9000-01-01T00:00")
+          .put("amountHarvested", 5)
+          .put("message", "  a long, long message");
+      String[] ends = { "9001-01-01T00:00", "9002-01-01T00:00", "9003-01-01T00:00" };
+
+      for (var finished : ends) {
+        harvestJob.put("id", UUID.randomUUID()).put("finished", finished);
+        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+            .body(harvestJob.encodePrettily())
+            .contentType(ContentType.JSON)
+            .post("harvester-admin/previous-jobs")
+            .then()
+            .statusCode(201);
+      }
+
+      return given().port(Statics.PORT_HARVESTER_ADMIN)
+          .header(OKAPI_TENANT)
+          .get("harvester-admin/previous-jobs" + parameters)
+          .then()
+          .statusCode(200);
+    }
+
     @Test
     public void canGetPreviousJobs() {
-        Response response = given().port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
-                .get("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(200).extract().response();
-        logger.info("canGetPreviousJobs response: " + response.asPrettyString());
+        canGetPreviousJobs("")
+        .body("totalRecords", is(3));
+    }
+
+    @Test
+    public void canGetPreviousJobsFrom() {
+        canGetPreviousJobs("?from=9002-01-01T00:00")
+        .body("totalRecords", is(2));
+    }
+
+    @Test
+    public void canGetPreviousJobsUntil() {
+        canGetPreviousJobs("?until=9002-12-31T23:59")
+        .body("totalRecords", is(2));
+    }
+
+    @Test
+    public void canGetPreviousJobsFromUntil() {
+        canGetPreviousJobs("?from=9002-01-01T00:00&until=9002-12-31T23:59")
+        .body("totalRecords", is(1));
+    }
+
+    @Test
+    public void canGetPreviousJobsLimit() {
+        canGetPreviousJobs("?limit=2")
+        .body("totalRecords", is(3))
+        .body("previousJobs", hasSize(2));
+    }
+
+    @Test
+    public void canGetPreviousJobsOffset() {
+        canGetPreviousJobs("?offset=2")
+        .body("totalRecords", is(3))
+        .body("previousJobs", hasSize(1));
+    }
+
+    @Test
+    public void cannotGetPreviousJobInvalidLimit() {
+      given().port(Statics.PORT_HARVESTER_ADMIN)
+      .header(OKAPI_TENANT)
+      .get("harvester-admin/previous-jobs?limit=x")
+      .then()
+      .statusCode(400);
+    }
+
+    @Test
+    public void cannotGetPreviousJobInvalidOffset() {
+      given().port(Statics.PORT_HARVESTER_ADMIN)
+      .header(OKAPI_TENANT)
+      .get("harvester-admin/previous-jobs?offset=x")
+      .then()
+      .statusCode(400);
     }
 
     @Test
