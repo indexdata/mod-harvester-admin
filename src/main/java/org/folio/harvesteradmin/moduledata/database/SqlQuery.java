@@ -1,6 +1,7 @@
 package org.folio.harvesteradmin.moduledata.database;
 
 import io.vertx.ext.web.validation.RequestParameter;
+import org.apache.commons.lang3.StringUtils;
 
 public class SqlQuery {
 
@@ -31,7 +32,7 @@ public class SqlQuery {
   public String getCountingSql() {
     return "SELECT COUNT(*) as total_records "
         + from
-        + where;
+        + (where.isEmpty() ? "" : " WHERE " + where);
   }
 
   /**
@@ -42,7 +43,8 @@ public class SqlQuery {
         + from
         + (where.isEmpty() ? "" : " WHERE " + where)
         + (orderBy.isEmpty() ? "" : " ORDER BY " + orderBy)
-        + limits(offset, (limit == null ? defaultLimit : limit));
+        + keywordLong(" offset ", offset)
+        + keywordLong(" limit ", (limit == null ? defaultLimit : limit));
   }
 
   /**
@@ -75,13 +77,13 @@ public class SqlQuery {
     return this;
   }
 
-  /**
-   * Applies offset and limit if any.
-   */
-  private static String limits(String offset, String limit) {
-    return
-        (offset == null || offset.isEmpty() ? "" : " offset " + offset)
-            + (limit == null || limit.isEmpty() ? "" : " limit " + limit);
+  private static String keywordLong(String keyword, String number) {
+    var stripped = StringUtils.stripToEmpty(number);
+    if (stripped.isEmpty()) {
+      return "";
+    }
+    // prevent SQL injection by parsing the number
+    return keyword + Long.parseLong(stripped);
   }
 
   public String toString() {

@@ -324,8 +324,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.3.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.folio</groupId>
+                        <artifactId>folio-java-checkstyle</artifactId>
+                        <version>1.0.1</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
-                    <configLocation>google_checks.xml</configLocation>
+                    <configLocation>folio-checkstyle/checkstyle.xml</configLocation>
                     <violationSeverity>warning</violationSeverity>
                     <consoleOutput>false</consoleOutput>
                     <failsOnError>true</failsOnError>
@@ -460,6 +467,15 @@
             </build>
         </profile>
     </profiles>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>folio-nexus</id>
+            <name>FOLIO Maven repository</name>
+            <url>https://repository.folio.org/repository/maven-folio</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <repositories>
         <repository>
             <id>folio-nexus</id>
