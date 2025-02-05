@@ -445,22 +445,10 @@ public class ModuleStorageAccess {
     /**
      * Gets record count.
      */
-    public Future<Integer> getCount(String sql) {
-        Promise<Integer> promise = Promise.promise();
-        SqlTemplate.forQuery(pool.getPool(), sql)
-                .mapTo(countingMapper())
+    public Future<Long> getCount(String sql) {
+        return SqlTemplate.forQuery(pool.getPool(), sql)
                 .execute(null)
-                .onComplete(rows -> {
-                    if (rows.result() != null) {
-                        promise.complete(rows.result().iterator().next());
-                    } else {
-                        promise.fail("No result from counting by " + sql);
-                    }
-                });
-        return promise.future();
+                .map(rows -> rows.iterator().next().getLong("total_records"));
     }
 
-    private RowMapper<Integer> countingMapper() {
-        return row -> row.getInteger("total_records");
-    }
 }
