@@ -1,0 +1,27 @@
+{
+  "description": "A transformation pipeline",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique record identifier (UUID)."
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the transformation pipeline."
+    },
+    "description": {
+      "type": "string",
+      "description": "Details about the pipeline."
+    },
+    "enabled": {
+      "type": "string",
+      "description": "Indicates if the transformation pipeline can be used by harvest jobs",
+      "enum": [
+        "true",
+        "false"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

@@ -45,7 +45,7 @@ public class RecordFailure extends Entity {
         FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, false, true));
         FIELDS.put(HARVEST_JOB_ID, new Field("harvestJobId", "harvest_job_id", PgColumn.Type.UUID, false, true));
         FIELDS.put(RECORD_NUMBER, new Field("recordNumber", "record_number", PgColumn.Type.TEXT, true, true));
-        FIELDS.put(TIME_STAMP, new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, false));
+        FIELDS.put(TIME_STAMP, new Field("timeStamp", "time_stamp", PgColumn.Type.TIMESTAMP, false, true));
         FIELDS.put(RECORD_ERRORS, new Field("recordErrors", "record_errors", PgColumn.Type.JSONB, true, false));
         FIELDS.put(ORIGINAL_RECORD, new Field("originalRecord", "original_record", PgColumn.Type.TEXT, false, false));
         FIELDS.put(TRANSFORMED_RECORD, new Field("transformedRecord", "transformed_record", PgColumn.Type.JSONB, true, true));
@@ -110,7 +110,7 @@ public class RecordFailure extends Entity {
 
     public RecordFailure fromHarvesterAdminJson(UUID harvestJobId, JsonObject json) {
         record = new RecordFailureRecord(
-                UUID.fromString(json.getString("id")),
+                getUuidOrGenerate(json.getString("id")),
                 harvestJobId,
                 json.getString("recordNumber"),
                 json.getString("timeStamp").replace("T", " "),

@@ -51,7 +51,7 @@ public class Transformation extends Entity {
 
     public Entity fromJson(JsonObject json) {
         return new Transformation(
-                UUID.fromString(json.getString(jsonPropertyName(ID))),
+                getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
                 json.getString(jsonPropertyName(NAME)),
                 true,
                 json.getString(jsonPropertyName(TYPE)),

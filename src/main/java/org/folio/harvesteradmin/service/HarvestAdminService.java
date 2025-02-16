@@ -150,69 +150,79 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         // Migrated entities, configs stored in pg
         routerBuilder
                 .operation("postImportConfig")
-                .handler(ctx -> _postImportConfig(vertx, ctx)
+                .handler(ctx -> postImportConfig_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
                 .operation("getImportConfigs")
-                .handler(ctx -> _getImportConfigs(vertx, ctx)
+                .handler(ctx -> getImportConfigs_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
                 .operation("getImportConfig")
-                .handler(ctx -> _getImportConfigById(vertx, ctx)
+                .handler(ctx -> getImportConfigById_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
 
         routerBuilder
-                .operation("_postStep")
-                .handler(ctx -> _postStep(vertx, ctx)
+                .operation("postStep_")
+                .handler(ctx -> postStep_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getSteps")
-                .handler(ctx -> _getSteps(vertx, ctx)
+                .operation("getSteps_")
+                .handler(ctx -> getSteps_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getStep")
-                .handler(ctx -> _getStepById(vertx, ctx)
+                .operation("getStep_")
+                .handler(ctx -> getStep_ById(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getScript")
-                .handler(ctx -> _getScript(vertx, ctx)
+                .operation("getScript_")
+                .handler(ctx -> getScript_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getTransformation")
-                .handler(ctx -> _getTransformationById(vertx, ctx)
+                .operation("getTransformation_")
+                .handler(ctx -> getTransformation_ById(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getTransformations")
-                .handler(ctx -> _getTransformations(vertx, ctx)
+                .operation("getTransformations_")
+                .handler(ctx -> getTransformations_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_postTransformation")
-                .handler(ctx -> _postTransformation(vertx, ctx)
+                .operation("postTransformation_")
+                .handler(ctx -> postTransformation_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getTsas")
-                .handler(ctx -> _getTransformationSteps(vertx, ctx)
+                .operation("getTsas_")
+                .handler(ctx -> getTransformationSteps_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_getTsa")
-                .handler(ctx -> _getTransformationStepById(vertx, ctx)
+                .operation("getTsa_")
+                .handler(ctx -> getTransformationStepById_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
                 .failureHandler(this::routerExceptionResponse);
         routerBuilder
-                .operation("_postTsa")
-                .handler(ctx -> _postTransformationStep(vertx, ctx)
+                .operation("postTsa_")
+                .handler(ctx -> postTransformationStep_(vertx, ctx)
                         .onFailure(cause -> exceptionResponse(cause, ctx)))
+                .failureHandler(this::routerExceptionResponse);
+
+        routerBuilder
+                .operation("importXmlRecords")
+                .handler(ctx -> stageXmlRecordsFile(vertx, ctx))
+                .failureHandler(this::routerExceptionResponse);
+
+        routerBuilder
+                .operation("importXmlRecords_")
+                .handler(ctx -> stageXmlRecordsFile_(vertx, ctx))
                 .failureHandler(this::routerExceptionResponse);
 
 
@@ -643,7 +653,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     }
 
 
-    private Future<Void> _postImportConfig(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> postImportConfig_(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         ImportConfig importConfig = new ImportConfig().fromJson(routingContext.body().asJsonObject());
         return new ModuleStorageAccess(vertx, tenant).storeEntity(importConfig)
@@ -652,15 +662,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
-    private Future<Void> _getImportConfigs(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getImportConfigs_(Vertx vertx, RoutingContext routingContext) {
         return _getEntities(vertx, routingContext, new ImportConfig());
     }
 
-    private Future<Void> _getImportConfigById(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getImportConfigById_(Vertx vertx, RoutingContext routingContext) {
         return _getEntityById(vertx, routingContext, new ImportConfig());
     }
 
-    private Future<Void> _postStep(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> postStep_(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         Step step = new Step().fromJson(routingContext.body().asJsonObject());
         return new ModuleStorageAccess(vertx, tenant).storeEntity(step)
@@ -669,22 +679,22 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
-    private Future<Void> _getSteps(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getSteps_(Vertx vertx, RoutingContext routingContext) {
         return _getEntities(vertx, routingContext, new Step());
     }
 
-    private Future<Void> _getStepById(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getStep_ById(Vertx vertx, RoutingContext routingContext) {
         return _getEntityById(vertx, routingContext, new Step());
     }
 
-    private Future<Void> _getScript(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getScript_(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         return new ModuleStorageAccess(vertx, tenant).getScript(routingContext)
                 .onSuccess(script -> responseText(routingContext, 200).end(script))
                 .mapEmpty();
     }
 
-    private Future<Void> _postTransformation(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> postTransformation_(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         Entity transformation = new Transformation().fromJson(routingContext.body().asJsonObject());
         return new ModuleStorageAccess(vertx, tenant).storeEntity(transformation)
@@ -693,15 +703,15 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
-    private Future<Void> _getTransformationById(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getTransformation_ById(Vertx vertx, RoutingContext routingContext) {
         return _getEntityById(vertx, routingContext, new Transformation());
     }
 
-    private Future<Void> _getTransformations(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getTransformations_(Vertx vertx, RoutingContext routingContext) {
         return _getEntities(vertx, routingContext, new Transformation());
     }
 
-    private Future<Void> _postTransformationStep(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> postTransformationStep_(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         Entity transformationStep = new TransformationStep().fromJson(routingContext.body().asJsonObject());
         return new ModuleStorageAccess(vertx, tenant).storeEntity(transformationStep)
@@ -710,11 +720,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .mapEmpty();
     }
 
-    private Future<Void> _getTransformationStepById(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getTransformationStepById_(Vertx vertx, RoutingContext routingContext) {
         return _getEntityById(vertx, routingContext, new TransformationStep());
     }
 
-    private Future<Void> _getTransformationSteps(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> getTransformationSteps_(Vertx vertx, RoutingContext routingContext) {
         return _getEntities(vertx, routingContext, new TransformationStep());
     }
 
@@ -956,4 +966,28 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onFailure(e -> responseError(routingContext, 500, "Error: " + e.getMessage()));
 
     }
+
+    private void stageXmlRecordsFile_(Vertx vertx, RoutingContext routingContext) {
+
+        final long fileStartTime = System.currentTimeMillis();
+        String tenant = TenantUtil.tenant(routingContext);
+        String importConfigId = routingContext.pathParam("id");
+        String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
+        Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
+        System.out.println("Staging XML file, current thread is " + Thread.currentThread().getName());
+
+        new ModuleStorageAccess(vertx, tenant).getEntityById(UUID.fromString(importConfigId), new ImportConfig())
+                .onSuccess(cfg -> {
+                    if (cfg != null) {
+                        new FileQueue(vertx, tenant, importConfigId).addNewFile(fileName, xmlContent);
+                        XmlFilesImportVerticle.launchVerticle(tenant, importConfigId, routingContext);
+                        responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
+                    } else {
+                        responseError(routingContext, 404, "Error: No import config with id [" + importConfigId + "] found.");
+                    }
+                })
+                .onFailure(e -> responseError(routingContext, 500, "Error: " + e.getMessage()));
+
+    }
+
 }

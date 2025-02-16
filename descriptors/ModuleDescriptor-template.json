@@ -250,31 +250,31 @@
           "permissionsRequired": []
         },{
           "methods": ["POST"],
-          "pathPattern": "/harvester-admin/_steps",
+          "pathPattern": "/harvester-admin/steps_",
           "permissionsRequired": []
         }, {
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_steps",
+          "pathPattern": "/harvester-admin/steps_",
           "permissionsRequired": []
         },{
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_steps/{id}",
+          "pathPattern": "/harvester-admin/steps_/{id}",
           "permissionsRequired": []
         }, {
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_steps/{id}/script",
+          "pathPattern": "/harvester-admin/steps_/{id}/script",
           "permissionsRequired": []
         }, {
           "methods": ["POST"],
-          "pathPattern": "/harvester-admin/_transformations",
+          "pathPattern": "/harvester-admin/transformations_",
           "permissionsRequired": []
         }, {
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_transformations",
+          "pathPattern": "/harvester-admin/transformations_",
           "permissionsRequired": []
         },{
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_transformations/{id}",
+          "pathPattern": "/harvester-admin/transformations_/{id}",
           "permissionsRequired": []
         }, {
           "methods": ["POST"],
@@ -284,28 +284,35 @@
             "inventory-update.batch-by-hrid.collection.put"
           ]
         }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/import-configs/xml-bulk/{id}/import",
+          "permissionsRequired": [],
+          "modulePermissions": [
+            "inventory-update.batch-by-hrid.collection.put"
+          ]
+        },{
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_tsas",
+          "pathPattern": "/harvester-admin/tsas_",
           "permissionsRequired": ["harvester-admin.transformations-steps.collection.get"]
         }, {
           "methods": ["GET"],
-          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "pathPattern": "/harvester-admin/tsas_/{id}",
           "permissionsRequired": ["harvester-admin.transformations-steps.item.get"]
         }, {
           "methods": ["POST"],
-          "pathPattern": "/harvester-admin/_tsas",
+          "pathPattern": "/harvester-admin/tsas_",
           "permissionsRequired": ["harvester-admin.transformations-steps.item.post"]
         }, {
           "methods": ["PUT"],
-          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "pathPattern": "/harvester-admin/tsas_/{id}",
           "permissionsRequired": ["harvester-admin.transformations-steps.item.put"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/harvester-admin/_tsas/{id}",
+          "pathPattern": "/harvester-admin/tsas_/{id}",
           "permissionsRequired": ["harvester-admin.transformations-steps.item.delete"]
         }, {
           "methods": ["DELETE"],
-          "pathPattern": "/harvester-admin/_tsas",
+          "pathPattern": "/harvester-admin/tsas_",
           "permissionsRequired": ["harvester-admin.transformations-steps.collection.delete"]
         }
       ]

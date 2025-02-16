@@ -14,6 +14,7 @@ import org.folio.tlib.postgres.PgCqlQuery;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public abstract class Entity {
@@ -23,6 +24,10 @@ public abstract class Entity {
      * @return a Tables enum value
      */
     public abstract Tables table();
+
+    public String table(String schema) {
+        return schema + "." + table().toString();
+    }
 
     /**
      * Represents a field of an entity, containing JSON property name, database column name and other features of the field.
@@ -153,6 +158,7 @@ public abstract class Entity {
         String from = "FROM " + schemaDotTable;
         String whereClause = "";
         String orderByClause = "";
+        System.out.println("Query: " + query);
         if (query != null && !query.isEmpty()) {
             PgCqlQuery pgCqlQuery = definition.parse(query.getString());
             if (pgCqlQuery.getWhereClause() != null) {
@@ -203,5 +209,13 @@ public abstract class Entity {
      * @return label to display in messages.
      */
     public abstract String entityName();
+
+    public UUID getUuidOrGenerate(String uuidAsString) {
+        try {
+            return UUID.fromString(uuidAsString);
+        } catch (Exception e) {
+            return UUID.randomUUID();
+        }
+    }
 
 }

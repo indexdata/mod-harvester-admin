@@ -119,7 +119,7 @@ public class HarvestJob extends Entity {
         String started = harvestJobJson.getString(jsonPropertyName(STARTED));
         String finished = harvestJobJson.getString(jsonPropertyName(FINISHED));
         return new HarvestJob(
-                UUID.fromString(harvestJobJson.getString(jsonPropertyName(ID))),
+                getUuidOrGenerate(harvestJobJson.getString(jsonPropertyName(ID))),
                 harvestJobJson.getLong(jsonPropertyName(HARVESTABLE_ID)),
                 harvestJobJson.getString(jsonPropertyName(HARVESTABLE_NAME)),
                 harvestJobJson.getString(jsonPropertyName(HARVESTABLE_TYPE)),

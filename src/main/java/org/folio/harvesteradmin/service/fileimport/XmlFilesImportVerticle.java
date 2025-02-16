@@ -6,12 +6,15 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
+import org.folio.harvesteradmin.moduledata.ImportConfig;
+import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.service.fileimport.transformation.TransformationPipeline;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -105,22 +108,46 @@ public class XmlFilesImportVerticle extends AbstractVerticle {
         Promise<Void> promise = Promise.promise();
         try {
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-            getTransformationPipeline(jobConfigId, refreshPipeline)
-                    .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
-                    .compose(pipelineToInventory -> vertx
-                            .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                            .onComplete(processing -> {
-                                if (processing.succeeded()) {
-                                    promise.complete();
-                                } else {
-                                    System.out.println("Processing failed with " + processing.cause().getMessage());
-                                    promise.complete();
-                                }
-                            }));
+            if (isUUID(jobConfigId)) {
+                getTransformationPipeline_(UUID.fromString(jobConfigId), refreshPipeline)
+                        .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
+                        .compose(pipelineToInventory -> vertx
+                                .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
+                                .onComplete(processing -> {
+                                    if (processing.succeeded()) {
+                                        promise.complete();
+                                    } else {
+                                        System.out.println("Processing failed with " + processing.cause().getMessage());
+                                        promise.complete();
+                                    }
+                                }));
+            } else {
+                getTransformationPipeline(jobConfigId, refreshPipeline)
+                        .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
+                        .compose(pipelineToInventory -> vertx
+                                .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
+                                .onComplete(processing -> {
+                                    if (processing.succeeded()) {
+                                        promise.complete();
+                                    } else {
+                                        System.out.println("Processing failed with " + processing.cause().getMessage());
+                                        promise.complete();
+                                    }
+                                }));
+            }
         } catch (IOException e) {
             promise.fail("Could not open XML source file for importing " + e.getMessage());
         }
         return promise.future();
+    }
+
+    private boolean isUUID(String id) {
+        try {
+            UUID.fromString(id);
+            return true;
+        } catch (IllegalArgumentException iae) {
+            return false;
+        }
     }
 
     private Future<TransformationPipeline> getTransformationPipeline(String jobConfigId, boolean refresh) {
@@ -142,6 +169,20 @@ public class XmlFilesImportVerticle extends AbstractVerticle {
                         }
                     })
                     .compose(transformationId -> TransformationPipeline.create(vertx, tenant, jobConfigId, transformationId))
+                    .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()))
+                    .onFailure(e -> Future.failedFuture(e.getMessage()));
+        }
+        return promise.future();
+    }
+
+    private Future<TransformationPipeline> getTransformationPipeline_(UUID importConfigId, boolean refresh) {
+        Promise<TransformationPipeline> promise = Promise.promise();
+        if (TransformationPipeline.hasInstance(tenant, importConfigId.toString()) && !refresh) {
+            promise.complete(TransformationPipeline.getInstance(tenant, importConfigId.toString()));
+        } else {
+            new ModuleStorageAccess(vertx, tenant).getEntityById(importConfigId,new ImportConfig())
+                    .map(cfg -> ((ImportConfig) cfg).record.transformationId())
+                    .compose(transformationId -> TransformationPipeline._create(vertx, tenant, importConfigId.toString(), transformationId))
                     .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()))
                     .onFailure(e -> Future.failedFuture(e.getMessage()));
         }

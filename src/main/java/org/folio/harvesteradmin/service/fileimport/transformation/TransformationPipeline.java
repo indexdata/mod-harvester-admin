@@ -3,9 +3,14 @@ package org.folio.harvesteradmin.service.fileimport.transformation;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
+import org.folio.harvesteradmin.moduledata.Entity;
+import org.folio.harvesteradmin.moduledata.Step;
+import org.folio.harvesteradmin.moduledata.TransformationStep;
+import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.service.fileimport.RecordReceiver;
 
 import javax.xml.transform.*;
@@ -13,10 +18,7 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TransformationPipeline implements RecordReceiver {
 
@@ -51,6 +53,33 @@ public class TransformationPipeline implements RecordReceiver {
         return promise.future();
     }
 
+    public static Future<TransformationPipeline> _create(Vertx vertx, String tenant, String jobConfigId, UUID transformationId) {
+        Promise<TransformationPipeline> promise = Promise.promise();
+        ModuleStorageAccess access = new ModuleStorageAccess(vertx, tenant);
+        TransformationStep tsasDef = new TransformationStep();
+        Step stepDef = new Step();
+        access.getEntities("SELECT step.* " +
+                        " FROM " + stepDef.table(access.schema()) + " as step," +
+                        "      " + tsasDef.table(access.schema()) + " as tsa " +
+                        "  WHERE step.id = tsa.step_id " +
+                        "    AND tsa.transformation_id = '" + transformationId.toString() + "'" +
+                        "  ORDER BY tsa.position", stepDef)
+                .onSuccess(steps ->
+                {
+                    JsonObject json = new JsonObject().put("stepAssociations", new JsonArray());
+                    for (Entity step : steps) {
+                        JsonObject o = new JsonObject().put("step", step.asJson());
+                        o.getJsonObject("step").put("entityType", "xmlTransformationStep");
+                        json.getJsonArray("stepAssociations").add(o);
+                    }
+                    TransformationPipeline pipeline = new TransformationPipeline(json);
+                    cacheInstance(tenant, jobConfigId, pipeline);
+                    promise.complete(pipeline);
+                })
+                .onFailure(handler -> System.out.println("Problem getting steps " + handler.getMessage()));
+        return promise.future();
+    }
+
     public static boolean hasInstance(String tenant, String jobConfigId) {
         return (transformationPipelines.containsKey(tenant)
                 && transformationPipelines.get(tenant).containsKey(jobConfigId)
@@ -61,7 +90,7 @@ public class TransformationPipeline implements RecordReceiver {
         return transformationPipelines.get(tenant).get(jobConfigId);
     }
 
-    private static void cacheInstance(String tenant, String jobConfigId,TransformationPipeline pipeline) {
+    private static void cacheInstance(String tenant, String jobConfigId, TransformationPipeline pipeline) {
         if (!transformationPipelines.containsKey(tenant)) {
             transformationPipelines.put(tenant, new HashMap<>());
         }
@@ -118,7 +147,7 @@ public class TransformationPipeline implements RecordReceiver {
         //System.out.println("Transformed to: " + transformedXmlRecord);
         String jsonRecord = convertToJson(transformedXmlRecord);
         //System.out.println("Converted to " + jsonRecord);
-        transformationTime+=(System.currentTimeMillis()-transformationStarted);
+        transformationTime += (System.currentTimeMillis() - transformationStarted);
         target.put(jsonRecord);
     }
 

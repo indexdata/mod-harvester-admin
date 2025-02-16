@@ -1,0 +1,47 @@
+{
+  "description": "transformation step association record",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "unique identifier for the association"
+    },
+    "stepId": {
+      "type": "string",
+      "description": "UUID referencing a transformation step."
+    },
+    "transformationId": {
+      "type": "string",
+      "description": "UUID referencing a transformation pipeline."
+    },
+    "position": {
+      "type": "string",
+      "description": "The position of the step amongst other transformation steps in the pipeline."
+    },
+
+    "step": {
+      "description": "DEPRECATED, legacy Harvester schema, contains id of step that is associated with a pipeline",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id of the step associated with a pipeline."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name for the step associated with a pipeline."
+        }
+      },
+      "additionalProperties": true
+    },
+    "transformation": {
+      "description": "DEPRECATED, legacy Harvester schema, id of the transformation pipeline that the step is associated with.",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "anyOf": [
+    {"required":  ["stepId", "transformationId", "position"]},
+    {"required":  ["step", "transformation", "position"]}
+  ]
+}

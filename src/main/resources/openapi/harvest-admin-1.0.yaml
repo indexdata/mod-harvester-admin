@@ -221,6 +221,37 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
+  /harvester-admin/import-configs/xml-bulk/{id}/import:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Import configuration identifier (UUID)
+        schema:
+          type: string
+    post:
+      operationId: importXmlRecords_
+      description: Load XML document using given import configuration
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/script"
+        required: true
+      responses:
+        "204":
+          description: No content
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+
   /harvester-admin/harvestables/oai-pmh/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
@@ -1319,6 +1350,26 @@ paths:
     get:
       operationId: getImportConfig
       description: Get import configuration record
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+
       responses:
         "200":
           description: OK
@@ -1364,14 +1415,33 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_steps:
+  /harvester-admin/steps_:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
       - $ref: headers/okapi-url.yaml
     get:
-      operationId: _getSteps
+      operationId: getSteps_
       description: Get step records
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -1383,7 +1453,7 @@ paths:
           $ref: "#/components/responses/trait_500"
     post:
       description: Create step
-      operationId: _postStep
+      operationId: postStep_
       requestBody:
         content:
           application/json:
@@ -1402,7 +1472,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_steps/{id}:
+  /harvester-admin/steps_/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
@@ -1414,7 +1484,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: _getStep
+      operationId: getStep_
       description: Get detailed transformation step definition record
       responses:
         "200":
@@ -1430,7 +1500,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     put:
-      operationId: _putStep
+      operationId: putStep_
       description: Update a transformation step definition
       requestBody:
         content:
@@ -1461,7 +1531,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_steps/{id}/script:
+  /harvester-admin/steps_/{id}/script:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
@@ -1473,7 +1543,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: _getScript
+      operationId: getScript_
       description: Get transformation step script
       responses:
         "200":
@@ -1502,19 +1572,31 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_transformations:
+  /harvester-admin/transformations_:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
       - $ref: headers/okapi-url.yaml
     get:
       description: Get transformation definitions
-      operationId: _getTransformations
+      operationId: getTransformations_
       parameters:
         - in: query
           name: query
           required: false
           description: CQL
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
           schema:
             type: string
       responses:
@@ -1523,19 +1605,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformations"
+                $ref: "#/components/schemas/transformations_"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
     post:
       description: Create transformation pipeline
-      operationId: _postTransformation
+      operationId: postTransformation_
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationGet"
+              $ref: "#/components/schemas/transformation_"
         required: true
       responses:
         "201":
@@ -1543,13 +1625,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationGet"
+                $ref: "#/components/schemas/transformation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_transformations/{id}:
+  /harvester-admin/transformations_/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
@@ -1561,7 +1643,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: _getTransformation
+      operationId: getTransformation_
       description: Get transformation pipeline record
       responses:
         "200":
@@ -1569,7 +1651,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationGet"
+                $ref: "#/components/schemas/transformation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1577,20 +1659,20 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     put:
-      operationId: _putTransformation
+      operationId: putTransformation_
       description: Update a transformation pipeline
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationGet"
+              $ref: "#/components/schemas/transformation_"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: "#/components/schemas/transformation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1598,7 +1680,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     delete:
-      operationId: _deleteTransformation
+      operationId: deleteTransformation_
       description: Delete a transformation pipeline
       responses:
         "204":
@@ -1608,7 +1690,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_tsas:
+  /harvester-admin/tsas_:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
@@ -1621,7 +1703,19 @@ paths:
           description: CQL
           schema:
             type: string
-      operationId: _getTsas
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+      operationId: getTsas_
       description: Get transformation step associations
       responses:
         "200":
@@ -1629,30 +1723,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociations"
+                $ref: "#/components/schemas/transformationStepAssociations_"
         "500":
           $ref: "#/components/responses/trait_500"
     post:
-      operationId: _postTsa
+      operationId: postTsa_
       description: Create new transformation step association
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationStepAssociation"
+              $ref: "#/components/schemas/transformationStepAssociation_"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: "#/components/schemas/transformationStepAssociation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
     delete:
-      operationId: _deleteTsas
+      operationId: deleteTsas_
       description: Delete all transformation step associations
       responses:
         "204":
@@ -1662,7 +1756,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
 
-  /harvester-admin/_tsas/{id}:
+  /harvester-admin/tsas_/{id}:
     parameters:
       - $ref: headers/okapi-tenant.yaml
       - $ref: headers/okapi-token.yaml
@@ -1674,7 +1768,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: _getTsa
+      operationId: getTsa_
       description: Get a transformation step association by ID
       responses:
         "200":
@@ -1682,7 +1776,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: "#/components/schemas/transformationStepAssociation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1690,20 +1784,20 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     put:
-      operationId: _putTsa
+      operationId: putTsa_
       description: Update a transformation step association
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationStepAssociation"
+              $ref: "#/components/schemas/transformationStepAssociation_"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: "#/components/schemas/transformationStepAssociation_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1711,7 +1805,7 @@ paths:
         "500":
           $ref: "#/components/responses/trait_500"
     delete:
-      operationId: _deleteTsa
+      operationId: deleteTsa_
       description: Delete a transformation step association by ID
       responses:
         "204":
@@ -1765,10 +1859,14 @@ components:
       $ref: schemas/storage.json
     transformations:
       $ref: schemas/transformations.json
+    transformations_:
+      $ref: schemas/transformations_.json
     transformationGet:
       $ref: schemas/transformationGet.json
     transformationPostPut:
       $ref: schemas/transformationPostPut.json
+    transformation_:
+      $ref: schemas/transformation_.json
     steps:
       $ref: schemas/steps.json
     step:
@@ -1777,8 +1875,12 @@ components:
       $ref: schemas/script.json
     transformationStepAssociation:
       $ref: schemas/transformationStepAssociation.json
+    transformationStepAssociation_:
+      $ref: schemas/transformationStepAssociation_.json
     transformationStepAssociations:
       $ref: schemas/transformationStepAssociations.json
+    transformationStepAssociations_:
+      $ref: schemas/transformationStepAssociations_.json
     harvestJobStatus:
       $ref: schemas/harvestJobStatus.json
     previousJobs:

@@ -21,29 +21,28 @@ public class Step extends Entity {
     public Step() {}
 
     public Step(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                String outputFormat, String testData, String testOutput, String script) {
+                String outputFormat, String script) {
         record = new StepRecord(
-                id, name, enabled, description, type, inputFormat, outputFormat, testData, testOutput, script);
+                id, name, enabled, description, type, inputFormat, outputFormat, script);
     }
     // Step record, the entity data.
     public record StepRecord(UUID id, String name, boolean enabled, String description, String type, String inputFormat,
-                              String outputFormat, String testData, String testOutput, String script) {
+                              String outputFormat, String script) {
     }
     public StepRecord record;
 
     // Static map of Entity Fields.
     private static final Map<String, Field> FIELDS = new HashMap<>();
-    public static final String ID="ID", NAME="NAME", TYPE="TYPE", DESCRIPTION="DESCRIPTION", INPUT_FORMAT="INPUT_FORMAT",
-            OUTPUT_FORMAT="OUTPUT_FORMAT", TEST_DATA="TEST_DATA", TEST_OUTPUT="TEST_OUTPUT", SCRIPT = "SCRIPT";
+    public static final String ID="ID", NAME="NAME", ENABLED="ENABLED", TYPE="TYPE", DESCRIPTION="DESCRIPTION", INPUT_FORMAT="INPUT_FORMAT",
+            OUTPUT_FORMAT="OUTPUT_FORMAT", SCRIPT = "SCRIPT";
     static {
         FIELDS.put(ID,new Field("id", "id", PgColumn.Type.UUID, false, true, true));
         FIELDS.put(NAME,new Field("name", "name", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(ENABLED, new Field("enabled", "enabled", PgColumn.Type.BOOLEAN, true, true));
         FIELDS.put(DESCRIPTION, new Field("description", "description", PgColumn.Type.TEXT, true, true));
         FIELDS.put(TYPE, new Field("type", "type", PgColumn.Type.TEXT, true, true));
         FIELDS.put(INPUT_FORMAT, new Field("inputFormat", "input_format", PgColumn.Type.TEXT, true, true));
         FIELDS.put(OUTPUT_FORMAT, new Field("outputFormat", "output_format", PgColumn.Type.TEXT, true, true));
-        FIELDS.put(TEST_DATA, new Field("testData", "test_data", PgColumn.Type.TEXT, true, false));
-        FIELDS.put(TEST_OUTPUT, new Field("testOutput", "test_output", PgColumn.Type.TEXT, true, false));
         FIELDS.put(SCRIPT, new Field("script", "script", PgColumn.Type.TEXT, true, false));
     }
     @Override
@@ -77,15 +76,13 @@ public class Step extends Entity {
      */
     public Step fromJson(JsonObject stepJson) {
         return new Step(
-                UUID.fromString(stepJson.getString(jsonPropertyName(ID))),
+                getUuidOrGenerate(stepJson.getString(jsonPropertyName(ID))),
                 stepJson.getString(jsonPropertyName(NAME)),
-                true,
+                stepJson.getBoolean(jsonPropertyName(ENABLED)),
                 stepJson.getString(jsonPropertyName(TYPE)),
                 stepJson.getString(jsonPropertyName(DESCRIPTION)),
                 stepJson.getString(jsonPropertyName(INPUT_FORMAT)),
                 stepJson.getString(jsonPropertyName(OUTPUT_FORMAT)),
-                stepJson.getString(jsonPropertyName(TEST_DATA)),
-                stepJson.getString(jsonPropertyName(TEST_OUTPUT)),
                 stepJson.getString(jsonPropertyName(SCRIPT)));
     }
 
@@ -94,12 +91,10 @@ public class Step extends Entity {
         json.put(jsonPropertyName(ID), record.id());
         json.put(jsonPropertyName(NAME), record.name());
         json.put(jsonPropertyName(TYPE), record.type());
-        json.put("enabled", record.enabled());
+        json.put(jsonPropertyName(ENABLED), record.enabled());
         json.put(jsonPropertyName(DESCRIPTION), record.description());
         json.put(jsonPropertyName(INPUT_FORMAT), record.inputFormat());
         json.put(jsonPropertyName(OUTPUT_FORMAT), record.outputFormat());
-        json.put(jsonPropertyName(TEST_DATA), record.testData());
-        json.put(jsonPropertyName(TEST_OUTPUT), record.testOutput());
         json.put(jsonPropertyName(SCRIPT), record.script());
         return json;
     }
@@ -113,13 +108,11 @@ public class Step extends Entity {
         return row -> new Step(
                 row.getUUID(dbColumnName(ID)),
                 row.getString(dbColumnName(NAME)),
-                true,
+                row.getBoolean(dbColumnName(ENABLED)),
                 row.getString(dbColumnName(TYPE)),
                 row.getString(dbColumnName(DESCRIPTION)),
                 row.getString(dbColumnName(INPUT_FORMAT)),
                 row.getString(dbColumnName(OUTPUT_FORMAT)),
-                row.getString(dbColumnName(TEST_DATA)),
-                row.getString(dbColumnName(TEST_OUTPUT)),
                 row.getString(dbColumnName(SCRIPT)));
     }
 
@@ -135,12 +128,11 @@ public class Step extends Entity {
                     Map<String, Object> parameters = new HashMap<>();
                     parameters.put(dbColumnName(ID), rec.id);
                     parameters.put(dbColumnName(NAME), rec.name);
+                    parameters.put(dbColumnName(ENABLED), rec.enabled);
                     parameters.put(dbColumnName(TYPE), rec.type);
                     parameters.put(dbColumnName(DESCRIPTION), rec.description);
                     parameters.put(dbColumnName(INPUT_FORMAT), rec.inputFormat);
                     parameters.put(dbColumnName(OUTPUT_FORMAT), rec.outputFormat);
-                    parameters.put(dbColumnName(TEST_DATA), rec.testData);
-                    parameters.put(dbColumnName(TEST_OUTPUT), rec.testOutput);
                     parameters.put(dbColumnName(SCRIPT), rec.script);
                     return parameters;
                 });

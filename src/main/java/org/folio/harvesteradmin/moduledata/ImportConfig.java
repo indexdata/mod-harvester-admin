@@ -59,7 +59,7 @@ public class ImportConfig extends Entity {
 
     public ImportConfig fromJson(JsonObject importConfigJson) {
         return new ImportConfig(
-                UUID.fromString(importConfigJson.getString(jsonPropertyName(ID))),
+                getUuidOrGenerate(importConfigJson.getString(jsonPropertyName(ID))),
                 importConfigJson.getString(jsonPropertyName(NAME)),
                 importConfigJson.getString(jsonPropertyName(TYPE)),
                 importConfigJson.getString(jsonPropertyName(URL)),

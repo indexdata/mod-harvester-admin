@@ -1,0 +1,19 @@
+{
+  "description": "transformation step associations",
+  "type": "object",
+  "properties": {
+    "transformationSteps": {
+      "description": "List of transformation steps associated with transformation pipelines",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "transformationStepAssociation_.json"
+      }
+    },
+    "totalRecords": {
+      "description": "Total number of records in response",
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}
