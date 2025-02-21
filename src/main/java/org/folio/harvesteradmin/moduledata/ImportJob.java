@@ -1,0 +1,255 @@
+package org.folio.harvesteradmin.moduledata;
+
+import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.templates.RowMapper;
+import io.vertx.sqlclient.templates.TupleMapper;
+import org.folio.harvesteradmin.moduledata.database.Tables;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class ImportJob extends Entity {
+
+    public ImportJob() {}
+
+    public ImportJob(UUID id,
+                     UUID importConfigId,
+                     String importConfigName,
+                     String importType,
+                     String url,
+                     Boolean allowErrors,
+                     Integer recordLimit,
+                     Integer batchSize,
+                     String transformation,
+                     String storage,
+                     String status,
+                     String started,
+                     String finished,
+                     Integer amountHarvested,
+                     String message) {
+        record = new ImportJob.ImportJobRecord(
+                id, importConfigId, importConfigName, importType, url, allowErrors, recordLimit, batchSize, transformation, storage, status, started, finished, amountHarvested, message);
+    }
+
+    public ImportJobRecord record;
+    public record ImportJobRecord(UUID id,
+                                   UUID importConfigId,
+                                   String importConfigName,
+                                   String importType,
+                                   String url,
+                                   Boolean allowErrors,
+                                   Integer recordLimit,
+                                   Integer batchSize,
+                                   String transformation,
+                                   String storage,
+                                   String status,
+                                   String started,
+                                   String finished,
+                                   Integer amountHarvested,
+                                   String message) {
+    }
+
+    private static final Map<String, Field> FIELDS = new HashMap<>();
+    public static String ID = "ID", IMPORT_CONFIG_ID = "IMPORT_CONFIG_ID", IMPORT_CONFIG_NAME = "HARVESTABLE_NAME",
+            IMPORT_TYPE = "IMPORT_TYPE", URL = "URL", ALLOW_ERRORS = "ALLOW_ERRORS", RECORD_LIMIT = "RECORD_LIMIT",
+            BATCH_SIZE = "BATCH_SIZE", TRANSFORMATION = "TRANSFORMATION", STORAGE = "STORAGE", STATUS = "STATUS", STARTED = "STARTED",
+            FINISHED = "FINISHED", AMOUNT_HARVESTED = "AMOUNT_HARVESTED", MESSAGE = "MESSAGE";
+
+    static {
+        FIELDS.put(ID, new Field("id", "id", PgColumn.Type.UUID, false, true, true));
+        FIELDS.put(IMPORT_CONFIG_ID, new Field("importConfigId", "import_config_id", PgColumn.Type.UUID, false, true));
+        FIELDS.put(IMPORT_CONFIG_NAME, new Field("importConfigName", "harvestable_name", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(IMPORT_TYPE, new Field("importType", "importType", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(URL, new Field("url", "url", PgColumn.Type.TEXT, false, false));
+        FIELDS.put(ALLOW_ERRORS, new Field("allowErrors", "allow_errors", PgColumn.Type.BOOLEAN, false, false));
+        FIELDS.put(RECORD_LIMIT, new Field("recordLimit", "record_limit", PgColumn.Type.INTEGER, true, false));
+        FIELDS.put(BATCH_SIZE, new Field("batchSize", "batch_size", PgColumn.Type.INTEGER, true, false));
+        FIELDS.put(TRANSFORMATION, new Field("transformation", "transformation", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(STORAGE, new Field("storage", "storage", PgColumn.Type.TEXT, false, true));
+        FIELDS.put(STATUS, new Field("status", "status", PgColumn.Type.TEXT, true, true));
+        FIELDS.put(STARTED, new Field("started", "started", PgColumn.Type.TIMESTAMP, false, true));
+        FIELDS.put(FINISHED, new Field("finished", "finished", PgColumn.Type.TIMESTAMP, true, true));
+        FIELDS.put(AMOUNT_HARVESTED, new Field("amountHarvested", "amount_harvested", PgColumn.Type.INTEGER, true, true));
+        FIELDS.put(MESSAGE, new Field("message", "message", PgColumn.Type.TEXT, true, true));
+    }
+
+    /**
+     * Implement to return an enum identifier for the underlying database table for the implementing entity.
+     *
+     * @return a Tables enum value
+     */
+    @Override
+    public Tables table() {
+        return Tables.import_job;
+    }
+
+    /**
+     * Implement to provide a map of the {@link Field} fields of the implementing entity
+     *
+     * @return Map fields by field keys to be used for finding queryable fields or, if possible, for creating the database table and more.
+     */
+    @Override
+    public Map<String, Field> fields() {
+        return FIELDS;
+    }
+
+    /**
+     * Implement to map from request body JSON to entity POJO.
+     *
+     * @param json incoming JSON body
+     * @return Entity POJO
+     */
+    @Override
+    public Entity fromJson(JsonObject json) {
+        String started = json.getString(jsonPropertyName(STARTED));
+        String finished = json.getString(jsonPropertyName(FINISHED));
+        return new HarvestJob(
+                getUuidOrGenerate(json.getString(jsonPropertyName(ID))),
+                json.getLong(jsonPropertyName(IMPORT_CONFIG_ID)),
+                json.getString(jsonPropertyName(IMPORT_CONFIG_NAME)),
+                json.getString(jsonPropertyName(IMPORT_TYPE)),
+                json.getString(jsonPropertyName(URL)),
+                json.getBoolean(jsonPropertyName(ALLOW_ERRORS)),
+                json.getInteger(jsonPropertyName(RECORD_LIMIT)),
+                json.getInteger(jsonPropertyName(BATCH_SIZE)),
+                json.getString(jsonPropertyName(TRANSFORMATION)),
+                json.getString(jsonPropertyName(STORAGE)),
+                json.getString(jsonPropertyName(STATUS)),
+                json.getString(jsonPropertyName(STARTED)),
+                finished != null && started != null && started.compareTo(finished) < 0 ?
+                        json.getString(jsonPropertyName(FINISHED)) : null,  // TODO: cp/pasted, change
+                json.getInteger(jsonPropertyName(AMOUNT_HARVESTED)),
+                json.getString(jsonPropertyName(MESSAGE)));
+    }
+
+    /**
+     * Implement to map for entity POJO to response JSON
+     *
+     * @return json representation of the entity
+     */
+    @Override
+    public JsonObject asJson() {
+        JsonObject json = new JsonObject();
+        json.put(jsonPropertyName(ID), record.id);
+        json.put(jsonPropertyName(IMPORT_CONFIG_ID), record.importConfigId);
+        json.put(jsonPropertyName(IMPORT_CONFIG_NAME), record.importConfigName);
+        json.put(jsonPropertyName(IMPORT_TYPE), record.importType);
+        json.put(jsonPropertyName(URL), record.url);
+        json.put(jsonPropertyName(ALLOW_ERRORS), record.allowErrors);
+        json.put(jsonPropertyName(RECORD_LIMIT), record.recordLimit);
+        json.put(jsonPropertyName(BATCH_SIZE), record.batchSize);
+        json.put(jsonPropertyName(TRANSFORMATION), record.transformation);
+        json.put(jsonPropertyName(STORAGE), record.storage);
+        json.put(jsonPropertyName(STATUS), record.status);
+        json.put(jsonPropertyName(STARTED), record.started);
+        json.put(jsonPropertyName(FINISHED), record.finished);
+        json.put(jsonPropertyName(AMOUNT_HARVESTED), record.amountHarvested);
+        json.put(jsonPropertyName(MESSAGE), record.message);
+        return json;
+    }
+
+    /**
+     * Creates vert.x row mapper that maps a database select result row onto data object(s).
+     */
+    @Override
+    public RowMapper<Entity> getRowMapper() {
+        return row -> new ImportJob(
+                row.getUUID(dbColumnName(ID)),
+                row.getUUID(dbColumnName(IMPORT_CONFIG_ID)),
+                row.getString(dbColumnName(IMPORT_CONFIG_NAME)),
+                row.getString(dbColumnName(IMPORT_TYPE)),
+                row.getString(dbColumnName(URL)),
+                row.getBoolean(dbColumnName(ALLOW_ERRORS)),
+                (row.getValue(dbColumnName(RECORD_LIMIT)) != null ? row.getInteger(dbColumnName(RECORD_LIMIT)) : null),
+                row.getInteger(dbColumnName(BATCH_SIZE)),
+                row.getString(dbColumnName(TRANSFORMATION)),
+                row.getString(dbColumnName(STORAGE)),
+                row.getString(dbColumnName(STATUS)),
+                row.getLocalDateTime(dbColumnName(STARTED)).toString(),
+                (row.getValue(dbColumnName(FINISHED)) != null ? row.getLocalDateTime(dbColumnName(FINISHED)).toString() : null),
+                (row.getValue(dbColumnName(AMOUNT_HARVESTED)) != null ? row.getInteger(dbColumnName(AMOUNT_HARVESTED)) : null),
+                row.getString(dbColumnName(MESSAGE)));
+    }
+
+    /**
+     * Creates vert.x tuple mapper that maps Postgres column names to field values.
+     */
+    @Override
+    public TupleMapper<Entity> getTupleMapper() {
+        return TupleMapper.mapper(
+                entity -> {
+                    ImportJob.ImportJobRecord rec = ((ImportJob) entity).record;
+                    Map<String, Object> parameters = new HashMap<>();
+                    parameters.put(dbColumnName(ID), rec.id);
+                    parameters.put(dbColumnName(IMPORT_CONFIG_ID), rec.importConfigId);
+                    parameters.put(dbColumnName(IMPORT_CONFIG_NAME), rec.importConfigName);
+                    parameters.put(dbColumnName(IMPORT_TYPE), rec.importType);
+                    parameters.put(dbColumnName(URL), rec.url());
+                    parameters.put(dbColumnName(ALLOW_ERRORS), rec.allowErrors);
+                    if (rec.recordLimit() != null) {
+                        parameters.put(dbColumnName(RECORD_LIMIT), rec.recordLimit);
+                    }
+                    if (rec.batchSize() != null) {
+                        parameters.put(dbColumnName(BATCH_SIZE), rec.batchSize);
+                    }
+                    parameters.put(dbColumnName(TRANSFORMATION), rec.transformation);
+                    parameters.put(dbColumnName(STORAGE), rec.storage);
+                    parameters.put(dbColumnName(STATUS), rec.status);
+                    parameters.put(dbColumnName(STARTED), rec.started);
+                    if (rec.finished != null) {
+                        parameters.put(dbColumnName(FINISHED), rec.finished);
+                    }
+                    if (rec.amountHarvested != null) {
+                        parameters.put(
+                                dbColumnName(AMOUNT_HARVESTED), rec.amountHarvested);
+                    }
+                    parameters.put(dbColumnName(MESSAGE), rec.message);
+                    return parameters;
+                });
+    }
+
+    /**
+     * For building JSON collection response
+     *
+     * @return the JSON property name for a collection of the entity
+     */
+    @Override
+    public String jsonCollectionName() {
+        return "importJobs";
+    }
+
+    /**
+     * For logging and response messages.
+     *
+     * @return label to display in messages.
+     */
+    @Override
+    public String entityName() {
+        return "Import job";
+    }
+
+    public String makeCreateTableSql(String schema) {
+        return  "CREATE TABLE IF NOT EXISTS " + schema + "." + table()
+                + "("
+                + dbColumnNameAndType(ID) + " PRIMARY KEY, "
+                + dbColumnNameAndType(IMPORT_CONFIG_ID) + " NOT NULL "
+                + " REFERENCES " + schema + "." + Tables.import_config + " (" + new ImportConfig().dbColumnName(ID) + "), "
+                + dbColumnNameAndType(IMPORT_CONFIG_NAME)  + ", "
+                + dbColumnNameAndType(IMPORT_TYPE) + ", "
+                + dbColumnNameAndType(URL) + ", "
+                + dbColumnNameAndType(ALLOW_ERRORS) + ", "
+                + dbColumnNameAndType(RECORD_LIMIT) + ", "
+                + dbColumnNameAndType(BATCH_SIZE) + ", "
+                + dbColumnNameAndType(TRANSFORMATION) + ", "
+                + dbColumnNameAndType(STORAGE) + ", "
+                + dbColumnNameAndType(STATUS) + ", "
+                + dbColumnNameAndType(STARTED) + ", "
+                + dbColumnNameAndType(FINISHED) + ", "
+                + dbColumnNameAndType(AMOUNT_HARVESTED) + ", "
+                + dbColumnNameAndType(MESSAGE)
+                + ")";
+    }
+
+
+}

@@ -11,9 +11,9 @@
       "description": "A name assigned to the transformation step."
     },
     "enabled": {
-      "type": "string",
+      "type": "boolean",
       "description": "Indicates if this step is available to be used in a transformation pipeline.",
-      "default": "false"
+      "default": false
     },
     "description": {
       "type": "string",

@@ -8,7 +8,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
-import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -236,6 +235,23 @@ public class ModuleStorageAccess {
     }
 
     /**
+     * New version of previous jobs.
+     * @param query
+     * @return
+     */
+    public Future<List<ImportJob>> getImportJobs(String query) {
+        List<ImportJob> importJobs = new ArrayList<>();
+        return SqlTemplate.forQuery(pool.getPool(), query)
+                .mapTo(new ImportJob().getRowMapper())
+                .execute(null)
+                .onSuccess(rows -> {
+                    for (Entity entity : rows) {
+                        importJobs.add((ImportJob) entity);
+                    }
+                }).map(importJobs);
+    }
+
+    /**
      * Retrieves past harvest job.
      */
     public Future<HarvestJob> getPreviousJobById(UUID id) {
@@ -248,6 +264,19 @@ public class ModuleStorageAccess {
                 .map(rows -> {
                     RowIterator<Entity> iterator = rows.iterator();
                     return iterator.hasNext() ? (HarvestJob) iterator.next() : null;
+                });
+    }
+
+    public Future<ImportJob> getImportJobById(UUID id) {
+        return SqlTemplate.forQuery(pool.getPool(),
+                        "SELECT * "
+                                + "FROM " + schemaDotTable(Tables.import_job) + " "
+                                + "WHERE id = #{id}")
+                .mapTo(new HarvestJob().getRowMapper())
+                .execute(Collections.singletonMap("id", id))
+                .map(rows -> {
+                    RowIterator<Entity> iterator = rows.iterator();
+                    return iterator.hasNext() ? (ImportJob) iterator.next() : null;
                 });
     }
 

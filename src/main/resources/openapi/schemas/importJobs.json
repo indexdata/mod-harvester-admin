@@ -1,0 +1,14 @@
+{
+  "description": "Result set of past import jobs.",
+  "type": "object",
+  "properties": {
+    "previousJobs": {
+      "description": "List of import jobs",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "importJob.json"
+      }
+    }
+  }
+}

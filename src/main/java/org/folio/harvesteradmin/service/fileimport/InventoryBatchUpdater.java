@@ -13,16 +13,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryBatchUpdater implements RecordReceiver {
 
-    private final XmlFilesImportVerticle job;
+    private final XmlFilesImportVerticle jobVerticle;
     private JsonArray inventoryRecordSets = new JsonArray();
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
 
     private final Turnstile turnstile = new Turnstile();
 
-    public InventoryBatchUpdater(XmlFilesImportVerticle job, RoutingContext routingContext) {
+    public InventoryBatchUpdater(XmlFilesImportVerticle jobVerticle, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
-        this.job = job;
+        this.jobVerticle = jobVerticle;
     }
 
     @Override
@@ -68,8 +68,8 @@ public class InventoryBatchUpdater implements RecordReceiver {
         if (batch != null) {
             if (batch.size() > 0) {
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(json -> {
-                    job.reporting().incrementRecordsProcessed(batch.size());
-                    job.reporting().incrementInventoryMetrics(new InventoryMetrics(json.result().getJsonObject("metrics")));
+                    jobVerticle.reporting().incrementRecordsProcessed(batch.size());
+                    jobVerticle.reporting().incrementInventoryMetrics(new InventoryMetrics(json.result().getJsonObject("metrics")));
                     if (batch.isLastBatchOfFile()) {
                         report(batch);
                     }
@@ -86,10 +86,10 @@ public class InventoryBatchUpdater implements RecordReceiver {
     }
 
     private void report(BatchOfRecords batch) {
-        job.reporting().incrementFilesProcessed();
-        job.reporting().reportFileStats();
-        var queueDone = job.fileQueueDone(batch.isLastBatchOfFile());
-        job.reporting().reportFileQueueStats(queueDone);
+        jobVerticle.reporting().incrementFilesProcessed();
+        jobVerticle.reporting().reportFileStats();
+        var queueDone = jobVerticle.fileQueueDone(batch.isLastBatchOfFile());
+        jobVerticle.reporting().reportFileQueueStats(queueDone);
         if (queueDone) {
             batchCounter = 0;
         }

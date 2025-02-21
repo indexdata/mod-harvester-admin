@@ -1,0 +1,22 @@
+{
+  "description": "Import job log entry.",
+  "type": "object",
+  "properties": {
+    "id" : {
+      "description": "Unique identifier (UUID) for the log line.",
+      "type": "string"
+    },
+    "timeStamp" : {
+      "description": "Date and time the log statement was created.",
+      "type": "string"
+    },
+    "jobLabel" : {
+      "description": "Name of the import config of the job that created the log line.",
+      "type": "string"
+    },
+    "line" : {
+      "description": "The logged statement.",
+      "type": "string"
+    }
+  }
+}

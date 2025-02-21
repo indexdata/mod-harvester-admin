@@ -118,7 +118,51 @@
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.post"]
+        },
+
+        {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs",
+          "permissionsRequired": ["harvester-admin.import-jobs.collection.get"]
+        }, {
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/import-jobs",
+          "permissionsRequired": ["harvester-admin.import-jobs.item.post"]
         },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs/failed-records",
+          "permissionsRequired": ["harvester-admin.import-jobs.failed-records.collection.get"]
+        }, {
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs/failed-records/{id}",
+          "permissionsRequired": ["harvester-admin.import-jobs.failed-records.item.get"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.import-jobs.item.get"]
+        },{
+          "methods": ["DELETE"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}",
+          "permissionsRequired": ["harvester-admin.import-jobs.item.delete"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}/log",
+          "permissionsRequired": ["harvester-admin.import-jobs.log.get"]
+        },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}/log",
+          "permissionsRequired": ["harvester-admin.import-jobs.log.post"]
+        },{
+          "methods": ["GET"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.import-jobs.failed-records.collection.get"]
+        },{
+          "methods": ["POST"],
+          "pathPattern": "/harvester-admin/import-jobs/{id}/failed-records",
+          "permissionsRequired": ["harvester-admin.import-jobs.failed-records.collection.post"]
+        },
+
+        {
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/storages",
           "permissionsRequired": ["harvester-admin.storages.collection.get"]
@@ -276,14 +320,7 @@
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/transformations_/{id}",
           "permissionsRequired": []
-        }, {
-          "methods": ["POST"],
-          "pathPattern": "/harvester-admin/harvestables/xml-bulk/{id}/import",
-          "permissionsRequired": [],
-          "modulePermissions": [
-            "inventory-update.batch-by-hrid.collection.put"
-          ]
-        }, {
+        },{
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/import-configs/xml-bulk/{id}/import",
           "permissionsRequired": [],

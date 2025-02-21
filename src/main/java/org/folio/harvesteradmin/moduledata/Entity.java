@@ -198,6 +198,13 @@ public abstract class Entity {
         return field(key).columnName();
     }
 
+    public String dbColumnType(String key) {
+        return field(key).pgType().name();
+    }
+
+    public String dbColumnNameAndType(String key) {
+        return dbColumnName(key) + " " + dbColumnType(key);
+    }
     /**
      * For building JSON collection response
      * @return the JSON property name for a collection of the entity

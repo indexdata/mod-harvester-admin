@@ -1,11 +1,9 @@
 package org.folio.harvesteradmin.service.fileimport;
 
 import io.vertx.core.*;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
 import org.folio.harvesteradmin.moduledata.ImportConfig;
 import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.service.fileimport.transformation.TransformationPipeline;
@@ -20,14 +18,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
-
 public class XmlFilesImportVerticle extends AbstractVerticle {
 
     private final String tenant;
     private final String jobConfigId;
     private final FileQueue fileQueue;
-    private final Reporting reporting;
+    private Reporting reporting;
     private final InventoryBatchUpdater inventoryUpdater;
     private final AtomicBoolean passive = new AtomicBoolean(true);
     public static final Logger logger = LogManager.getLogger("queued-files-processing");
@@ -108,74 +104,26 @@ public class XmlFilesImportVerticle extends AbstractVerticle {
         Promise<Void> promise = Promise.promise();
         try {
             String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-            if (isUUID(jobConfigId)) {
-                getTransformationPipeline_(UUID.fromString(jobConfigId), refreshPipeline)
-                        .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
-                        .compose(pipelineToInventory -> vertx
-                                .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                                .onComplete(processing -> {
-                                    if (processing.succeeded()) {
-                                        promise.complete();
-                                    } else {
-                                        System.out.println("Processing failed with " + processing.cause().getMessage());
-                                        promise.complete();
-                                    }
-                                }));
-            } else {
-                getTransformationPipeline(jobConfigId, refreshPipeline)
-                        .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
-                        .compose(pipelineToInventory -> vertx
-                                .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                                .onComplete(processing -> {
-                                    if (processing.succeeded()) {
-                                        promise.complete();
-                                    } else {
-                                        System.out.println("Processing failed with " + processing.cause().getMessage());
-                                        promise.complete();
-                                    }
-                                }));
-            }
+            getTransformationPipeline(UUID.fromString(jobConfigId), refreshPipeline)
+                    .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
+                    .compose(pipelineToInventory -> vertx
+                            .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
+                            .onComplete(processing -> {
+                                if (processing.succeeded()) {
+                                    promise.complete();
+                                } else {
+                                    System.out.println("Processing failed with " + processing.cause().getMessage());
+                                    promise.complete();
+                                }
+                            }));
+
         } catch (IOException e) {
             promise.fail("Could not open XML source file for importing " + e.getMessage());
         }
         return promise.future();
     }
 
-    private boolean isUUID(String id) {
-        try {
-            UUID.fromString(id);
-            return true;
-        } catch (IllegalArgumentException iae) {
-            return false;
-        }
-    }
-
-    private Future<TransformationPipeline> getTransformationPipeline(String jobConfigId, boolean refresh) {
-        Promise<TransformationPipeline> promise = Promise.promise();
-        if (TransformationPipeline.hasInstance(tenant, jobConfigId) && !refresh) {
-            promise.complete(TransformationPipeline.getInstance(tenant, jobConfigId));
-        } else {
-            new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobConfigId)
-                    .compose(resp -> {
-                        if (resp.wasOK()) {
-                            JsonObject config = resp.jsonObject();
-                            if (config.getJsonObject("transformation") != null && config.getJsonObject("transformation").getString("id") != null) {
-                                return Future.succeededFuture(config.getJsonObject("transformation").getString("id"));
-                            } else {
-                                return Future.failedFuture("No transformation ID found in harvestable " + jobConfigId);
-                            }
-                        } else {
-                            return Future.failedFuture("Error retrieving harvestable to get transformation ID: " + resp.errorMessage());
-                        }
-                    })
-                    .compose(transformationId -> TransformationPipeline.create(vertx, tenant, jobConfigId, transformationId))
-                    .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()))
-                    .onFailure(e -> Future.failedFuture(e.getMessage()));
-        }
-        return promise.future();
-    }
-
-    private Future<TransformationPipeline> getTransformationPipeline_(UUID importConfigId, boolean refresh) {
+    private Future<TransformationPipeline> getTransformationPipeline(UUID importConfigId, boolean refresh) {
         Promise<TransformationPipeline> promise = Promise.promise();
         if (TransformationPipeline.hasInstance(tenant, importConfigId.toString()) && !refresh) {
             promise.complete(TransformationPipeline.getInstance(tenant, importConfigId.toString()));

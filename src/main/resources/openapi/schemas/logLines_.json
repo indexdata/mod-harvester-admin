@@ -1,0 +1,14 @@
+{
+  "description": "Import job log entries as JSON.",
+  "type": "object",
+  "properties": {
+    "logLines": {
+      "description": "Collection of log statements.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "logLine_.json"
+      }
+    }
+  }
+}

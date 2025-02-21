@@ -1,0 +1,19 @@
+{
+  "description": "brief transformation step records",
+  "type": "object",
+  "properties": {
+    "steps": {
+      "description": "List of transformation step definitions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "$ref": "step_.json"
+      }
+    },
+    "totalRecords": {
+      "description": "Total number of records in response",
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

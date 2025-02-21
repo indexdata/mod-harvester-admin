@@ -106,7 +106,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         handler(vertx, routerBuilder, "storeJobLogWithPostedStatus", this::pullJobAndSaveItsLogs);
 
         handler(vertx, routerBuilder, "getPreviousJobs", this::getPreviousJobs);
+        handler(vertx, routerBuilder, "getImportJobs", this::getImportJobs);
         handler(vertx, routerBuilder, "getPreviousJob", this::getPreviousJobById);
+        handler(vertx, routerBuilder, "getImportJob", this::getImportJobById);
         handler(vertx, routerBuilder, "deletePreviousJob", this::deletePreviousJob);
         handler(vertx, routerBuilder, "postPreviousJob", this::postPreviousJob);
         handler(vertx, routerBuilder, "getPreviousJobLog", this::getPreviousJobLog);
@@ -219,12 +221,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .operation("importXmlRecords")
                 .handler(ctx -> stageXmlRecordsFile(vertx, ctx))
                 .failureHandler(this::routerExceptionResponse);
-
-        routerBuilder
-                .operation("importXmlRecords_")
-                .handler(ctx -> stageXmlRecordsFile_(vertx, ctx))
-                .failureHandler(this::routerExceptionResponse);
-
 
     }
 
@@ -585,6 +581,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         ).mapEmpty();
     }
 
+
     private Future<Void> postPreviousJob(Vertx vertx, RoutingContext routingContext) {
         String tenant = TenantUtil.tenant(routingContext);
         HarvestJob job = new HarvestJob().fromJson(routingContext.body().asJsonObject());
@@ -668,6 +665,61 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
     private Future<Void> getImportConfigById_(Vertx vertx, RoutingContext routingContext) {
         return _getEntityById(vertx, routingContext, new ImportConfig());
+    }
+
+    private Future<Void> getImportJobs(Vertx vertx, RoutingContext routingContext) {
+        String tenant = TenantUtil.tenant(routingContext);
+        ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+
+        String fromDateTime = routingContext.request().getParam("from");
+        String untilDateTime = routingContext.request().getParam("until");
+        String timeRange = null;
+        if (fromDateTime != null && untilDateTime != null) {
+            timeRange = " (finished >= '" + fromDateTime + "'  AND finished <= '" + untilDateTime + "') ";
+        } else if (fromDateTime != null) {
+            timeRange = " finished >= '" + fromDateTime + "' ";
+        } else if (untilDateTime != null) {
+            timeRange = " finished <= '" + untilDateTime + "' ";
+        }
+
+        SqlQuery query;
+        try {
+            query = new ImportJob()
+                    .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(Tables.import_job))
+                    .withAdditionalWhereClause(timeRange);
+        } catch (PgCqlException pce) {
+            responseText(routingContext, 400)
+                    .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + routingContext.request().absoluteURI());
+            return Future.succeededFuture();
+        } catch (Exception e) {
+            return Future.failedFuture(e.getMessage());
+        }
+        return moduleStorage.getImportJobs(query.getQueryWithLimits()).onComplete(
+                jobsList -> {
+                    if (jobsList.succeeded()) {
+                        JsonObject responseJson = new JsonObject();
+                        JsonArray importJobs = new JsonArray();
+                        responseJson.put("importJobs", importJobs);
+                        List<ImportJob> jobs = jobsList.result();
+                        for (ImportJob job : jobs) {
+                            importJobs.add(job.asJson());
+                        }
+                        moduleStorage.getCount(query.getCountingSql()).onComplete(
+                                count -> {
+                                    responseJson.put("totalRecords", count.result());
+                                    responseJson(routingContext, 200).end(responseJson.encodePrettily());
+                                }
+                        );
+                    } else {
+                        responseText(routingContext, 500)
+                                .end("Problem retrieving jobs: " + jobsList.cause().getMessage());
+                    }
+                }
+        ).mapEmpty();
+    }
+
+    private Future<Void> getImportJobById(Vertx vertx, RoutingContext routingContext) {
+        return _getEntityById(vertx, routingContext, new ImportJob());
     }
 
     private Future<Void> postStep_(Vertx vertx, RoutingContext routingContext) {
@@ -820,7 +872,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         }
     }
 
-    public Future<Void> postPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
+    private Future<Void> postPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
         String log = routingContext.body().asString();
         String tenant = TenantUtil.tenant(routingContext);
         RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
@@ -945,29 +997,6 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     }
 
     private void stageXmlRecordsFile(Vertx vertx, RoutingContext routingContext) {
-
-        final long fileStartTime = System.currentTimeMillis();
-        String tenant = TenantUtil.tenant(routingContext);
-        String jobConfigId = routingContext.pathParam("id");
-        String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
-        Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
-        System.out.println("Staging XML file, current thread is " + Thread.currentThread().getName());
-
-        new LegacyHarvesterStorage(vertx, tenant).getConfigRecordById(HARVESTER_HARVESTABLES_PATH, jobConfigId)
-                .onComplete(resp -> {
-                    if (resp.result().found()) {
-                        new FileQueue(vertx, tenant, jobConfigId).addNewFile(fileName, xmlContent);
-                        XmlFilesImportVerticle.launchVerticle(tenant, jobConfigId, routingContext);
-                        responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
-                    } else {
-                        responseError(routingContext, 404, "Error: No harvest config with id [" + jobConfigId + "] found.");
-                    }
-                })
-                .onFailure(e -> responseError(routingContext, 500, "Error: " + e.getMessage()));
-
-    }
-
-    private void stageXmlRecordsFile_(Vertx vertx, RoutingContext routingContext) {
 
         final long fileStartTime = System.currentTimeMillis();
         String tenant = TenantUtil.tenant(routingContext);

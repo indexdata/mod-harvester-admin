@@ -233,7 +233,7 @@ paths:
         schema:
           type: string
     post:
-      operationId: importXmlRecords_
+      operationId: importXmlRecords
       description: Load XML document using given import configuration
       requestBody:
         content:
@@ -566,6 +566,177 @@ paths:
           $ref: "#/components/responses/trait_400"
         "500":
           $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/import-jobs:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+    get:
+      operationId: getImportJobs
+      description: Retrieves list of past import jobs
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL query, import config ID, name, type, status, message, and amountHarvested in queries, and the same fields plus started and finished in sorting
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: false
+          description: result set start row
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          description: result set max rows
+          schema:
+            type: string
+        - in: query
+          name: from
+          required: false
+          description: date range start parameter on finished date
+          schema:
+            type: string
+        - in: query
+          name: until
+          required: false
+          description: date range end parameter on finished date
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of past import jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/importJobs"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    post:
+      description: Create job log samples for test purposes etc, for example by import from another FOLIO instance.
+      operationId: postImportJob
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/importJob"
+        required: true
+      responses:
+        "201":
+          description: Job log created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/importJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/import-jobs/{id}:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Import job identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getImportJob
+      description: Retrieves details of a previous harvest job
+      responses:
+        "200":
+          description: A past import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/importJob"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+    delete:
+      operationId: deleteImportJob
+      description: Delete a past import job with all its logs
+      responses:
+        "200":
+          description: Job run and logs deleted
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+  /harvester-admin/import-jobs/{id}/log:
+    parameters:
+      - $ref: headers/okapi-tenant.yaml
+      - $ref: headers/okapi-token.yaml
+      - $ref: headers/okapi-url.yaml
+      - in: path
+        name: id
+        required: true
+        description: Import job identifier
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getImportJobLog
+      description: Retrieves the log of a past import job
+      parameters:
+        - in: query
+          name: query
+          required: false
+          description: CQL, supporting harvestJobId, jobLabel, line in query terms
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Logs for an import job
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: "#/components/schemas/logLines_"
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
+    post:
+      operationId: postImportJobLog
+      description: For importing job logs from another source.
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+        required: true
+      responses:
+        "201":
+          description: Logs imported
+        "400":
+          $ref: "#/components/responses/trait_400"
+        "404":
+          $ref: "#/components/responses/trait_404"
+        "500":
+          $ref: "#/components/responses/trait_500"
+
 
 
   /harvester-admin/previous-jobs/failed-records:
@@ -1458,7 +1629,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/step"
+              $ref: "#/components/schemas/step_"
         required: true
       responses:
         "201":
@@ -1466,7 +1637,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: "#/components/schemas/step_"
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -1492,7 +1663,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: "#/components/schemas/step_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1506,14 +1677,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/step"
+              $ref: "#/components/schemas/step_"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: "#/components/schemas/step_"
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1871,6 +2042,10 @@ components:
       $ref: schemas/steps.json
     step:
       $ref: schemas/step.json
+    steps_:
+      $ref: schemas/steps_.json
+    step_:
+      $ref: schemas/step_.json
     script:
       $ref: schemas/script.json
     transformationStepAssociation:
@@ -1885,10 +2060,12 @@ components:
       $ref: schemas/harvestJobStatus.json
     previousJobs:
       $ref: schemas/previousJobs.json
-    logLines:
-      $ref: schemas/logLines.json
     previousJob:
       $ref: schemas/previousJob.json
+    logLines:
+      $ref: schemas/logLines.json
+    logLines_:
+      $ref: schemas/logLines_.json
     failedRecordCurrentJob:
       $ref: schemas/failedRecordCurrentJob.json
     failedRecordsCurrentJob:
@@ -1903,3 +2080,7 @@ components:
       $ref: schemas/importConfigGet.json
     importConfigs:
       $ref: schemas/importConfigs.json
+    importJobs:
+      $ref: schemas/importJobs.json
+    importJob:
+      $ref: schemas/importJob.json
