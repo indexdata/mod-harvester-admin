@@ -118,9 +118,7 @@
           "methods": ["POST"],
           "pathPattern": "/harvester-admin/previous-jobs/{id}/failed-records",
           "permissionsRequired": ["harvester-admin.previous-jobs.failed-records.collection.post"]
-        },
-
-        {
+        }, {
           "methods": ["GET"],
           "pathPattern": "/harvester-admin/import-jobs",
           "permissionsRequired": ["harvester-admin.import-jobs.collection.get"]
@@ -682,6 +680,15 @@
         "harvester-admin.previous-jobs.failed-records.collection.get",
         "harvester-admin.previous-jobs.failed-records.item.get",
         "harvester-admin.previous-jobs.failed-records.collection.post",
+        "harvester-admin.import-jobs.collection.get",
+        "harvester-admin.import-jobs.item.get",
+        "harvester-admin.import-jobs.item.post",
+        "harvester-admin.import-jobs.item.delete",
+        "harvester-admin.import-jobs.log.get",
+        "harvester-admin.import-jobs.log.post",
+        "harvester-admin.import-jobs.failed-records.collection.get",
+        "harvester-admin.import-jobs.failed-records.item.get",
+        "harvester-admin.import-jobs.failed-records.collection.post",
         "mod-settings.global.read.mod-harvester-admin",
         "mod-settings.global.write.mod-harvester-admin"
       ]

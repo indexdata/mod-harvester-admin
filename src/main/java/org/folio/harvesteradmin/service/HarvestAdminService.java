@@ -26,7 +26,7 @@ import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.harvesteradmin.service.fileimport.FileQueue;
-import org.folio.harvesteradmin.service.fileimport.XmlFilesImportVerticle;
+import org.folio.harvesteradmin.service.fileimport.XmlFilesImportVerticle_;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -684,7 +684,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
         SqlQuery query;
         try {
-            query = new ImportJob()
+            query = new ImportJobLog()
                     .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(Tables.import_job))
                     .withAdditionalWhereClause(timeRange);
         } catch (PgCqlException pce) {
@@ -700,8 +700,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                         JsonObject responseJson = new JsonObject();
                         JsonArray importJobs = new JsonArray();
                         responseJson.put("importJobs", importJobs);
-                        List<ImportJob> jobs = jobsList.result();
-                        for (ImportJob job : jobs) {
+                        List<ImportJobLog> jobs = jobsList.result();
+                        for (ImportJobLog job : jobs) {
                             importJobs.add(job.asJson());
                         }
                         moduleStorage.getCount(query.getCountingSql()).onComplete(
@@ -719,7 +719,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     }
 
     private Future<Void> getImportJobById(Vertx vertx, RoutingContext routingContext) {
-        return _getEntityById(vertx, routingContext, new ImportJob());
+        return _getEntityById(vertx, routingContext, new ImportJobLog());
     }
 
     private Future<Void> postStep_(Vertx vertx, RoutingContext routingContext) {
@@ -1009,7 +1009,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                 .onSuccess(cfg -> {
                     if (cfg != null) {
                         new FileQueue(vertx, tenant, importConfigId).addNewFile(fileName, xmlContent);
-                        XmlFilesImportVerticle.launchVerticle(tenant, importConfigId, routingContext);
+                        XmlFilesImportVerticle_.launchVerticle(tenant, importConfigId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No import config with id [" + importConfigId + "] found.");

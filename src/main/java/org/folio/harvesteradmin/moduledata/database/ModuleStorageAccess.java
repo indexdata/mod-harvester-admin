@@ -103,6 +103,16 @@ public class ModuleStorageAccess {
                 .map(UUID.fromString(entity.asJson().getString("id")));
     }
 
+    public Future<Void> updateEntity (Entity entity, String updateTemplate) {
+        return SqlTemplate.forUpdate(pool.getPool(), updateTemplate)
+                .mapFrom(entity.getTupleMapper())
+                .execute(entity)
+                .onSuccess(res -> logger.info("Saved " + entity.entityName().toLowerCase()))
+                .onFailure(res -> logger.error("Couldn't save " + entity.entityName().toLowerCase() + ": " + res.getMessage()))
+                .mapEmpty();
+
+    }
+
     public Future<Void> storeEntities(Entity definition, List<Entity> entities) {
         if (entities!=null && !entities.isEmpty()) {
             return SqlTemplate.forUpdate(pool.getPool(),
@@ -201,6 +211,15 @@ public class ModuleStorageAccess {
         }
     }
 
+    public Future<Void> storeLogLines_(List<Entity> logLines) {
+        return SqlTemplate.forUpdate(pool.getPool(),
+                        new LogLine_().makeInsertTemplate(pool.getSchema()))
+                .mapFrom(new LogLine_().getTupleMapper())
+                .executeBatch(logLines)
+                .onFailure(res -> logger.error("Didn't save log lines: " + res.getMessage()))
+                .mapEmpty();
+    }
+
 
     /**
      * Stores failed records.
@@ -239,16 +258,16 @@ public class ModuleStorageAccess {
      * @param query
      * @return
      */
-    public Future<List<ImportJob>> getImportJobs(String query) {
-        List<ImportJob> importJobs = new ArrayList<>();
+    public Future<List<ImportJobLog>> getImportJobs(String query) {
+        List<ImportJobLog> importJobLogs = new ArrayList<>();
         return SqlTemplate.forQuery(pool.getPool(), query)
-                .mapTo(new ImportJob().getRowMapper())
+                .mapTo(new ImportJobLog().getRowMapper())
                 .execute(null)
                 .onSuccess(rows -> {
                     for (Entity entity : rows) {
-                        importJobs.add((ImportJob) entity);
+                        importJobLogs.add((ImportJobLog) entity);
                     }
-                }).map(importJobs);
+                }).map(importJobLogs);
     }
 
     /**
@@ -267,7 +286,7 @@ public class ModuleStorageAccess {
                 });
     }
 
-    public Future<ImportJob> getImportJobById(UUID id) {
+    public Future<ImportJobLog> getImportJobById(UUID id) {
         return SqlTemplate.forQuery(pool.getPool(),
                         "SELECT * "
                                 + "FROM " + schemaDotTable(Tables.import_job) + " "
@@ -276,7 +295,7 @@ public class ModuleStorageAccess {
                 .execute(Collections.singletonMap("id", id))
                 .map(rows -> {
                     RowIterator<Entity> iterator = rows.iterator();
-                    return iterator.hasNext() ? (ImportJob) iterator.next() : null;
+                    return iterator.hasNext() ? (ImportJobLog) iterator.next() : null;
                 });
     }
 

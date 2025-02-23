@@ -6,6 +6,7 @@ import io.vertx.core.file.FileSystem;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FileQueue {
 
@@ -14,6 +15,8 @@ public class FileQueue {
     private final String jobPath;
     private final String pathToProcessingSlot;
     private final FileSystem fs;
+    public final AtomicBoolean passive = new AtomicBoolean(true);
+
 
     public FileQueue(Vertx vertx, String tenant, String jobConfigId) {
         this.fs = vertx.fileSystem();
@@ -85,6 +88,13 @@ public class FileQueue {
 
     public void deleteFile(File file) {
         fs.deleteBlocking(file.getPath());
+    }
+
+    public File nextFileIfPossible() {
+         if (promoteNextFileIfPossible()) {
+            return currentlyPromotedFile();
+        }
+        return null;
     }
 
 }
