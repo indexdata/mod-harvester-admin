@@ -5,6 +5,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.foliodata.InventoryUpdateClient;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -13,16 +15,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryBatchUpdater implements RecordReceiver {
 
-    private final XmlFilesImportVerticle jobVerticle;
+    private final ImportJob job;
     private JsonArray inventoryRecordSets = new JsonArray();
     private int batchCounter = 0;
     private final InventoryUpdateClient updateClient;
-
     private final Turnstile turnstile = new Turnstile();
+    public static final Logger logger = LogManager.getLogger("InventoryBatchUpdater");
 
-    public InventoryBatchUpdater(XmlFilesImportVerticle jobVerticle, RoutingContext routingContext) {
+
+    public InventoryBatchUpdater(ImportJob importJob, RoutingContext routingContext) {
         updateClient = InventoryUpdateClient.getClient(routingContext);
-        this.jobVerticle = jobVerticle;
+        this.job = importJob;
     }
 
     @Override
@@ -68,16 +71,16 @@ public class InventoryBatchUpdater implements RecordReceiver {
         if (batch != null) {
             if (batch.size() > 0) {
                 updateClient.inventoryUpsert(batch.getUpsertRequestBody()).onComplete(json -> {
-                    jobVerticle.reporting().incrementRecordsProcessed(batch.size());
-                    jobVerticle.reporting().incrementInventoryMetrics(new InventoryMetrics(json.result().getJsonObject("metrics")));
+                    job.reporting.incrementRecordsProcessed(batch.size());
+                    job.reporting.incrementInventoryMetrics(new InventoryMetrics(json.result().getJsonObject("metrics")));
                     if (batch.isLastBatchOfFile()) {
-                        report(batch);
+                        reportEndOfFile();
                     }
                     promise.complete();
                 });
             } else { // we get here when the last set of records is exactly 100. We just need to report
                 if (batch.isLastBatchOfFile()) {
-                    report(batch);
+                    reportEndOfFile();
                 }
                 promise.complete();
             }
@@ -85,12 +88,11 @@ public class InventoryBatchUpdater implements RecordReceiver {
         return promise.future();
     }
 
-    private void report(BatchOfRecords batch) {
-        jobVerticle.reporting().incrementFilesProcessed();
-        jobVerticle.reporting().reportFileStats();
-        var queueDone = jobVerticle.fileQueueDone(batch.isLastBatchOfFile());
-        jobVerticle.reporting().reportFileQueueStats(queueDone);
+    private void reportEndOfFile() {
+        job.reporting.endOfFile();
+        boolean queueDone = job.fileQueueDone(true);
         if (queueDone) {
+            job.reporting.endOfQueue();
             batchCounter = 0;
         }
     }
@@ -134,7 +136,7 @@ public class InventoryBatchUpdater implements RecordReceiver {
         private boolean isIdle(int idlingChecksThreshold) {
             if (turnstile.isEmpty()) {
                 if (turnstileEmptyChecks.incrementAndGet() > idlingChecksThreshold) {
-                    System.out.println("ID-NE: Turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
+                    logger.info("Batch turnstile has been idle for " + idlingChecksThreshold + " consecutive checks.");
                     turnstileEmptyChecks.set(0);
                     return true;
                 }
@@ -143,5 +145,5 @@ public class InventoryBatchUpdater implements RecordReceiver {
             }
             return false;
         }
-   }
+    }
 }

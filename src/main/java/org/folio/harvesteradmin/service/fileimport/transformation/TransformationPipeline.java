@@ -5,8 +5,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage;
-import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.Entity;
 import org.folio.harvesteradmin.moduledata.Step;
 import org.folio.harvesteradmin.moduledata.TransformationStep;
@@ -24,11 +24,9 @@ public class TransformationPipeline implements RecordReceiver {
 
     private final List<Templates> listOfTemplates = new ArrayList<>();
     private RecordReceiver target;
-    private static final Map<String, Map<String, TransformationPipeline>> transformationPipelines = new HashMap<>();
-
     private int records = 0;
     private long transformationTime = 0;
-
+    public static final Logger logger = LogManager.getLogger("TransformationPipeline");
 
     private TransformationPipeline(JsonObject transformation) {
         setTemplates(transformation);
@@ -41,19 +39,7 @@ public class TransformationPipeline implements RecordReceiver {
         return this;
     }
 
-    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, String jobConfigId, String transformationId) {
-        Promise<TransformationPipeline> promise = Promise.promise();
-        new LegacyHarvesterStorage(vertx, tenant)
-                .getConfigRecordById(ApiPaths.HARVESTER_TRANSFORMATIONS_PATH, transformationId)
-                .onSuccess(transformationConfig -> {
-                    TransformationPipeline pipeline = new TransformationPipeline(transformationConfig.jsonObject());
-                    cacheInstance(tenant, jobConfigId, pipeline);
-                    promise.complete(pipeline);
-                });
-        return promise.future();
-    }
-
-    public static Future<TransformationPipeline> _create(Vertx vertx, String tenant, String jobConfigId, UUID transformationId) {
+    public static Future<TransformationPipeline> create(Vertx vertx, String tenant, UUID transformationId) {
         Promise<TransformationPipeline> promise = Promise.promise();
         ModuleStorageAccess access = new ModuleStorageAccess(vertx, tenant);
         TransformationStep tsasDef = new TransformationStep();
@@ -73,28 +59,10 @@ public class TransformationPipeline implements RecordReceiver {
                         json.getJsonArray("stepAssociations").add(o);
                     }
                     TransformationPipeline pipeline = new TransformationPipeline(json);
-                    cacheInstance(tenant, jobConfigId, pipeline);
                     promise.complete(pipeline);
                 })
-                .onFailure(handler -> System.out.println("Problem getting steps " + handler.getMessage()));
+                .onFailure(handler -> logger.error("Problem retrieving steps " + handler.getMessage()));
         return promise.future();
-    }
-
-    public static boolean hasInstance(String tenant, String jobConfigId) {
-        return (transformationPipelines.containsKey(tenant)
-                && transformationPipelines.get(tenant).containsKey(jobConfigId)
-                && transformationPipelines.get(tenant).get(jobConfigId) != null);
-    }
-
-    public static TransformationPipeline getInstance(String tenant, String jobConfigId) {
-        return transformationPipelines.get(tenant).get(jobConfigId);
-    }
-
-    private static void cacheInstance(String tenant, String jobConfigId, TransformationPipeline pipeline) {
-        if (!transformationPipelines.containsKey(tenant)) {
-            transformationPipelines.put(tenant, new HashMap<>());
-        }
-        transformationPipelines.get(tenant).put(jobConfigId, pipeline);
     }
 
     private String transform(String xmlRecord) {
@@ -141,12 +109,9 @@ public class TransformationPipeline implements RecordReceiver {
     public void put(String xmlRecord) {
         long transformationStarted = System.currentTimeMillis();
         records++;
-        //System.out.println("Pipeline received " + xmlRecord);
         xmlRecord = "<collection>" + xmlRecord + "</collection>";
         String transformedXmlRecord = transform(xmlRecord);
-        //System.out.println("Transformed to: " + transformedXmlRecord);
         String jsonRecord = convertToJson(transformedXmlRecord);
-        //System.out.println("Converted to " + jsonRecord);
         transformationTime += (System.currentTimeMillis() - transformationStarted);
         target.put(jsonRecord);
     }

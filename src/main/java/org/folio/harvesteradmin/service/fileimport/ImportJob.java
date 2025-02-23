@@ -4,6 +4,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.ImportConfig;
 import org.folio.harvesteradmin.moduledata.ImportJobLog;
 import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
@@ -20,13 +22,14 @@ import java.util.UUID;
 public class ImportJob {
     UUID importConfigId;
     ImportJobLog importJobLog;
-    Reporting_ reporting;
+    Reporting reporting;
     FileQueue fileQueue;
     TransformationPipeline transformationPipeline;
-    InventoryBatchUpdater_ updater;
+    InventoryBatchUpdater updater;
     Vertx vertx;
-
     ModuleStorageAccess configStorage;
+    public static final Logger logger = LogManager.getLogger("ImportJob");
+
 
     private ImportJob(Vertx vertx, String tenant, UUID importConfigId) {
         this.vertx = vertx;
@@ -37,8 +40,8 @@ public class ImportJob {
     public static Future<ImportJob> instantiateJob (String tenant, UUID jobConfigId, FileQueue fileQueue, Vertx vertx, RoutingContext routingContext) {
         ImportJob job = new ImportJob(vertx, tenant, jobConfigId);
         job.fileQueue = fileQueue;                          // Handle to source files in vertx file system
-        job.reporting = new Reporting_(job, tenant, vertx); // Logging progress and results
-        job.updater = new InventoryBatchUpdater_(job, routingContext); // Batching and persisting records in inventory.
+        job.reporting = new Reporting(job, tenant, vertx); // Logging progress and results
+        job.updater = new InventoryBatchUpdater(job, routingContext); // Batching and persisting records in inventory.
         return job.initiateJobLog(jobConfigId)
                 .compose(na -> job.getTransformationPipeline(tenant, jobConfigId, vertx))
                 .compose(na -> Future.succeededFuture(job));
@@ -55,10 +58,6 @@ public class ImportJob {
         importJobLog.setFinished(SettableClock.getLocalDateTime(), configStorage);
     }
 
-    public UUID jobConfigId () {
-        return importConfigId;
-    }
-
     Future<Void> processFile(File xmlFile) {
         Promise<Void> promise = Promise.promise();
         try {
@@ -69,7 +68,7 @@ public class ImportJob {
                                 if (processing.succeeded()) {
                                     promise.complete();
                                 } else {
-                                    System.out.println("Processing failed with " + processing.cause().getMessage());
+                                    logger.error("Processing failed with " + processing.cause().getMessage());
                                     promise.complete();
                                 }
                             });
@@ -79,7 +78,6 @@ public class ImportJob {
         }
         return promise.future();
     }
-
 
     /**
      * If there's a file in the processing slot but no activity in the inventory updater, the current job
@@ -103,7 +101,7 @@ public class ImportJob {
         Promise<TransformationPipeline> promise = Promise.promise();
         new ModuleStorageAccess(vertx, tenant).getEntityById(importConfigId,new ImportConfig())
                 .map(cfg -> ((ImportConfig) cfg).record.transformationId())
-                .compose(transformationId -> TransformationPipeline._create(vertx, tenant, importConfigId.toString(), transformationId))
+                .compose(transformationId -> TransformationPipeline.create(vertx, tenant, transformationId))
                 .onComplete(pipelineBuild -> {
                     transformationPipeline = pipelineBuild.result();
                     transformationPipeline.setTarget(updater);

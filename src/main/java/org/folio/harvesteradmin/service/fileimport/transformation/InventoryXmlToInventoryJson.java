@@ -3,6 +3,8 @@ package org.folio.harvesteradmin.service.fileimport.transformation;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -16,6 +18,8 @@ import java.io.StringReader;
 import java.util.*;
 
 public class InventoryXmlToInventoryJson {
+
+    public static final Logger logger = LogManager.getLogger("InventoryXmlToInventoryJson");
 
     public static JsonObject convert(String xmlStr)  {
         JsonObject genericJson = parseXmlToJson(xmlStr);
@@ -32,7 +36,7 @@ public class InventoryXmlToInventoryJson {
             saxParser.parse(new InputSource(new StringReader(xmlStr)), handler);
             return new JsonObject(handler.getData());
         } catch (ParserConfigurationException | SAXException e) {
-            System.out.println(e.getMessage());
+            logger.error("Error parsing XML to JSON: " + e.getMessage());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -41,7 +45,7 @@ public class InventoryXmlToInventoryJson {
 
     // SAX parser, XML-to-JSON.
     public static class XMLToJSONHandler extends DefaultHandler {
-        private Stack<Map<String, Object>> stack = new Stack<>();
+        private final Stack<Map<String, Object>> stack = new Stack<>();
         private Map<String, Object> currentData = new HashMap<>();
 
         @Override

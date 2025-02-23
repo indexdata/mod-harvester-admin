@@ -1,5 +1,7 @@
 package org.folio.harvesteradmin.service.fileimport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.folio.reservoir.util.EncodeXmlText;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -17,6 +19,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
     String record=null;
     RecordReceiver target;
     String xmlCollectionOfRecords;
+    public static final Logger logger = LogManager.getLogger("XmlRecordsFromFile");
 
     public XmlRecordsFromFile(String recordsSource) {
         this.xmlCollectionOfRecords = recordsSource;
@@ -33,7 +36,7 @@ public class XmlRecordsFromFile extends DefaultHandler implements RecordProvider
             InputStream inputStream = new ByteArrayInputStream(xmlCollectionOfRecords.getBytes(StandardCharsets.UTF_8));
             factory.newSAXParser().parse(inputStream, this);
         } catch (ParserConfigurationException | SAXException pce) {
-            System.out.println("SaxParsing, produceRecords, error: " + pce.getMessage());
+            logger.error("SaxParsing, produceRecords, error: " + pce.getMessage());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

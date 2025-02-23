@@ -28,7 +28,6 @@ public class LogLine extends Entity {
   public LogLine(UUID harvestJobId, String line, int sequenceNumber) {
     Matcher matcher = logPattern.matcher(line);
     if (matcher.matches()) {
-      System.out.println("Setting log line record");
       record = new LogLineRecord(
               UUID.randomUUID(),
               harvestJobId,

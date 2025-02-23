@@ -26,7 +26,7 @@ import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.harvesteradmin.service.fileimport.FileQueue;
-import org.folio.harvesteradmin.service.fileimport.XmlFilesImportVerticle_;
+import org.folio.harvesteradmin.service.fileimport.XmlFilesImportVerticle;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
@@ -1003,13 +1003,12 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         String importConfigId = routingContext.pathParam("id");
         String fileName = routingContext.queryParam("filename").stream().findFirst().orElse(UUID.randomUUID() + ".xml");
         Buffer xmlContent = Buffer.buffer(routingContext.body().asString());
-        System.out.println("Staging XML file, current thread is " + Thread.currentThread().getName());
 
         new ModuleStorageAccess(vertx, tenant).getEntityById(UUID.fromString(importConfigId), new ImportConfig())
                 .onSuccess(cfg -> {
                     if (cfg != null) {
                         new FileQueue(vertx, tenant, importConfigId).addNewFile(fileName, xmlContent);
-                        XmlFilesImportVerticle_.launchVerticle(tenant, importConfigId, routingContext);
+                        XmlFilesImportVerticle.launchVerticle(tenant, importConfigId, routingContext);
                         responseText(routingContext, 200).end("File queued for processing in ms " + (System.currentTimeMillis() - fileStartTime));
                     } else {
                         responseError(routingContext, 404, "Error: No import config with id [" + importConfigId + "] found.");

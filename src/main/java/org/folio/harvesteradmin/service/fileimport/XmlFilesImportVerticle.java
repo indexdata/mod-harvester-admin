@@ -4,37 +4,28 @@ import io.vertx.core.*;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.folio.harvesteradmin.moduledata.ImportConfig;
-import org.folio.harvesteradmin.moduledata.database.ModuleStorageAccess;
-import org.folio.harvesteradmin.service.fileimport.transformation.TransformationPipeline;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class XmlFilesImportVerticle extends AbstractVerticle {
 
-    private final String tenant;
-    private final String jobConfigId;
-    private final FileQueue fileQueue;
-    private Reporting reporting;
-    private final InventoryBatchUpdater inventoryUpdater;
-    private final AtomicBoolean passive = new AtomicBoolean(true);
-    public static final Logger logger = LogManager.getLogger("queued-files-processing");
     private final static ConcurrentMap<String, ConcurrentMap<String, String>> fileImportVerticles = new ConcurrentHashMap<>();
+    private final String tenant;
+    private final UUID jobConfigId;
+    private ImportJob importJob;
+    private final RoutingContext routingContext;
+    FileQueue fileQueue;
+    public static final Logger logger = LogManager.getLogger("queued-files-processing");
 
     public XmlFilesImportVerticle(String tenant, String jobConfigId, Vertx vertx, RoutingContext routingContext) {
         this.tenant = tenant;
-        this.jobConfigId = jobConfigId;
-        fileQueue = new FileQueue(vertx, tenant, jobConfigId);
-        reporting = new Reporting(this);
-        inventoryUpdater = new InventoryBatchUpdater(this, routingContext);
+        this.jobConfigId = UUID.fromString(jobConfigId);
+        this.routingContext = routingContext;
+        this.fileQueue = new FileQueue(vertx, tenant, jobConfigId);
     }
 
     public static void launchVerticle(String tenant, String importConfigurationId, RoutingContext routingContext) {
@@ -46,103 +37,52 @@ public class XmlFilesImportVerticle extends AbstractVerticle {
                     .setWorkerPoolSize(1).setMaxWorkerExecuteTime(10).setMaxWorkerExecuteTimeUnit(TimeUnit.MINUTES)).onComplete(
                     started -> {
                         if (started.succeeded()) {
-                            System.out.println("ID-NE: started verticle for " + tenant + " and configuration ID " + importConfigurationId);
-                            System.out.println("ID-NE: current thread " + Thread.currentThread().getName());
+                            logger.info("Started verticle for " + tenant + " and configuration ID " + importConfigurationId);
                             fileImportVerticles.get(tenant).put(importConfigurationId, started.result());
-                            System.out.println("ID-NE: deployed verticles: " + vertx.deploymentIDs());
+                            logger.info("Deployed verticles: " + vertx.deploymentIDs());
                         } else {
-                            System.out.println("ID-NE: Couldn't start file processor threads for tenant " + tenant + " and import configuration ID " + importConfigurationId);
+                            logger.error("Couldn't start file processor threads for tenant " + tenant + " and import configuration ID " + importConfigurationId);
                         }
                     });
         } else {
-            System.out.println("ID-NE: Continuing with already existing verticle for tenant " + tenant + " and import configuration ID " + importConfigurationId);
+            logger.info("Continuing with already existing verticle for tenant " + tenant + " and import configuration ID " + importConfigurationId);
         }
     }
 
     @Override
     public void start() {
-        System.out.println("ID-NE: starting file processor for tenant " + tenant + " and job configuration ID " + jobConfigId);
+        logger.info("Starting file processor for tenant " + tenant + " and job configuration ID " + jobConfigId);
         vertx.setPeriodic(200, (r) -> {
-            File currentFile = nextFileIfPossible();
+            File currentFile = getNextFileIfPossible();
             if (currentFile != null) {  // null if queue is empty or a previous file is still processing
-                boolean activating = passive.getAndSet(false); // check if job was passive before this file
-                reporting.nowProcessing(currentFile.getName(), activating); // reset stats if new job was just activated
-                processFile(currentFile, activating) // refresh style sheets from db if new job
+                boolean activating = fileQueue.passive.getAndSet(false); // check if job was passive before this file
+                // Use existing job or instantiate new.
+                getJob(activating)
+                        .compose(job -> job.processFile(currentFile))
                         .onComplete(na -> fileQueue.deleteFile(currentFile))
-                        .onFailure(f -> System.out.println("Error processing file: " + f.getMessage()));
+                        .onFailure(f -> logger.error("Error processing file: " + f.getMessage()));
             }
         });
     }
 
-    private File nextFileIfPossible() {
-        if (resumeHaltedProcessing()) {
+    public File getNextFileIfPossible () {
+        if (importJob != null && importJob.resumeHaltedProcessing()) {
             return fileQueue.currentlyPromotedFile();
-        } else if (fileQueue.promoteNextFileIfPossible()) {
-            return fileQueue.currentlyPromotedFile();
-        }
-        return null;
-    }
-
-    public boolean fileQueueDone(boolean possibly) {
-        if (possibly && !fileQueue.hasNextFile() && !reporting.pendingFileStats()) {
-            passive.set(true);
-        }
-        return passive.get();
-    }
-
-    /**
-     * If there's a file in the processing slot but no activity in the inventory updater, the current job
-     * is assumed to be in a paused state, which could for example be due to a module restart.
-     * @return true if there's a file ostensibly processing but no activity detected in inventory updater
-     * for `idlingChecksThreshold` consecutive checks
-     */
-    private boolean resumeHaltedProcessing() {
-        return fileQueue.processingSlotTaken() && inventoryUpdater.noPendingBatches(10);
-    }
-
-    private Future<Void> processFile(File xmlFile, boolean refreshPipeline) {
-        Promise<Void> promise = Promise.promise();
-        try {
-            String xmlFileContents = Files.readString(xmlFile.toPath(), StandardCharsets.UTF_8);
-            getTransformationPipeline(UUID.fromString(jobConfigId), refreshPipeline)
-                    .map(transformationPipeline -> transformationPipeline.setTarget(inventoryUpdater))
-                    .compose(pipelineToInventory -> vertx
-                            .executeBlocking(new XmlRecordsFromFile(xmlFileContents).setTarget(pipelineToInventory))
-                            .onComplete(processing -> {
-                                if (processing.succeeded()) {
-                                    promise.complete();
-                                } else {
-                                    System.out.println("Processing failed with " + processing.cause().getMessage());
-                                    promise.complete();
-                                }
-                            }));
-
-        } catch (IOException e) {
-            promise.fail("Could not open XML source file for importing " + e.getMessage());
-        }
-        return promise.future();
-    }
-
-    private Future<TransformationPipeline> getTransformationPipeline(UUID importConfigId, boolean refresh) {
-        Promise<TransformationPipeline> promise = Promise.promise();
-        if (TransformationPipeline.hasInstance(tenant, importConfigId.toString()) && !refresh) {
-            promise.complete(TransformationPipeline.getInstance(tenant, importConfigId.toString()));
         } else {
-            new ModuleStorageAccess(vertx, tenant).getEntityById(importConfigId,new ImportConfig())
-                    .map(cfg -> ((ImportConfig) cfg).record.transformationId())
-                    .compose(transformationId -> TransformationPipeline._create(vertx, tenant, importConfigId.toString(), transformationId))
-                    .onComplete(pipelineBuild -> promise.complete(pipelineBuild.result()))
-                    .onFailure(e -> Future.failedFuture(e.getMessage()));
+            return fileQueue.nextFileIfPossible();
         }
-        return promise.future();
     }
 
-    public Reporting reporting() {
-        return reporting;
-    }
-
-    public String getJobConfigId() {
-        return jobConfigId;
+    public Future<ImportJob> getJob (boolean activating) {
+        if (activating) {
+            return ImportJob.instantiateJob(tenant, jobConfigId, fileQueue, vertx, routingContext)
+                    .compose(job -> {
+                        importJob = job;
+                        return Future.succeededFuture(importJob);
+                    });
+        } else {
+            return Future.succeededFuture(importJob);
+        }
     }
 
 }

@@ -103,11 +103,9 @@ public abstract class Entity {
         });
         listOfColumns.deleteCharAt(listOfColumns.length()-1);
         listOfValues.deleteCharAt(listOfValues.length()-1);
-        String insert = "INSERT INTO " + schema + "." + table()
+        return "INSERT INTO " + schema + "." + table()
                 + " (" + listOfColumns + ")"
                 + " VALUES (" + listOfValues + ")";
-        System.out.println("SQL " + insert);
-        return insert;
     }
 
 
@@ -158,7 +156,6 @@ public abstract class Entity {
         String from = "FROM " + schemaDotTable;
         String whereClause = "";
         String orderByClause = "";
-        System.out.println("Query: " + query);
         if (query != null && !query.isEmpty()) {
             PgCqlQuery pgCqlQuery = definition.parse(query.getString());
             if (pgCqlQuery.getWhereClause() != null) {

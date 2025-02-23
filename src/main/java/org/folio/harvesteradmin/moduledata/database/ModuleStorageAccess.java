@@ -188,7 +188,7 @@ public class ModuleStorageAccess {
                 }
                 for (Entity ll : logLines) {
                     if (((LogLine) ll).record == null) {
-                        System.out.println("Found null record");
+                        logger.error("Found null record");
                     }
                 }
                 logger.info("Parsed " + sequence + " log lines in "
