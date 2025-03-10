@@ -1,3 +1,7 @@
+## 1.3.1 2024-10-25
+
+* [MODHAADM-101](https://folio-org.atlassian.net/browse/MODHAADM-101) Creates mod-settings permissions install time. 
+
 ## 1.3.0 2024-10-17
 
 * [MODHAADM-71](https://issues.folio.org/browse/MODHAADM-71) Provides timer process for automatic purge of past job runs and logs.
