@@ -1,3 +1,9 @@
+## 1.4.0 2025-03-10
+
+* [MODHAADM-105](https://issues.folio.org/browse/MODHAADM-105) Fix potential for hanging log purge request.
+* [MODHAADM-107](https://issues.folio.org/browse/MODHAADM-107) Fix `totalRecords` in failed records. Fix error reporting.
+* [MODHAADM-109](https://issues.folio.org/browse/MODHAADM-109) Java 21.
+
 ## 1.3.1 2024-10-25
 
 * [MODHAADM-101](https://folio-org.atlassian.net/browse/MODHAADM-101) Creates mod-settings permissions install time. 
