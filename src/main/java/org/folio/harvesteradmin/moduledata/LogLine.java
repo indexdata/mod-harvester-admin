@@ -6,12 +6,13 @@ import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
+import org.folio.harvesteradmin.moduledata.RecordFailure.Column;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
@@ -131,8 +132,10 @@ public class LogLine extends StoredEntity {
   /**
    * CREATE TABLE SQL template.
    */
-  public String makeCreateTableSql(String schema) {
-    return  "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.log_statement
+  @Override
+  public List<String> makeCreateSqls(String schema) {
+    return List.of(
+        "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.log_statement
         + "("
         + LogLineField.ID.columnName() + " UUID PRIMARY KEY, "
         + LogLineField.HARVEST_JOB_ID.columnName() + " UUID NOT NULL REFERENCES "
@@ -142,7 +145,9 @@ public class LogLine extends StoredEntity {
         + LogLineField.LOG_LEVEL.columnName() + " TEXT NOT NULL, "
         + LogLineField.JOB_LABEL.columnName() + " TEXT NOT NULL, "
         + LogLineField.LOG_STATEMENT.columnName() + " TEXT NOT NULL"
-        + ")";
+        + ")",
+        "CREATE INDEX IF NOT EXISTS log_statement_harvest_job_id_idx ON "
+        + schema + "." + Tables.log_statement + "(" + LogLineField.HARVEST_JOB_ID.columnName() + ")");
   }
 
   @Override

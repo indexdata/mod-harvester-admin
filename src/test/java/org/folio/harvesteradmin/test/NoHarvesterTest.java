@@ -11,6 +11,7 @@ import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -29,15 +30,14 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
 import static org.folio.harvesteradmin.test.Statics.BASE_URI_OKAPI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(VertxUnitRunner.class)
-public class NoHarvesterTestSuite {
-    private static final Logger logger = LoggerFactory.getLogger(NoHarvesterTestSuite.class);
+public class NoHarvesterTest {
+    private static final Logger logger = LoggerFactory.getLogger(NoHarvesterTest.class);
 
     static Vertx vertx;
 
@@ -509,98 +509,55 @@ public class NoHarvesterTestSuite {
                 .then()
                 .log().ifValidationFails().statusCode(200).extract().response();
 
+        UUID[] ids = { UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() };
         LocalDateTime now = LocalDateTime.now();
-        final LocalDateTime agedJobStartedTime = now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS);
-        final LocalDateTime agedJobFinishedTime = agedJobStartedTime.plusMinutes(2);
-        final LocalDateTime intermediateJobStartedTime = now.minusMonths(2).minusDays(1).truncatedTo(ChronoUnit.SECONDS);
-        final LocalDateTime intermediateJobFinishedTime = intermediateJobStartedTime.plusMinutes(2);
-        final LocalDateTime newerJobStartedTime = now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS);
-        final LocalDateTime newerJobFinishedTime = newerJobStartedTime.plusMinutes(3);
+        LocalDateTime[] started = {
+            now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
+            now.minusMonths(2).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
+            now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS)
+        };
+        for (int i = 0; i < 3; i++) {
+          var harvestJobId = ids[i];
+          var job = new JsonObject()
+              .put("id", harvestJobId)
+              .put("name", "foo")
+              .put("type", "xmlBulk")
+              .put("url", "http://fileserver/xml/")
+              .put("transformation", "789")
+              .put("storage", "Batch Upsert Inventory")
+              .put("harvestableId", 123)
+              .put("started", started[i].toString());
+          given().body(job.encode())
+              .post("harvester-admin/previous-jobs")
+              .then().statusCode(201);
+          given()
+              .body("2024-01-01T00:00:00.000 INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
+              .post("harvester-admin/previous-jobs/" + harvestJobId + "/log")
+              .then().statusCode(201);
+          var failedRecords = new JsonArray()
+              .add(new JsonObject()
+                  .put("id", UUID.randomUUID().toString())
+                  .put("timeStamp", "2024-01-01T00:00:00.000")
+                  .put("originalRecord", "orig")
+                  .put("transformedRecord", new JsonObject())
+                  .put("recordErrors", new JsonArray()));
+          given()
+              .body(new JsonObject().put("failedRecords", failedRecords).encode())
+              .post("harvester-admin/previous-jobs/" + harvestJobId + "/failed-records")
+              .then().statusCode(201);
+          given()
+              .get("harvester-admin/previous-jobs/" + harvestJobId + "/log")
+              .then().statusCode(200);
+          given()
+              .get("harvester-admin/previous-jobs/" + harvestJobId + "/failed-records")
+              .then().statusCode(200)
+              .body("failedRecords.size()", is(1));
+        }
 
-        JsonObject agedJobJson =
-                new JsonObject(
-                        "    {\n" +
-                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
-                                "      \"name\" : \"fake job log\",\n" +
-                                "      \"harvestableId\" : 672813240090200,\n" +
-                                "      \"type\" : \"xmlBulk\",\n" +
-                                "      \"url\" : \"http://fileserver/xml/\",\n" +
-                                "      \"allowErrors\" : true,\n" +
-                                "      \"transformation\" : \"12345\",\n" +
-                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
-                                "      \"status\" : \"OK\",\n" +
-                                "      \"started\" : \"" + agedJobStartedTime + "\",\n" +
-                                "      \"finished\" : \"" + agedJobFinishedTime + "\",\n" +
-                                "      \"amountHarvested\" : 5,\n" +
-                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__5___5___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__13___13___0___0_ Items_processed/loaded/deleted/failed:__4___4___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
-                                "    }\n");
-
-        JsonObject intermediateJobJson =
-                new JsonObject(
-                        "    {\n" +
-                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
-                                "      \"name\" : \"fake job log\",\n" +
-                                "      \"harvestableId\" : 672813240090200,\n" +
-                                "      \"type\" : \"xmlBulk\",\n" +
-                                "      \"url\" : \"http://fileserver/xml/\",\n" +
-                                "      \"allowErrors\" : true,\n" +
-                                "      \"transformation\" : \"12345\",\n" +
-                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
-                                "      \"status\" : \"OK\",\n" +
-                                "      \"started\" : \"" + intermediateJobStartedTime + "\",\n" +
-                                "      \"finished\" : \"" + intermediateJobFinishedTime + "\",\n" +
-                                "      \"amountHarvested\" : 5,\n" +
-                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__5___5___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__13___13___0___0_ Items_processed/loaded/deleted/failed:__4___4___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
-                                "    }\n");
-
-
-        JsonObject newerJobJson =
-                new JsonObject(
-                        "    {\n" +
-                                "      \"id\" : \"" + UUID.randomUUID() + "\",\n" +
-                                "      \"name\" : \"fake job log\",\n" +
-                                "      \"harvestableId\" : 672813240090200,\n" +
-                                "      \"type\" : \"xmlBulk\",\n" +
-                                "      \"url\" : \"http://fileserver/xml/\",\n" +
-                                "      \"allowErrors\" : true,\n" +
-                                "      \"transformation\" : \"12345\",\n" +
-                                "      \"storage\" : \"Batch Upsert Inventory\",\n" +
-                                "      \"status\" : \"OK\",\n" +
-                                "      \"started\" : \"" + newerJobStartedTime + "\",\n" +
-                                "      \"finished\" : \"" + newerJobFinishedTime + "\",\n" +
-                                "      \"amountHarvested\" : 3,\n" +
-                                "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__3___3___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__8___8___0___0_ Items_processed/loaded/deleted/failed:__2___2___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
-                                "    }\n");
-
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
-                .body(agedJobJson.encode())
-                .contentType(ContentType.JSON)
-                .post("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(201).extract().response();
-
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
-                .body(intermediateJobJson.encode())
-                .contentType(ContentType.JSON)
-                .post("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(201).extract().response();
-
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
-                .body(newerJobJson.encode())
-                .contentType(ContentType.JSON)
-                .post("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(201).extract().response();
-
-        RestAssured
-                .given()
-                .port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
-                .contentType(ContentType.JSON)
-                .get("harvester-admin/previous-jobs")
-                .then().statusCode(200)
-                .body("totalRecords", is(3));
+        given()
+            .get("harvester-admin/previous-jobs")
+            .then().statusCode(200)
+            .body("totalRecords", is(3));
 
         FakeFolioApis.post("/configurations/entries",
                 new JsonObject()
@@ -608,40 +565,33 @@ public class NoHarvesterTestSuite {
                         .put("configName", "PURGE_LOGS_AFTER")
                         .put("value", "2 MONATE"));
 
-        RestAssured
-                .given()
-                .baseUri("http://localhost:" + Statics.PORT_OKAPI)
-                .port(Statics.PORT_OKAPI)
-                .header(OKAPI_TENANT)
-                .contentType(ContentType.JSON)
-                .get("configurations/entries")
-                .then().statusCode(200)
-                .body("totalRecords", is(1))
-                .extract().response();
-
-        final RequestSpecification timeoutConfig = timeoutConfig(10000);
+        given()
+            .baseUri("http://localhost:" + Statics.PORT_OKAPI)
+            .get("configurations/entries")
+            .then().statusCode(200)
+            .body("totalRecords", is(1));
 
         given()
-                .port(Statics.PORT_OKAPI)
-                .header(OKAPI_TENANT)
-                .header(Statics.OKAPI_URL)
-                .header(Statics.OKAPI_TOKEN)
-                .contentType(ContentType.JSON)
-                .header(XOkapiHeaders.REQUEST_ID, "purge-aged-logs")
-                .spec(timeoutConfig)
-                .when().post("/harvester-admin/purge-aged-logs")
-                .then().log().ifValidationFails().statusCode(204)
-                .extract().response();
+            .spec(timeoutConfig(10000))
+            .when().post("/harvester-admin/purge-aged-logs")
+            .then().statusCode(204);
 
-        RestAssured
-                .given()
-                .port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
-                .contentType(ContentType.JSON)
-                .get("harvester-admin/previous-jobs")
-                .then().statusCode(200)
-                .body("totalRecords", is(1));
-    }
+        given()
+            .get("harvester-admin/previous-jobs")
+            .then().statusCode(200)
+            .body("totalRecords", is(1));
+
+        for (int i = 0; i < 2; i++) {
+          var harvestJobId = ids[i];
+          given()
+              .get("harvester-admin/previous-jobs/" + harvestJobId + "/log")
+              .then().statusCode(404);
+          given()
+              .get("harvester-admin/previous-jobs/" + harvestJobId + "/failed-records")
+              .then().statusCode(200)
+              .body("failedRecords.size()", is(0));
+        }
+  }
 
     public static RequestSpecification timeoutConfig(int timeOutInMilliseconds) {
         return new RequestSpecBuilder()
@@ -652,4 +602,12 @@ public class NoHarvesterTestSuite {
                 .build();
     }
 
+    private static RequestSpecification given() {
+      return RestAssured.given()
+          .header(OKAPI_TENANT)
+          .header(Statics.OKAPI_URL)
+          .header(Statics.OKAPI_TOKEN)
+          .header(XOkapiHeaders.REQUEST_ID, NoHarvesterTest.class.getName())
+          .contentType(ContentType.JSON);
+    }
 }
