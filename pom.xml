@@ -8,8 +8,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okapi.version>5.3.0</okapi.version>
         <vertx.version>4.5.3</vertx.version>
-        <maven.compiler.source>18</maven.compiler.source>
-        <maven.compiler.target>18</maven.compiler.target>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -180,6 +178,16 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
@@ -241,7 +249,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.5.2</version>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <environmentVariables>
@@ -250,15 +258,16 @@
                         <harvester_port>8080</harvester_port>
                         <acl_filter_by_tenant>false</acl_filter_by_tenant>
                     </environmentVariables>
-                    <includes>
-                        <include>**/test/NoHarvesterTestSuite.class</include>
-                    </includes>
+                    <excludes>
+                        <!-- requires harvester at localhost:8080 -->
+                        <exclude>HarvesterIntegrationTest</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.5.2</version>
                 <executions>
                     <execution>
                         <goals>

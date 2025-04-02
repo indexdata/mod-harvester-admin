@@ -336,7 +336,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     String tenant = TenantUtil.tenant(routingContext);
     ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
     moduleStorage.purgePreviousJobsByAge(untilDate)
-            .onComplete(x -> routingContext.response().setStatusCode(204).end()).mapEmpty();
+            .onSuccess(x -> routingContext.response().setStatusCode(204).end())
+            .onFailure(e -> routingContext.response().setStatusCode(500).end(e.getMessage()));
   }
 
   private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {

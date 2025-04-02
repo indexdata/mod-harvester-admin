@@ -7,7 +7,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.SqlResult;
-import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,9 +23,8 @@ import org.folio.harvesteradmin.moduledata.*;
 import org.folio.tlib.postgres.TenantPgPool;
 
 public class ModuleStorageAccess {
-  TenantPgPool pool;
   private static final Logger logger = LogManager.getLogger(ModuleStorageAccess.class);
-
+  TenantPgPool pool;
 
   /**
    * Constructor.
@@ -308,53 +307,13 @@ public class ModuleStorageAccess {
     return promise.future();
   }
 
-  public Future<SqlResult<Void>> purgePreviousJobsByAge (LocalDateTime untilDate) {
-      Promise<Void> promise = Promise.promise();
-      return SqlTemplate.forUpdate(pool.getPool(),
-                      "DELETE FROM " + schemaDotTable(Tables.log_statement)
-                              + " WHERE " + LogLine.LogLineField.HARVEST_JOB_ID +
-                              "    IN (SELECT " + HarvestJobField.ID +
-                              "        FROM " + schemaDotTable(Tables.harvest_job) +
-                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
-              .execute(Collections.singletonMap("untilDate", untilDate))
-              .onComplete(deletedLogs -> {
-                  if (deletedLogs.succeeded()) {
-                      SqlTemplate.forUpdate(pool.getPool(),
-                                      "DELETE FROM " + schemaDotTable(Tables.record_failure)
-                                              + " WHERE " + RecordFailure.Column.harvest_job_id +
-                                              "    IN (SELECT " + HarvestJobField.ID +
-                                              "        FROM " + schemaDotTable(Tables.harvest_job) +
-                                              "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} )")
-                              .execute(Collections.singletonMap("untilDate", untilDate))
-                              .onComplete(deletedFailedRecords -> {
-                                  if (deletedFailedRecords.succeeded()) {
-                                      SqlTemplate.forUpdate(pool.getPool(),
-                                                      "DELETE FROM " + schemaDotTable(Tables.harvest_job) +
-                                                      "        WHERE " + HarvestJobField.STARTED + " < #{untilDate} ")
-                                              .execute(Collections.singletonMap("untilDate", untilDate))
-                                              .onSuccess( result -> {
-                                                  logger.info("Timer process purged " + result.rowCount() + " harvest job runs from before " + untilDate);
-                                                  promise.complete();
-                                              })
-                                              .onFailure( result -> {
-                                                  logger.error("Timer process: Purge of previous jobs failed." + result.getCause().getMessage());
-                                                  promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                                                          + result.getCause().getMessage());
-                                              });
-                                  } else {
-                                      logger.error("Purge of failed records failed." + deletedFailedRecords.cause().getMessage());
-                                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                                              + " because deletion of its failed records failed: "
-                                              + deletedFailedRecords.cause().getMessage());
-                                  }
-                              });
-                  } else {
-                      logger.error("Purge of log statements failed." + deletedLogs.cause().getMessage());
-                      promise.fail("Could not delete job runs with finish dates before  " + untilDate
-                              + " because deletion of its logs failed: "
-                              + deletedLogs.cause().getMessage());
-                  }
-              });
+  public Future<SqlResult<Void>> purgePreviousJobsByAge(LocalDateTime untilDate) {
+    logger.info("Running purgePreviousJobsByAge with {}", untilDate);
+    var sql = "SELECT " + pool.getSchema() + ".purge_previous_jobs_by_age(#{untilDate})";
+    Map<String, Object> params = Map.of("untilDate", untilDate);
+    return SqlTemplate.forUpdate(pool.getPool(), sql).execute(params)
+        .onSuccess(x -> logger.info("purgePreviousJobsByAge completed"))
+        .onFailure(e -> logger.error("purgePreviousJobsByAge {} failed: {}", untilDate, e.getMessage(), e));
   }
 
   /**

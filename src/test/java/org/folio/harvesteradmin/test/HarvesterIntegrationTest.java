@@ -41,14 +41,12 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @RunWith( VertxUnitRunner.class )
-public class HarvesterIntegrationTestSuite {
-  private static final Logger logger = LoggerFactory.getLogger( "HarvesterAdminTestSuite" );
+public class HarvesterIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(HarvesterIntegrationTest.class);
 
   static final String TENANT = "mha_test";
   static Vertx vertx;
   public static final Header OKAPI_TENANT = new Header (XOkapiHeaders.TENANT, TENANT);
-
-  public HarvesterIntegrationTestSuite() {}
 
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();

@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -97,10 +98,12 @@ public class RecordFailure extends StoredEntity {
   }
 
   /**
-   * CREATE TABLE statement.
+   * CREATE TABLE and CREATE INDEX statements.
    */
-  public String makeCreateTableSql(String schema) {
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.record_failure
+  @Override
+  public List<String> makeCreateSqls(String schema) {
+    return List.of(
+        "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.record_failure
         + "("
         + Column.id + " UUID PRIMARY KEY, "
         + Column.harvest_job_id + " UUID NOT NULL REFERENCES "
@@ -110,7 +113,9 @@ public class RecordFailure extends StoredEntity {
         + Column.record_errors + " JSONB NOT NULL, "
         + Column.original_record + " TEXT NOT NULL, "
         + Column.transformed_record + " JSONB NOT NULL"
-        + ")";
+        + ")",
+        "CREATE INDEX IF NOT EXISTS record_failure_harvest_job_id_idx ON "
+        + schema + "." + Tables.record_failure + "(" + Column.harvest_job_id + ")");
   }
 
   /**

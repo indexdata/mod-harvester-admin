@@ -1,8 +1,6 @@
 package org.folio.harvesteradmin.moduledata.database;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.sqlclient.Query;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import org.apache.logging.log4j.LogManager;
@@ -10,61 +8,90 @@ import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.moduledata.HarvestJob;
 import org.folio.harvesteradmin.moduledata.LogLine;
 import org.folio.harvesteradmin.moduledata.RecordFailure;
+import org.folio.harvesteradmin.moduledata.StoredEntity;
 import org.folio.tlib.postgres.TenantPgPool;
 
-public class DatabaseInit {
+public final class DatabaseInit {
+  private static final Logger logger = LogManager.getLogger(DatabaseInit.class);
 
-    /**
-     * Creates tables and views.
-     */
-    public static Future<Void> createDatabase(TenantPgPool pool) {
-        final Promise<Void> promise = Promise.promise();
-        Query<RowSet<Row>> createHarvestJob = pool.query(HarvestJob.entity().makeCreateTableSql(pool.getSchema()));
-        Query<RowSet<Row>> createLogLine = pool.query(LogLine.entity().makeCreateTableSql(pool.getSchema()));
-        Query<RowSet<Row>> createRecordFailure = pool.query(RecordFailure.entity().makeCreateTableSql(pool.getSchema()));
-        Query<RowSet<Row>> createRecordFailureView = pool.query(createRecordFailureView(pool.getSchema()));
-        createHarvestJob.execute().onSuccess(a ->
-                createLogLine.execute().onSuccess(
-                        b -> createRecordFailure.execute().onSuccess(
-                                c -> createRecordFailureView.execute().onSuccess(
-                                        d -> promise.complete(null)
-                                ).onFailure(d -> promise.fail("CREATE VIEW record_failure_view failed " + d.getMessage()))
-                        ).onFailure(c -> promise.fail("CREATE TABLE record_failure failed " + c.getMessage()))
-                ).onFailure(b -> promise.fail("CREATE TABLE log_statement failed " + b.getMessage()))
-        ).onFailure(a -> promise.fail("CREATE TABLE harvest_job failed: " + a.getMessage()));
-        return promise.future();
+  private DatabaseInit() {
+    // a utility class cannot be instantiated
+  }
 
-    /* Template for processing parameters in init.
-      JsonArray parameters = tenantAttributes.getJsonArray("parameters");
-      if (parameters != null) {
-        for (int i = 0; i < parameters.size(); i++) {
-          JsonObject parameter = parameters.getJsonObject(i);
-          if ("loadSample".equals(parameter.getString("key"))
-              && "true".equals(parameter.getString("value"))) {
-          }
-        }
-      }
-    */
+  /**
+   * Creates tables and views.
+   */
+  public static Future<Void> createDatabase(TenantPgPool pool) {
+    return createEntity(pool, HarvestJob.entity())
+        .compose(x -> createEntity(pool, LogLine.entity()))
+        .compose(x -> createEntity(pool, RecordFailure.entity()))
+        .compose(x -> createRecordFailureView(pool))
+        .compose(x -> createPurgeFunction(pool))
+        .mapEmpty();
+  }
+
+  private static Future<RowSet<Row>> createEntity(TenantPgPool pool, StoredEntity storedEntity) {
+    var sqls = storedEntity.makeCreateSqls(pool.getSchema());
+    Future<RowSet<Row>> future = Future.succeededFuture();
+    for (var sql : sqls) {
+      future = future.compose(x -> pool.query(sql).execute()
+          .onFailure(e -> logger.error("createEntity {} failed: {}: {}",
+            storedEntity.getClass().getSimpleName(), sql, e.getMessage())));
     }
+    return future;
+  }
 
-    /**
-     * Creates view.
-     */
-    public static String createRecordFailureView(String schema) {
-        String ddl;
-        ddl = "CREATE OR REPLACE VIEW " + schema + "." + Tables.record_failure_view
-                + " AS SELECT rf.id AS id, "
-                + "          rf.harvest_job_Id AS harvest_job_id, "
-                + "          hj.harvestable_id AS harvestable_id, "
-                + "          hj.harvestable_name AS harvestable_name, "
-                + "          rf.record_number AS record_number, "
-                + "          rf.time_stamp AS time_stamp, "
-                + "          rf.record_errors AS record_errors, "
-                + "          rf.original_record AS original_record, "
-                + "          rf.transformed_record AS transformed_record "
-                + "  FROM " + schema + ".record_failure AS rf, "
-                + "       " + schema + ".harvest_job as hj "
-                + "  WHERE rf.harvest_job_id = hj.id";
-        return ddl;
-    }
+  /**
+   * Creates view.
+   */
+  private static Future<RowSet<Row>> createRecordFailureView(TenantPgPool pool) {
+    var schema = pool.getSchema();
+    String ddl
+        = "CREATE OR REPLACE VIEW " + schema + "." + Tables.record_failure_view
+        + " AS SELECT rf.id AS id, "
+        + "          rf.harvest_job_Id AS harvest_job_id, "
+        + "          hj.harvestable_id AS harvestable_id, "
+        + "          hj.harvestable_name AS harvestable_name, "
+        + "          rf.record_number AS record_number, "
+        + "          rf.time_stamp AS time_stamp, "
+        + "          rf.record_errors AS record_errors, "
+        + "          rf.original_record AS original_record, "
+        + "          rf.transformed_record AS transformed_record "
+        + "  FROM " + schema + ".record_failure AS rf, "
+        + "       " + schema + ".harvest_job as hj "
+        + "  WHERE rf.harvest_job_id = hj.id";
+    return pool.query(ddl).execute();
+  }
+
+  private static Future<RowSet<Row>> createPurgeFunction(TenantPgPool pool) {
+    var sql = "CREATE OR REPLACE FUNCTION " + pool.getSchema() + ".purge_previous_jobs_by_age(timestamp) " +
+        """
+        RETURNS void
+        AS $$
+        BEGIN
+          CREATE TEMP TABLE harvest_job_ids ON COMMIT DROP AS
+            SELECT id FROM {schema}.harvest_job
+            WHERE started < $1
+            FOR UPDATE SKIP LOCKED;
+          CREATE INDEX ON harvest_job_ids(id);
+          CREATE TEMP TABLE log_statenemt_ids ON COMMIT DROP AS
+            SELECT id FROM {schema}.log_statement
+            WHERE harvest_job_id IN (SELECT id FROM harvest_job_ids)
+            FOR UPDATE SKIP LOCKED;
+          DELETE FROM {schema}.log_statement WHERE id IN (SELECT id FROM log_statenemt_ids);
+          DELETE FROM harvest_job_ids WHERE EXISTS
+            (SELECT * FROM {schema}.log_statement WHERE log_statement.harvest_job_id = harvest_job_ids.id);
+          CREATE TEMP TABLE record_failure_ids ON COMMIT DROP AS
+            SELECT id FROM {schema}.record_failure
+            WHERE harvest_job_id IN (SELECT id FROM harvest_job_ids)
+            FOR UPDATE SKIP LOCKED;
+          DELETE FROM {schema}.record_failure WHERE id IN (SELECT id FROM record_failure_ids);
+          DELETE FROM harvest_job_ids WHERE EXISTS
+            (SELECT * FROM {schema}.record_failure WHERE record_failure.harvest_job_id = harvest_job_ids.id);
+          DELETE FROM {schema}.harvest_job WHERE id IN (SELECT id FROM harvest_job_ids);
+        END
+        $$ LANGUAGE plpgsql;
+        """.replace("{schema}", pool.getSchema());
+    return pool.query(sql).execute();
+  }
 }

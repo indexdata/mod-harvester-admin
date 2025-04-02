@@ -6,6 +6,7 @@ import io.vertx.ext.web.validation.RequestParameters;
 import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import java.util.List;
 import java.util.Map;
 
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
@@ -15,9 +16,9 @@ import org.folio.tlib.postgres.PgCqlQuery;
 public abstract class StoredEntity {
 
   /**
-   * Builds the Postgres DDL SQL for creating a table.
+   * Builds the Postgres DDL SQLs for creating the table and indexes.
    */
-  public abstract String makeCreateTableSql(String schema);
+  public abstract List<String> makeCreateSqls(String schema);
 
   /**
    * Gets vert.x row mapper: Postgres select list results mapped to i.e. JSON or text strings.

@@ -6,15 +6,14 @@ import io.vertx.sqlclient.templates.TupleMapper;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.folio.harvesteradmin.moduledata.database.Tables;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
-
 
 public class HarvestJob extends StoredEntity {
 
@@ -93,16 +92,18 @@ public class HarvestJob extends StoredEntity {
   /**
    * CREATE TABLE statement.
    */
-  public String makeCreateTableSql(String schema) {
+  @Override
+  public List<String> makeCreateSqls(String schema) {
     StringBuilder columnsDdl = new StringBuilder();
     Stream.of(HarvestJobField.values())
         .forEach(field -> columnsDdl.append(field.pgColumn().getColumnDdl()).append(","));
     columnsDdl.deleteCharAt(columnsDdl.length() - 1); // remove ending comma
-
-    return "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.harvest_job
+    return List.of(
+        "CREATE TABLE IF NOT EXISTS " + schema + "." + Tables.harvest_job
         + "("
         + columnsDdl
-        + ")";
+        + ")"
+        );
   }
 
   /**
