@@ -1,3 +1,7 @@
+## 1.4.1 2025-04-23
+
+* [MODHAADM-117](https://issues.folio.org/browse/MODHAADM-117) Fixes purging of large log tables.
+
 ## 1.4.0 2025-03-10
 
 * [MODHAADM-105](https://issues.folio.org/browse/MODHAADM-105) Fix potential for hanging log purge request.
