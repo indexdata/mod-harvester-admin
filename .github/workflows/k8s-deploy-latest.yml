@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - name: Deploy latest to K8s
-        uses: actions-hub/kubectl@v1.32.2
+        uses: actions-hub/kubectl@v1.33.3
         env: 
           KUBE_CONFIG: ${{ secrets.SNAPSHOT_DEV_SA_KUBECONFIG }}
         with:
