@@ -1,6 +1,6 @@
 package org.folio.harvesteradmin.moduledata.database;
 
-import io.vertx.ext.web.validation.RequestParameter;
+import io.vertx.openapi.validation.RequestParameter;
 import org.apache.commons.lang3.StringUtils;
 
 public class SqlQuery {
@@ -22,8 +22,8 @@ public class SqlQuery {
     this.from = from;
     this.where = where != null ? where : "";
     this.orderBy = orderBy != null ? orderBy : "";
-    this.offset = offset != null ? offset.toString() : null;
-    this.limit = limit != null ? limit.toString() : null;
+    this.offset = offset != null ? offset.getString() : null;
+    this.limit = limit != null ? limit.getString() : null;
   }
 
   /**

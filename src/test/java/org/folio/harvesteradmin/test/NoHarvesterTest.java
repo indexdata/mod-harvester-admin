@@ -531,6 +531,7 @@ public class NoHarvesterTest {
               .post("harvester-admin/previous-jobs")
               .then().statusCode(201);
           given()
+              .header(Statics.CONTENT_TYPE_TEXT)
               .body("2024-01-01T00:00:00.000 INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
               .post("harvester-admin/previous-jobs/" + harvestJobId + "/log")
               .then().statusCode(201);

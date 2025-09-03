@@ -410,6 +410,7 @@ public class HarvesterIntegrationTest {
     putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
         204);
     getScript(SAMPLE_STEP.getString("id"), 200);
+    getConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP.getString("id"));
   }
 
   @Test

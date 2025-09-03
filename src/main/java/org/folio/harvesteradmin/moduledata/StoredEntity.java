@@ -1,9 +1,9 @@
 package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.validation.RequestParameter;
-import io.vertx.ext.web.validation.RequestParameters;
-import io.vertx.ext.web.validation.ValidationHandler;
+import io.vertx.ext.web.openapi.router.RouterBuilder;
+import io.vertx.openapi.validation.RequestParameter;
+import io.vertx.openapi.validation.ValidatedRequest;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.List;
@@ -50,11 +50,12 @@ public abstract class StoredEntity {
    */
   public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
     PgCqlDefinition definition = getQueryableFields();
-
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    RequestParameter query = params.queryParameter("query");
-    RequestParameter offset =  params.queryParameter("offset");
-    RequestParameter limit = params.queryParameter("limit");
+    ValidatedRequest validatedRequest =
+            routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
+    Map<String, io.vertx.openapi.validation.RequestParameter> params = validatedRequest.getQuery();
+    RequestParameter query = params != null ? params.get("query") : null;
+    RequestParameter offset =  params != null ? params.get("offset") : null;
+    RequestParameter limit = params != null ? params.get("limit") : null;
 
     String select = "SELECT * ";
     String from = "FROM " + schemaDotTable;

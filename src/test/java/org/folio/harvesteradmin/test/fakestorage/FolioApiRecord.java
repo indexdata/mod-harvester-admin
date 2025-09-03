@@ -1,7 +1,8 @@
 package org.folio.harvesteradmin.test.fakestorage;
 
-import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.json.JsonObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -11,17 +12,11 @@ public class FolioApiRecord {
     public static final String ID = "id";
     public static final String VERSION = "_version";
     protected JsonObject recordJson;
-
-    private final Logger logger = io.vertx.core.impl.logging.LoggerFactory.getLogger("FolioApiRecord");
-
-    public FolioApiRecord() {
-        recordJson = new JsonObject();
-    }
+    private static final Logger logger = LogManager.getLogger("FolioApiRecord");
 
     public FolioApiRecord(JsonObject FolioApiRecord) {
         recordJson = FolioApiRecord;
     }
-
 
     public String getStringValue (String propertyName) {
         return recordJson.containsKey(propertyName) ? recordJson.getValue(propertyName).toString() : null;
@@ -29,11 +24,6 @@ public class FolioApiRecord {
 
     public JsonObject getJson() {
         return recordJson;
-    }
-
-    public FolioApiRecord setId (String id) {
-        recordJson.put(ID, id);
-        return this;
     }
 
     public boolean hasId() {

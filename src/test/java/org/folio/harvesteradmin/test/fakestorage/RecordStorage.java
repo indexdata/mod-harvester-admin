@@ -1,10 +1,10 @@
 package org.folio.harvesteradmin.test.fakestorage;
 
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -27,7 +27,8 @@ public abstract class RecordStorage {
     protected FakeFolioApis fakeStorage;
 
     protected final Map<String, FolioApiRecord> records = new HashMap<>();
-    protected final Logger logger = LoggerFactory.getLogger("fake-folio-storage");
+
+    private static final Logger logger = LogManager.getLogger("fake-folio-storage");
 
     public void attachToFakeStorage(FakeFolioApis fakeStorage) {
         this.fakeStorage = fakeStorage;

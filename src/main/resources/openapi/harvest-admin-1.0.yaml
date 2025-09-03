@@ -5,9 +5,9 @@ info:
 paths:
   /harvester-admin/harvestables:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     post:
       description: Create harvest job configuration
       operationId: postHarvestable
@@ -15,7 +15,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestablePostPut"
+              $ref: schemas/harvestablePostPut.json
         required: true
       responses:
         "201":
@@ -23,7 +23,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestableGet"
+                $ref: schemas/harvestableGet.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -44,7 +44,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestables"
+                $ref: schemas/harvestables.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -52,9 +52,9 @@ paths:
 
   /harvester-admin/harvestables/xml-bulk:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     post:
       description: Create bulk XML harvest job configuration
       operationId: postHarvestableXmlBulk
@@ -62,7 +62,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+              $ref: schemas/harvestableXmlBulkPostPut.json
         required: true
       responses:
         "201":
@@ -70,7 +70,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestableGet"
+                $ref: schemas/harvestableGet.json
 
         "400":
           $ref: "#/components/responses/trait_400"
@@ -79,9 +79,9 @@ paths:
 
   /harvester-admin/harvestables/oai-pmh:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     post:
       description: Create OAI-PMH harvest job configuration
       operationId: postHarvestableOaiPmh
@@ -89,7 +89,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+              $ref: schemas/harvestableOaiPmhPostPut.json
         required: true
       responses:
         "201":
@@ -97,7 +97,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestableGet"
+                $ref: schemas/harvestableGet.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -105,9 +105,9 @@ paths:
 
   /harvester-admin/harvestables/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -123,7 +123,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/harvestableGet"
+                $ref: schemas/harvestableGet.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -137,7 +137,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestablePostPut"
+              $ref: schemas/harvestablePostPut.json
         required: true
       responses:
         "204":
@@ -163,9 +163,9 @@ paths:
 
   /harvester-admin/harvestables/xml-bulk/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -179,7 +179,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestableXmlBulkPostPut"
+              $ref: schemas/harvestableXmlBulkPostPut.json
         required: true
       responses:
         "204":
@@ -193,9 +193,9 @@ paths:
 
   /harvester-admin/harvestables/oai-pmh/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -209,7 +209,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestableOaiPmhPostPut"
+              $ref: schemas/harvestableOaiPmhPostPut.json
         required: true
       responses:
         "204":
@@ -223,9 +223,9 @@ paths:
 
   /harvester-admin/jobs/run/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -251,9 +251,9 @@ paths:
 
   /harvester-admin/jobs/stop/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -278,9 +278,9 @@ paths:
 
   /harvester-admin/harvestables/{id}/log:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -319,9 +319,9 @@ paths:
 
   /harvester-admin/harvestables/{id}/failed-records:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -350,7 +350,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecordsCurrentJob"
+                $ref: schemas/failedRecordsCurrentJob.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -360,9 +360,9 @@ paths:
 
   /harvester-admin/harvestables/{id}/failed-records/{num}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -385,7 +385,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecordCurrentJob"
+                $ref: schemas/failedRecordCurrentJob.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -395,9 +395,9 @@ paths:
 
   /harvester-admin/harvestables/{id}/log/store:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -411,7 +411,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/harvestJobStatus"
+              $ref: schemas/harvestJobStatus.json
         required: true
       responses:
         "200":
@@ -437,9 +437,9 @@ paths:
 
   /harvester-admin/previous-jobs:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     get:
       operationId: getPreviousJobs
       description: Retrieves list of previous harvest jobs
@@ -480,7 +480,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/previousJobs"
+                $ref: schemas/previousJobs.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -492,7 +492,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/previousJob"
+              $ref: schemas/previousJob.json
         required: true
       responses:
         "201":
@@ -500,7 +500,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/previousJob"
+                $ref: schemas/previousJob.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -509,9 +509,9 @@ paths:
 
   /harvester-admin/previous-jobs/failed-records:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     get:
       operationId: getFailedRecordsForPreviousJobs
       description: Retrieves the failed records of previous harvest jobs
@@ -552,7 +552,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecordsPreviousJob"
+                $ref: schemas/failedRecordsPreviousJob.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -562,9 +562,9 @@ paths:
 
   /harvester-admin/previous-jobs/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -581,7 +581,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/previousJob"
+                $ref: schemas/previousJob.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -604,9 +604,9 @@ paths:
 
   /harvester-admin/previous-jobs/{id}/log:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -633,7 +633,7 @@ paths:
                 type: string
             application/json:
               schema:
-                $ref: "#/components/schemas/logLines"
+                $ref: schemas/logLines.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -662,9 +662,9 @@ paths:
 
   /harvester-admin/previous-jobs/{id}/failed-records:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -713,7 +713,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/failedRecordsPreviousJob"
+                $ref: schemas/failedRecordsPreviousJob.json
 
         "400":
           $ref: "#/components/responses/trait_400"
@@ -729,7 +729,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/failedRecordsPreviousJob"
+              $ref: schemas/failedRecordsPreviousJob.json
         required: true
       responses:
         "201":
@@ -742,9 +742,9 @@ paths:
 
   /harvester-admin/previous-jobs/failed-records/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -767,9 +767,9 @@ paths:
 
   /harvester-admin/storages:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     post:
       description: Create storage configuration
       operationId: postStorage
@@ -777,7 +777,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/storage"
+              $ref: schemas/storage.json
         required: true
       responses:
         "201":
@@ -785,7 +785,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/storage"
+                $ref: schemas/storage.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -806,7 +806,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/storages"
+                $ref: schemas/storages.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -814,9 +814,9 @@ paths:
 
   /harvester-admin/storages/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -832,7 +832,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/storage"
+                $ref: schemas/storage.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -846,7 +846,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/storage"
+              $ref: schemas/storage.json
         required: true
       responses:
         "204":
@@ -870,9 +870,9 @@ paths:
 
   /harvester-admin/transformations:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
     post:
       description: Create transformation pipeline
       operationId: postTransformation
@@ -880,7 +880,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationPostPut"
+              $ref: schemas/transformationPostPut.json
         required: true
       responses:
         "201":
@@ -888,7 +888,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationGet"
+                $ref: schemas/transformationGet.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -909,7 +909,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformations"
+                $ref: schemas/transformations.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -917,9 +917,9 @@ paths:
 
   /harvester-admin/transformations/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -935,7 +935,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationGet"
+                $ref: schemas/transformationGet.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -944,7 +944,13 @@ paths:
           $ref: "#/components/responses/trait_500"
     put:
       operationId: putTransformation
-      description: Update transformation pipeline
+      description: Update transformation definition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: schemas/transformationPostPut.json
+        required: true
       responses:
         "204":
           description: No content
@@ -975,7 +981,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/steps"
+                $ref: schemas/steps.json
         "500":
           $ref: "#/components/responses/trait_500"
     post:
@@ -985,14 +991,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/step"
+              $ref: schemas/step.json
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: schemas/step.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -1010,9 +1016,9 @@ paths:
 
   /harvester-admin/steps/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -1028,7 +1034,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: schemas/step.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1042,14 +1048,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/step"
+              $ref: schemas/step.json
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/step"
+                $ref: schemas/step.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1069,9 +1075,9 @@ paths:
 
   /harvester-admin/steps/{id}/script:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -1085,9 +1091,9 @@ paths:
         "200":
           description: OK
           content:
-            application/xml:
+            text/plain:
               schema:
-                $ref: "#/components/schemas/script"
+                $ref: schemas/script.json
         "500":
           $ref: "#/components/responses/trait_500"
     put:
@@ -1095,9 +1101,9 @@ paths:
       description: Update a transformation step script
       requestBody:
         content:
-          application/xml:
+          text/plain:
             schema:
-              $ref: "#/components/schemas/script"
+              type: string
       responses:
         "204":
           description: OK, no content
@@ -1118,7 +1124,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociations"
+                $ref: schemas/transformationStepAssociations.json
         "500":
           $ref: "#/components/responses/trait_500"
     post:
@@ -1128,14 +1134,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationStepAssociation"
+              $ref: schemas/transformationStepAssociation.json
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: schemas/transformationStepAssociation.json
         "400":
           $ref: "#/components/responses/trait_400"
         "500":
@@ -1153,9 +1159,9 @@ paths:
 
   /harvester-admin/tsas/{id}:
     parameters:
-      - $ref: headers/okapi-tenant.yaml
-      - $ref: headers/okapi-token.yaml
-      - $ref: headers/okapi-url.yaml
+      - $ref: "#/components/parameters/okapi_tenant"
+      - $ref: "#/components/parameters/okapi_token"
+      - $ref: "#/components/parameters/okapi_url"
       - in: path
         name: id
         required: true
@@ -1171,7 +1177,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: schemas/transformationStepAssociation.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1185,14 +1191,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/transformationStepAssociation"
+              $ref: schemas/transformationStepAssociation.json
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/transformationStepAssociation"
+                $ref: schemas/transformationStepAssociation.json
         "400":
           $ref: "#/components/responses/trait_400"
         "404":
@@ -1238,6 +1244,28 @@ paths:
           description: No content
 
 components:
+  parameters:
+    okapi_tenant:
+      in: header
+      name: X-Okapi-Tenant
+      description: Okapi Tenant
+      required: false
+      schema:
+        type: string
+    okapi_token:
+      in: header
+      name: X-Okapi-Token
+      description: Okapi Token
+      required: false
+      schema:
+        type: string
+    okapi_url:
+      in: header
+      name: X-Okapi-Url
+      description: Okapi URL
+      required: false
+      schema:
+        type: string
   responses:
     trait_400:
       description: Bad request
@@ -1264,50 +1292,3 @@ components:
           schema:
             type: string
             example: Internal server error, contact administrator
-  schemas:
-    harvestables:
-      $ref: schemas/harvestables.json
-    harvestablePostPut:
-      $ref: schemas/harvestablePostPut.json
-    harvestableXmlBulkPostPut:
-      $ref: schemas/harvestableXmlBulkPostPut.json
-    harvestableOaiPmhPostPut:
-      $ref: schemas/harvestableOaiPmhPostPut.json
-    harvestableGet:
-      $ref: schemas/harvestableGet.json
-    storages:
-      $ref: schemas/storages.json
-    storage:
-      $ref: schemas/storage.json
-    transformations:
-      $ref: schemas/transformations.json
-    transformationGet:
-      $ref: schemas/transformationGet.json
-    transformationPostPut:
-      $ref: schemas/transformationPostPut.json
-    steps:
-      $ref: schemas/steps.json
-    step:
-      $ref: schemas/step.json
-    script:
-      $ref: schemas/script.json
-    transformationStepAssociation:
-      $ref: schemas/transformationStepAssociation.json
-    transformationStepAssociations:
-      $ref: schemas/transformationStepAssociations.json
-    harvestJobStatus:
-      $ref: schemas/harvestJobStatus.json
-    previousJobs:
-      $ref: schemas/previousJobs.json
-    logLines:
-      $ref: schemas/logLines.json
-    previousJob:
-      $ref: schemas/previousJob.json
-    failedRecordCurrentJob:
-      $ref: schemas/failedRecordCurrentJob.json
-    failedRecordsCurrentJob:
-      $ref: schemas/failedRecordsCurrentJob.json
-    failedRecordPreviousJob:
-      $ref: schemas/failedRecordPreviousJob.json
-    failedRecordsPreviousJob:
-      $ref: schemas/failedRecordsPreviousJob.json
