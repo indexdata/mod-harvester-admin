@@ -18,7 +18,7 @@ import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 public class HarvestJob extends StoredEntity {
 
   private final JsonObject json = new JsonObject();
-  private static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS";
+  public static final String DATE_FORMAT = "YYYY-MM-DD''T''HH24:MI:SS";
 
   public HarvestJob() {
     super();

@@ -28,15 +28,6 @@ public class RequestValidated extends AdminRequest {
         }
     }
 
-    @Override
-    public String pathParam(String paramName) {
-        if (validatedRequest.getPathParameters().get(paramName) != null) {
-            return validatedRequest.getPathParameters().get(paramName).getString();
-        } else {
-            return null;
-        }
-    }
-
     public JsonObject bodyAsJson() {
         if (validatedRequest.getBody() != null) {
             if (validatedRequest.getBody().getJsonObject() != null) {

@@ -1,5 +1,0 @@
-{
-  "description": "transformation step script, whatever that is",
-  "type": "object",
-  "additionalProperties": true
-}

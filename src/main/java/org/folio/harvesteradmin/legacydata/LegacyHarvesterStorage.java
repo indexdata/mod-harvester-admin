@@ -903,9 +903,9 @@ public class LegacyHarvesterStorage {
    */
   public Future<HttpResponse<Buffer>> getJobLog(String harvestableId, String fromDate) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
-    harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from="
-            + URLEncoder.encode(fromDate,StandardCharsets.UTF_8))
-            .send().onComplete(ar -> promise.complete(ar.result()));
+    HttpRequest<Buffer> getRequest = harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from="
+            + URLEncoder.encode(fromDate,StandardCharsets.UTF_8));
+    getRequest.send().onComplete(ar -> promise.complete(ar.result()));
     return promise.future();
   }
   /**
@@ -979,8 +979,8 @@ public class LegacyHarvesterStorage {
    * Gets a failed record by harvestable ID and record number.
    */
   public Future<ProcessedHarvesterResponseGetById> getFailedRecord(AdminRequest adminRequest) {
-    String id = adminRequest.pathParam("id");
-    String num = adminRequest.pathParam("num");
+    String id = adminRequest.requestParam("id");
+    String num = adminRequest.requestParam("num");
     return getFailedRecord(id, num);
   }
 
@@ -1063,7 +1063,7 @@ public class LegacyHarvesterStorage {
   public Future<ProcessedHarvesterResponsePut> putScript(RoutingContext routingContext) {
     Promise<ProcessedHarvesterResponsePut> promise = Promise.promise();
     AdminRequest adminRequest = new RequestUnvalidated(routingContext.vertx(), routingContext);
-    String id = adminRequest.pathParam("id");
+    String id = adminRequest.requestParam("id");
     String name = adminRequest.queryParam("name");
     if (name == null || name.isEmpty()) {
       responseText(routingContext, 400).end(

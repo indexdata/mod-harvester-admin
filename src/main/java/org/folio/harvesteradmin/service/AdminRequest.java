@@ -47,8 +47,6 @@ public abstract class AdminRequest {
 
     public abstract String queryParam(String paramName);
 
-    public abstract String pathParam(String paramName);
-
     public String absoluteURI () {
         return request.absoluteURI();
     }

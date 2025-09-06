@@ -39,7 +39,7 @@ public class JobLauncher extends LegacyHarvesterStorage {
    */
   public void startJob(AdminRequest adminRequest) {
 
-    String harvestableId = adminRequest.pathParam("id");
+    String harvestableId = adminRequest.requestParam("id");
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, harvestableId).onComplete(lookUp -> {
       if (lookUp.succeeded()) {
         if (lookUp.result().wasNotFound()) {
@@ -85,7 +85,7 @@ public class JobLauncher extends LegacyHarvesterStorage {
    * Stops a harvest job.
    */
   public void stopJob(AdminRequest adminRequest) {
-    String harvestableId = adminRequest.pathParam("id");
+    String harvestableId = adminRequest.requestParam("id");
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, harvestableId).onComplete(lookUp -> {
       if (lookUp.succeeded()) {
         if (lookUp.result().wasNotFound()) {

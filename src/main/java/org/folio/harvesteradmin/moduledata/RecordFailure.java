@@ -163,7 +163,6 @@ public class RecordFailure extends StoredEntity {
 
   @Override
   public TupleMapper<StoredEntity> getTupleMapper() {
-
     return TupleMapper.mapper(
         recordFailure -> {
           RecordFailure entity = (RecordFailure) recordFailure;

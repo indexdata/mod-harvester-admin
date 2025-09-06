@@ -17,6 +17,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.harvesteradmin.MainVerticle;
 import org.folio.harvesteradmin.test.fakestorage.FakeFolioApis;
+import org.folio.harvesteradmin.utils.SettableClock;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
 import org.junit.*;
@@ -26,13 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.time.LocalDateTime;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.folio.harvesteradmin.test.Statics.BASE_URI_OKAPI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasLength;
 import static org.hamcrest.Matchers.hasSize;
 
 @RunWith(VertxUnitRunner.class)
@@ -121,36 +123,61 @@ public class NoHarvesterTest {
                 .then().statusCode(204);
     }
 
-    public ValidatableResponse canGetPreviousJobs(String parameters) {
-      var harvestJob = new JsonObject()
-          .put("name", "busy bee")
-          .put("harvestableId", 789)
-          .put("type", "xmlBulk")
-          .put("url", "http://fileserver/xml/")
-          .put("allowErrors", true)
-          .put("transformation", "12345")
-          .put("storage", "Batch Upsert Inventory")
-          .put("status", "OK")
-          .put("started", "9000-01-01T00:00")
-          .put("amountHarvested", 5)
-          .put("message", "  a long, long message");
-      String[] ends = { "9001-01-01T00:00", "9002-01-01T00:00", "9003-01-01T00:00" };
+    @Test
+    public void testSettableClock() {
+        Instant sysNow = Instant.now();
+        Clock fixedClock = Clock.fixed(sysNow, ZoneId.systemDefault());
+        SettableClock.setClock(fixedClock);
 
-      for (var finished : ends) {
-        harvestJob.put("id", UUID.randomUUID()).put("finished", finished);
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
-            .body(harvestJob.encodePrettily())
-            .contentType(ContentType.JSON)
-            .post("harvester-admin/previous-jobs")
-            .then()
-            .statusCode(201);
-      }
+        assertThat("SettableClock is same as fixed clock", SettableClock.getClock().equals(fixedClock));
+        assertThat("SettableClock is same Instant as fixed clock", SettableClock.getInstant().equals(fixedClock.instant()));
+        assertThat("SettableClock has same ZonedDateTime as fixed clock", SettableClock.getZonedDateTime().truncatedTo(ChronoUnit.MILLIS).equals(ZonedDateTime.now(fixedClock).truncatedTo(ChronoUnit.MILLIS)));
+        assertThat("SettableClock has same zone ID as fixed clock", SettableClock.getZoneId().equals(ZoneId.systemDefault()));
+        assertThat("SettableClock has same zone offset as fixed clock", fixedClock.getZone().getRules().getOffset(sysNow).equals(SettableClock.getZoneOffset()));
+        assertThat("SettableClock has same LocalDate as fixed clock", SettableClock.getLocalDate().equals(LocalDate.now(fixedClock)));
+        assertThat("SettableClock has same LocalTime as fixed clock", SettableClock.getLocalTime().equals(LocalTime.now(fixedClock).truncatedTo(ChronoUnit.MILLIS)));
+        assertThat("SettableClock has same LocalDateTime as fixed clock", SettableClock.getLocalDateTime().equals(LocalDateTime.now(fixedClock).truncatedTo(ChronoUnit.MILLIS)));
 
-      return given().port(Statics.PORT_HARVESTER_ADMIN)
-          .header(OKAPI_TENANT)
-          .get("harvester-admin/previous-jobs" + parameters)
-          .then()
-          .statusCode(200);
+        SettableClock.setDefaultClock();
+    }
+
+    @Test
+    public void canCreateGetDeletePreviousJob() {
+        final UUID PREVIOUS_JOB_ID = UUID.fromString("08ed2196-cd90-4b49-b651-dad27201dcb5");
+        var harvestJob = new JsonObject()
+                .put("id", PREVIOUS_JOB_ID)
+                .put("name", "busy bee")
+                .put("harvestableId", 789)
+                .put("type", "xmlBulk")
+                .put("url", "http://fileserver/xml/")
+                .put("allowErrors", true)
+                .put("transformation", "12345")
+                .put("storage", "Batch Upsert Inventory")
+                .put("status", "OK")
+                .put("started", "9000-01-01T00:00")
+                .put("amountHarvested", 5)
+                .put("message", "  a long, long message");
+
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .body(harvestJob.encodePrettily())
+                .post("harvester-admin/previous-jobs")
+                .then()
+                .statusCode(201);
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .body(harvestJob.encodePrettily())
+                .get("harvester-admin/previous-jobs/" + PREVIOUS_JOB_ID)
+                .then()
+                .statusCode(200);
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .body(harvestJob.encodePrettily())
+                .delete("harvester-admin/previous-jobs/" + PREVIOUS_JOB_ID)
+                .then()
+                .statusCode(200);
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .body(harvestJob.encodePrettily())
+                .get("harvester-admin/previous-jobs/" + PREVIOUS_JOB_ID)
+                .then()
+                .statusCode(404);
     }
 
     @Test
@@ -207,6 +234,105 @@ public class NoHarvesterTest {
       .get("harvester-admin/previous-jobs?offset=x")
       .then()
       .statusCode(400);
+    }
+
+    public ValidatableResponse canGetPreviousJobs(String parameters) {
+        var harvestJob = new JsonObject()
+                .put("name", "busy bee")
+                .put("harvestableId", 789)
+                .put("type", "xmlBulk")
+                .put("url", "http://fileserver/xml/")
+                .put("allowErrors", true)
+                .put("transformation", "12345")
+                .put("storage", "Batch Upsert Inventory")
+                .put("status", "OK")
+                .put("started", "9000-01-01T00:00")
+                .put("amountHarvested", 5)
+                .put("message", "  a long, long message");
+        String[] ends = { "9001-01-01T00:00", "9002-01-01T00:00", "9003-01-01T00:00" };
+
+        for (var finished : ends) {
+            harvestJob.put("id", UUID.randomUUID()).put("finished", finished);
+            given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+                    .body(harvestJob.encodePrettily())
+                    .contentType(ContentType.JSON)
+                    .post("harvester-admin/previous-jobs")
+                    .then()
+                    .statusCode(201);
+        }
+
+        return given().port(Statics.PORT_HARVESTER_ADMIN)
+                .header(OKAPI_TENANT)
+                .get("harvester-admin/previous-jobs" + parameters)
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    public void canGetFailedRecordForPreviousJob() {
+        Response response = given()
+                .port(Statics.PORT_HARVESTER_ADMIN)
+                .get("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(200).extract().response();
+        logger.info("will purge jobs response: " + response.asPrettyString());
+
+        given().port(Statics.PORT_HARVESTER_ADMIN)
+                .get("harvester-admin/previous-jobs")
+                .then()
+                .log().ifValidationFails().statusCode(200).extract().response();
+
+        UUID[] harvestJobIds = { UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() };
+        UUID[] failedRecordIds = { UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() };
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime[] started = {
+                now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
+                now.minusMonths(2).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
+                now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS)
+        };
+        for (int i = 0; i < 3; i++) {
+            var harvestJobId = harvestJobIds[i];
+            var failedRecordId = failedRecordIds[i];
+            var job = new JsonObject()
+                    .put("id", harvestJobId)
+                    .put("name", "foo")
+                    .put("type", "xmlBulk")
+                    .put("url", "http://fileserver/xml/")
+                    .put("transformation", "789")
+                    .put("storage", "Batch Upsert Inventory")
+                    .put("harvestableId", 123)
+                    .put("started", started[i].toString());
+            given().body(job.encode())
+                    .post("harvester-admin/previous-jobs")
+                    .then().statusCode(201);
+            given()
+                    .header(Statics.CONTENT_TYPE_TEXT)
+                    .body("2024-01-01T00:00:00.000 INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
+                    .post("harvester-admin/previous-jobs/" + harvestJobId + "/log")
+                    .then().statusCode(201);
+            var failedRecords = new JsonArray()
+                    .add(new JsonObject()
+                            .put("id", failedRecordIds[i])
+                            .put("timeStamp", "2024-01-01T00:00:00.000")
+                            .put("originalRecord", "orig")
+                            .put("transformedRecord", new JsonObject())
+                            .put("recordErrors", new JsonArray()));
+            given()
+                    .body(new JsonObject().put("failedRecords", failedRecords).encode())
+                    .post("harvester-admin/previous-jobs/" + harvestJobId + "/failed-records")
+                    .then().statusCode(201);
+            given()
+                    .get("harvester-admin/previous-jobs/" + harvestJobId + "/log")
+                    .then().statusCode(200);
+            given()
+                    .get("harvester-admin/previous-jobs/failed-records/" + failedRecordId)
+                    .then().statusCode(200)
+                    .body("id", is(failedRecordId.toString()));
+
+            given()
+                    .get("harvester-admin/previous-jobs/failed-records/" + UUID.randomUUID())
+                    .then().statusCode(404);
+        }
     }
 
     @Test
@@ -286,32 +412,26 @@ public class NoHarvesterTest {
                                 "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__3___3___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__8___8___0___0_ Items_processed/loaded/deleted/failed:__2___2___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
                                 "    }\n");
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(agedJobJson.encode())
-                .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(intermediateJobJson.encode())
-                .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(newerJobJson.encode())
-                .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
 
-        RestAssured
-                .given()
+        given()
                 .port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
-                .contentType(ContentType.JSON)
                 .get("harvester-admin/previous-jobs")
                 .then().statusCode(200)
                 .body("totalRecords", is(3));
@@ -419,23 +539,21 @@ public class NoHarvesterTest {
                                 "      \"message\" : \"  Instances_processed/loaded/deletions(signals)/failed:__3___3___0(0)___0_ Holdings_records_processed/loaded/deleted/failed:__8___8___0___0_ Items_processed/loaded/deleted/failed:__2___2___0___0_ Source_records_processed/loaded/deleted/failed:__0___0___0___0_\"\n" +
                                 "    }\n");
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(agedJobJson.encode())
                 .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(intermediateJobJson.encode())
-                .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
 
-        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+        given().port(Statics.PORT_HARVESTER_ADMIN)
                 .body(newerJobJson.encode())
-                .contentType(ContentType.JSON)
                 .post("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(201).extract().response();
@@ -496,15 +614,14 @@ public class NoHarvesterTest {
 
     @Test
     public void willPurgeAgedJobLogsUsingConfigurationsEntry() {
-        Response response = given().port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
+        Response response = given()
+                .port(Statics.PORT_HARVESTER_ADMIN)
                 .get("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(200).extract().response();
         logger.info("will purge jobs response: " + response.asPrettyString());
 
         given().port(Statics.PORT_HARVESTER_ADMIN)
-                .header(OKAPI_TENANT)
                 .get("harvester-admin/previous-jobs")
                 .then()
                 .log().ifValidationFails().statusCode(200).extract().response();
@@ -592,6 +709,16 @@ public class NoHarvesterTest {
               .then().statusCode(200)
               .body("failedRecords.size()", is(0));
         }
+  }
+
+  @Test
+  public void canGenerateSomeLegacyIds() {
+      given().port(Statics.PORT_HARVESTER_ADMIN)
+              .header(OKAPI_TENANT)
+              .get("harvester-admin/generate-ids?count=12")
+              .then()
+              .log().ifValidationFails().statusCode(200).body(hasLength(16*12));
+
   }
 
     public static RequestSpecification timeoutConfig(int timeOutInMilliseconds) {

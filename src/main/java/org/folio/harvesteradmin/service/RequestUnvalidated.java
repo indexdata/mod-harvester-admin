@@ -30,8 +30,4 @@ public class RequestUnvalidated extends AdminRequest {
         return request.getParam(paramName);
     }
 
-    @Override
-    public String pathParam(String paramName) {
-        return routingContext.pathParam(paramName);
-    }
 }
