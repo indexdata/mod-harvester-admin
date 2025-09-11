@@ -47,6 +47,10 @@ public abstract class AdminRequest {
 
     public abstract String queryParam(String paramName);
 
+    public String getHeader(String headerName) {
+        return request.getHeader(headerName);
+    }
+
     public String absoluteURI () {
         return request.absoluteURI();
     }

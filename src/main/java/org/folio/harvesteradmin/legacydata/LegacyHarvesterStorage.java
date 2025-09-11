@@ -468,15 +468,14 @@ public class LegacyHarvesterStorage {
    * Deletes a config record.
    */
   public Future<ProcessedHarvesterResponseDelete> deleteConfigRecord(
-      RoutingContext routingContext) {
+      AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponseDelete> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    String requestUri = routingContext.request().absoluteURI();
+    String id = adminRequest.requestParam("id");
+    String harvesterPath = adminRequest.harvesterPathFromRequestPath();
     checkForReferencingEntities(harvesterPath, id)
         .onComplete(check -> {
           if (check.result() == 0) {
-            deleteConfigRecord(requestUri, id, harvesterPath)
+            deleteConfigRecord(adminRequest.absoluteURI(), id, harvesterPath)
                 .onComplete(result -> promise.complete(result.result()));
           } else {
             promise.complete(
@@ -863,10 +862,10 @@ public class LegacyHarvesterStorage {
   /**
    * Gets the logs for a job.
    */
-  public Future<HttpResponse<Buffer>> getJobLog(RoutingContext routingContext) {
+  public Future<HttpResponse<Buffer>> getJobLog(AdminRequest adminRequest) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    String fromParameter = routingContext.request().getParam("from");
+    String id = adminRequest.requestParam("id");
+    String fromParameter = adminRequest.requestParam("from");
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
@@ -911,11 +910,11 @@ public class LegacyHarvesterStorage {
   /**
    * Gets failed records.
    */
-  public Future<ProcessedHarvesterResponseGet> getFailedRecords(RoutingContext routingContext) {
+  public Future<ProcessedHarvesterResponseGet> getFailedRecords(AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    int offset = getIntOrDefault(routingContext.request().getParam("offset"),0);
-    int limit = getIntOrDefault(routingContext.request().getParam("limit"),1000);
+    String id = adminRequest.requestParam("id");
+    int offset = getIntOrDefault(adminRequest.requestParam("offset"),0);
+    int limit = getIntOrDefault(adminRequest.requestParam("limit"),1000);
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
@@ -1038,9 +1037,9 @@ public class LegacyHarvesterStorage {
   /**
    * Gets a script.
    */
-  public Future<String> getScript(RoutingContext routingContext) {
+  public Future<String> getScript(AdminRequest adminRequest) {
     Promise<String> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
+    String id = adminRequest.requestParam("id");
     getConfigRecordById(ApiPaths.HARVESTER_STEPS_PATH, id).onComplete(getStep -> {
       if (getStep.result().found()) {
         String script = getStep.result().jsonObject().getString(STEP_SCRIPT_KEY);
@@ -1060,13 +1059,12 @@ public class LegacyHarvesterStorage {
   /**
    * PUTs a transformation script.
    */
-  public Future<ProcessedHarvesterResponsePut> putScript(RoutingContext routingContext) {
+  public Future<ProcessedHarvesterResponsePut> putScript(AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponsePut> promise = Promise.promise();
-    AdminRequest adminRequest = new RequestUnvalidated(routingContext.vertx(), routingContext);
     String id = adminRequest.requestParam("id");
-    String name = adminRequest.queryParam("name");
+    String name = adminRequest.requestParam("name");
     if (name == null || name.isEmpty()) {
-      responseText(routingContext, 400).end(
+      responseText(adminRequest.routingContext(), 400).end(
           "Parameter 'name' is mandatory when putting a script to the step. The value should "
               + "match the name of the step to PUT to.");
     } else {
@@ -1090,7 +1088,7 @@ public class LegacyHarvesterStorage {
                   .onComplete(putStep -> {
                     if (putStep.succeeded()) {
                       promise.complete(new ProcessedHarvesterResponsePut(
-                          putStep.result().harvesterResponse, routingContext.request().path(), ""));
+                          putStep.result().harvesterResponse, adminRequest.routingContext().request().path(), ""));
                     } else {
                       promise.complete(
                           new ProcessedHarvesterResponsePut(

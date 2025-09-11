@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.1.0
 info:
   title: Harvester Admin API
   version: v0.1
@@ -2956,7 +2956,7 @@ components:
             this configuration completed.
         initiallyHarvested:
           type: string
-          description: 'Date and time, assigned by Harvester'
+          description: Date and time, assigned by Harvester
         lastHarvestStarted:
           type: string
           description: >-
@@ -3268,7 +3268,7 @@ components:
             the job was run.
           type: integer
         harvestableName:
-          description: 'Name of the harvest configuration (harvestable), by which the job was run.'
+          description: Name of the harvest configuration (harvestable), by which the job was run.
           type: string
         recordErrors:
           type: array
