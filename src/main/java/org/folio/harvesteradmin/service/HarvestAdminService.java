@@ -44,7 +44,6 @@ import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.postgres.PgCqlException;
-import org.folio.tlib.util.TenantUtil;
 
 /**
  * Main service.

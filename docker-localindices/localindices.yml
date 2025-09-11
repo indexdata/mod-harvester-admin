@@ -1,0 +1,44 @@
+services:
+  mysql:
+    image: mysql:8.0.21
+    container_name: localindices-mysql
+    hostname: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=id3636mysql
+      - MYSQL_DATABASE=localindices
+      - MYSQL_USER=localidxadm
+      - MYSQL_PASSWORD=localidxadmpass
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./schema.v2.14.sql:/docker-entrypoint-initdb.d/schema.v2.14.sql
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+  harvester:
+    image: ghcr.io/indexdata/harvester:v2.15.7
+    container_name: harvester
+    environment:
+      - MYSQLUSER=localidxadm
+      - MYSQLPASS=localidxadmpass
+      - MYSQLURL=jdbc:mysql://mysql:3306/localindices?autoReconnect=true&maxAllowedPacket=88080384
+    ports:
+      - '8080:8080'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+          mysql:
+            condition: service_healthy
+  harvester-admin:
+    image: ghcr.io/indexdata/harvester-admin:v2.15.7
+    container_name: harvester-admin
+    hostname: harvester-admin
+    environment:
+      - HARVESTER_HOST=harvester
+    ports:
+      - '8081:8081'
+networks:
+  default:
+    name: harvester
+

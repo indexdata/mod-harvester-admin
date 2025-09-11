@@ -5,7 +5,6 @@ import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STE
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STORAGES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TSAS_PATH;
-import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.harvesterPathByRequestPath;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfArrayOfEntities;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfRootOfEntity;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.typeToEmbeddedTypeMap;
@@ -21,7 +20,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -56,7 +54,6 @@ import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
 import org.folio.harvesteradmin.legacydata.statics.EntityRootNames;
 import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
 import org.folio.harvesteradmin.service.AdminRequest;
-import org.folio.harvesteradmin.service.RequestUnvalidated;
 import org.folio.harvesteradmin.utils.SettableClock;
 import org.xml.sax.SAXException;
 
@@ -1189,12 +1186,6 @@ public class LegacyHarvesterStorage {
       }
     }
     return queryString.toString();
-  }
-
-  private String mapToHarvesterPath(RoutingContext routingContext) {
-    return harvesterPathByRequestPath.get(
-        routingContext.request().path().replaceAll("/" + routingContext.pathParam("id") + "$",
-            ""));
   }
 
   private String aclFilter(String tenant) {
