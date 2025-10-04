@@ -27,7 +27,7 @@ public class RequestUnvalidated extends AdminRequest {
 
     @Override
     public String queryParam(String paramName) {
-        return request.getParam(paramName);
+        return routingContext().request().getParam(paramName);
     }
 
 }

@@ -1,6 +1,5 @@
 package org.folio.harvesteradmin.moduledata.database;
 
-import io.vertx.openapi.validation.RequestParameter;
 import org.apache.commons.lang3.StringUtils;
 
 public class SqlQuery {
@@ -17,13 +16,13 @@ public class SqlQuery {
    * Constructor.
    */
   public SqlQuery(String select, String from, String where, String orderBy,
-                  RequestParameter offset, RequestParameter limit) {
+                  String offset, String limit) {
     this.select = select;
     this.from = from;
     this.where = where != null ? where : "";
     this.orderBy = orderBy != null ? orderBy : "";
-    this.offset = offset != null ? offset.getString() : null;
-    this.limit = limit != null ? limit.getString() : null;
+    this.offset = offset;
+    this.limit = limit;
   }
 
   /**

@@ -81,7 +81,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   }
 
   /**
-   * For POSTing text, PUTting xml
+   * For POSTing text, PUTting xml, decoding the CQL query parameter
    */
   private void nonValidatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
                                     Function<AdminRequest, Future<Void>> method) {
@@ -126,7 +126,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     validatingHandler(vertx, routerBuilder, "getPreviousJob", this::getPreviousJobById);
     validatingHandler(vertx, routerBuilder, "deletePreviousJob", this::deletePreviousJob);
     validatingHandler(vertx, routerBuilder, "postPreviousJob", this::postPreviousJob);
-    validatingHandler(vertx, routerBuilder, "getPreviousJobLog", this::getPreviousJobLog);
+    nonValidatingHandler(vertx, routerBuilder, "getPreviousJobLog", this::getPreviousJobLog);
     nonValidatingHandler(vertx, routerBuilder, "postPreviousJobLog", this::postPreviousJobLog);
     validatingHandler(vertx, routerBuilder, "getFailedRecordsForPreviousJob", this::getFailedRecordsForPreviousJobs);
     validatingHandler(vertx, routerBuilder, "postFailedRecords", this::postFailedRecords);
@@ -484,7 +484,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     SqlQuery query;
     try {
       query = HarvestJob.entity()
-          .makeSqlFromCqlQuery(adminRequest.routingContext(), adminRequest.moduleStorageAccess().schemaDotTable(Tables.harvest_job))
+          .makeSqlFromCqlQuery(adminRequest, adminRequest.moduleStorageAccess().schemaDotTable(Tables.harvest_job))
           .withAdditionalWhereClause(timeRange);
     } catch (PgCqlException pce) {
       responseText(adminRequest.routingContext(), 400)
@@ -558,42 +558,29 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   private Future<Void> getPreviousJobLog(AdminRequest adminRequest) {
     String contentType = adminRequest.getHeader("Accept");
-    logger.info("Request for previous logs in " + contentType + ".");
     String idQueryParameter = adminRequest.requestParam("id");
     UUID id = (idQueryParameter != null ? UUID.fromString(idQueryParameter) : null);
     String fromDateTime = adminRequest.queryParam("from");
     String untilDateTime = adminRequest.queryParam("until");
     String timeRange = null;
     if (fromDateTime != null && untilDateTime != null) {
-      timeRange = "time_stamp >= '" + fromDateTime + "' AND time_stamp <= '" + untilDateTime + "'";
+      timeRange = "time_stamp >= '" + LogLine.legacyDateTimeToPgDateTime(fromDateTime) + "' AND time_stamp <= '"
+          + LogLine.legacyDateTimeToPgDateTime(untilDateTime) + "'";
     } else if (fromDateTime != null) {
-      timeRange = "time_stamp >= '" + fromDateTime + "'";
+      timeRange = "time_stamp >= '" + LogLine.legacyDateTimeToPgDateTime(fromDateTime) + "'";
     } else if (untilDateTime != null) {
-      timeRange = "time_stamp <= '" + untilDateTime + "'";
+      timeRange = "time_stamp <= '" + LogLine.legacyDateTimeToPgDateTime(untilDateTime) + "'";
     }
 
     ModuleStorageAccess moduleStorage = adminRequest.moduleStorageAccess();
     SqlQuery queryFromCql = LogLine.entity()
-        .makeSqlFromCqlQuery(adminRequest.routingContext(), moduleStorage.schemaDotTable(Tables.log_statement))
+        .makeSqlFromCqlQuery(adminRequest, moduleStorage.schemaDotTable(Tables.log_statement))
         .withAdditionalWhereClause(timeRange);
     if (contentType != null && contentType.contains("json")) {
       return moduleStorage.getLogsAsJsonForPreviousJob(id, queryFromCql)
           .onComplete(jobLog -> {
             if (jobLog.succeeded()) {
-              if (jobLog.result().isEmpty()) {
-                moduleStorage.getPreviousJobById(id).onComplete(harvestJob -> {
-                  if (harvestJob.result() == null) {
-                    responseText(adminRequest.routingContext(), 404)
-                        .end("Found no previous job with ID " + id);
-                  } else {
-                    responseText(adminRequest.routingContext(), 200)
-                        .end("Previous job with ID " + id + ", "
-                            + harvestJob.result().getName() + ", has no logs.");
-                  }
-                });
-              } else {
-                responseJson(adminRequest.routingContext(), 200).end(jobLog.result().encodePrettily());
-              }
+              responseJson(adminRequest.routingContext(), 200).end(jobLog.result().encodePrettily());
             } else {
               responseError(adminRequest.routingContext(), 500, jobLog.cause().getMessage());
             }
@@ -610,7 +597,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                   } else {
                     responseText(adminRequest.routingContext(), 200)
                         .end("Previous job with ID " + id + ", "
-                            + harvestJob.result().getName() + ", has no logs.");
+                            + harvestJob.result().getName() + ", has no logs " +
+                            ((untilDateTime != null || fromDateTime != null) ? "for the given timeframe. " : "." ) );
                   }
                 });
               } else {
@@ -641,11 +629,10 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> getFailedRecordsForPreviousJobs(AdminRequest adminRequest) {
     ModuleStorageAccess moduleStorageAccess = adminRequest.moduleStorageAccess();
     SqlQuery queryFromCql = RecordFailure.entity().makeSqlFromCqlQuery(
-            adminRequest.routingContext(), moduleStorageAccess.schemaDotTable(Tables.record_failure_view))
+            adminRequest, moduleStorageAccess.schemaDotTable(Tables.record_failure_view))
         .withDefaultLimit("100");
     String jobId = adminRequest.requestParam("id");
     String from = adminRequest.requestParam("from");
-    System.out.println("ID-NE: from: " + from);
     String until = adminRequest.requestParam("until");
 
     String timeRange = null;

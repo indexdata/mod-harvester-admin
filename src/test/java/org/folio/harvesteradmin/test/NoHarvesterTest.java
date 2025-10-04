@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -269,30 +270,20 @@ public class NoHarvesterTest {
     }
 
     @Test
-    public void canGetFailedRecordForPreviousJob() {
-        Response response = given()
-                .port(Statics.PORT_HARVESTER_ADMIN)
-                .get("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(200).extract().response();
-        logger.info("will purge jobs response: " + response.asPrettyString());
-
-        given().port(Statics.PORT_HARVESTER_ADMIN)
-                .get("harvester-admin/previous-jobs")
-                .then()
-                .log().ifValidationFails().statusCode(200).extract().response();
+    public void canCreateAndGetFailedRecordsForPreviousJobs() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
         UUID[] harvestJobIds = { UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() };
-        UUID[] failedRecordIds = { UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID() };
+        UUID[] failedRecordIds = {
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()};
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime[] started = {
                 now.minusMonths(3).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
                 now.minusMonths(2).minusDays(1).truncatedTo(ChronoUnit.SECONDS),
                 now.minusMonths(2).truncatedTo(ChronoUnit.SECONDS)
         };
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) { // iterate three jobs
             var harvestJobId = harvestJobIds[i];
-            var failedRecordId = failedRecordIds[i];
             var job = new JsonObject()
                     .put("id", harvestJobId)
                     .put("name", "foo")
@@ -301,38 +292,162 @@ public class NoHarvesterTest {
                     .put("transformation", "789")
                     .put("storage", "Batch Upsert Inventory")
                     .put("harvestableId", 123)
-                    .put("started", started[i].toString());
+                    .put("started", formatter.format(started[i]));
             given().body(job.encode())
                     .post("harvester-admin/previous-jobs")
                     .then().statusCode(201);
             given()
                     .header(Statics.CONTENT_TYPE_TEXT)
-                    .body("2024-01-01T00:00:00.000 INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
+                    .body(formatter.format(started[i].plusMinutes(2)) + " INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
                     .post("harvester-admin/previous-jobs/" + harvestJobId + "/log")
                     .then().statusCode(201);
-            var failedRecords = new JsonArray()
+            for (int j=0; j<2; j++) { // iterate two failed records for each job
+                var failedRecords = new JsonArray()
                     .add(new JsonObject()
-                            .put("id", failedRecordIds[i])
-                            .put("timeStamp", "2024-01-01T00:00:00.000")
-                            .put("originalRecord", "orig")
-                            .put("transformedRecord", new JsonObject())
-                            .put("recordErrors", new JsonArray()));
-            given()
+                        .put("id", failedRecordIds[(i*2)+j])
+                        .put("timeStamp", formatter.format(started[i].plusMinutes(j)))
+                        .put("originalRecord", "orig")
+                        .put("transformedRecord", new JsonObject())
+                        .put("recordErrors", new JsonArray()));
+                given()
                     .body(new JsonObject().put("failedRecords", failedRecords).encode())
                     .post("harvester-admin/previous-jobs/" + harvestJobId + "/failed-records")
                     .then().statusCode(201);
-            given()
-                    .get("harvester-admin/previous-jobs/" + harvestJobId + "/log")
-                    .then().statusCode(200);
-            given()
-                    .get("harvester-admin/previous-jobs/failed-records/" + failedRecordId)
-                    .then().statusCode(200)
-                    .body("id", is(failedRecordId.toString()));
-
-            given()
-                    .get("harvester-admin/previous-jobs/failed-records/" + UUID.randomUUID())
-                    .then().statusCode(404);
+            }
         }
+        JsonObject duplicate = new JsonObject()
+                .put("id", failedRecordIds[0])
+                .put("timeStamp", formatter.format(started[0].plusMinutes(0)))
+                .put("originalRecord", "orig")
+                .put("transformedRecord", new JsonObject())
+                .put("recordErrors", new JsonArray());
+
+
+        var failedRecordsDuplicate = new JsonArray().add(duplicate);
+        given()
+            .body(new JsonObject().put("failedRecords", failedRecordsDuplicate).encode())
+            .post("harvester-admin/previous-jobs/" + harvestJobIds[0] + "/failed-records")
+            .then().statusCode(500);
+
+        // Can get by ID
+        given()
+            .get("harvester-admin/previous-jobs/failed-records/" + failedRecordIds[1])
+            .then().statusCode(200)
+            .body("id", is(failedRecordIds[1].toString()));
+        given()
+            .get("harvester-admin/previous-jobs/failed-records/" + UUID.randomUUID())
+            .then().statusCode(404);
+        String earlier = formatter.format(started[0].plusMinutes(1));
+        String later = formatter.format(started[2].plusMinutes(0));
+        // Can get collection
+        given()
+            .get("harvester-admin/previous-jobs/failed-records")
+            .then()
+            .body("totalRecords", is(6));
+        // Can apply date limits
+        given()
+            .get("harvester-admin/previous-jobs/failed-records?from="+earlier)
+            .then()
+            .body("totalRecords", is(5));
+        given()
+            .get("harvester-admin/previous-jobs/failed-records?until="+earlier)
+            .then()
+            .body("totalRecords", is(2));
+        given()
+            .get("harvester-admin/previous-jobs/failed-records?from="+earlier+"&until="+later)
+            .then()
+            .body("totalRecords", is(4));
+    }
+
+    @Test
+    public void canCreateAndQueryJobLogAsTextOrJson() {
+        String jobId = UUID.randomUUID().toString();
+        LocalDateTime dateTime = LocalDateTime.of(2024,1,1,0,0,0);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+        var harvestJob = new JsonObject()
+            .put("id", jobId)
+            .put("name", "busy bee")
+            .put("harvestableId", 789)
+            .put("type", "xmlBulk")
+            .put("url", "http://fileserver/xml/")
+            .put("allowErrors", true)
+            .put("transformation", "12345")
+            .put("storage", "Batch Upsert Inventory")
+            .put("status", "OK")
+            .put("started", formatter.format(dateTime))
+            .put("amountHarvested", 5)
+            .put("message", "  a long, long message");
+
+        given().port(Statics.PORT_HARVESTER_ADMIN).header(OKAPI_TENANT)
+            .body(harvestJob.encodePrettily())
+            .contentType(ContentType.JSON)
+            .post("harvester-admin/previous-jobs")
+            .then()
+            .statusCode(201);
+
+        for (int i = 1; i <= 100; i++) {
+            given()
+                .header(Statics.CONTENT_TYPE_TEXT)
+                .body(formatter.format(dateTime.plusMinutes(i))+" INFO [foo (bar)] abcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyzabcdefghijklmnoopqrstuvwxyz")
+                .post("harvester-admin/previous-jobs/" + jobId + "/log")
+                .then().statusCode(201);
+        }
+
+        String logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log").body().asString();
+        assertThat("Number of log lines ", countLines(logStatements), is(100));
+
+        given()
+            .header(new Header("Accept", "application/json"))
+            .get("harvester-admin/previous-jobs/" + jobId + "/log")
+            .then()
+            .body("totalRecords", is(100));
+
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?limit=10").body().asString();
+        assertThat("Number of log lines ", countLines(logStatements), is(10));
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?offset=10").body().asString();
+        assertThat("Number of lines ", countLines(logStatements), is(90));
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?from=2024-01-02").body().asString();
+        assertThat("No logs found", logStatements.contains("no logs for the given timeframe"), is(true));
+
+        given()
+            .header(new Header("Accept", "application/json"))
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?from=2024-01-02")
+            .then()
+            .body("totalRecords", is(0));
+
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?until=2023-12-31").body().asString();
+        assertThat("No logs found", logStatements.contains("no logs for the given timeframe"), is(true));
+
+        given()
+            .header(new Header("Accept", "application/json"))
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?from=2024-01-01T00:00&until=2024-01-01T00:55")
+            .then()
+            .body("totalRecords", is(55));
+
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?query=logLevel=INFO").body().asString();
+        assertThat("Number of log lines ", countLines(logStatements), is(100));
+        logStatements = given()
+            .header(Statics.CONTENT_TYPE_TEXT)
+            .get("harvester-admin/previous-jobs/" + jobId + "/log?query=logLevel=ERROR").body().asString();
+        assertThat("Number of log lines ", countLines(logStatements), is(1));
+    }
+
+    private int countLines(String str) {
+        String[] lines = str.split("\r\n|\r|\n");
+        return lines.length;
     }
 
     @Test

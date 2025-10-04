@@ -1,15 +1,12 @@
 package org.folio.harvesteradmin.moduledata;
 
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.openapi.router.RouterBuilder;
-import io.vertx.openapi.validation.RequestParameter;
-import io.vertx.openapi.validation.ValidatedRequest;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.List;
 import java.util.Map;
 
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
+import org.folio.harvesteradmin.service.AdminRequest;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 
@@ -46,23 +43,20 @@ public abstract class StoredEntity {
   public abstract Map<String, PgColumn> getFieldMap();
 
   /**
-   * Gets a SQL query string.
+   * Gets a SQL query string from CQL query with offset/limit.
    */
-  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
+  public SqlQuery makeSqlFromCqlQuery(AdminRequest adminRequest, String schemaDotTable) {
     PgCqlDefinition definition = getQueryableFields();
-    ValidatedRequest validatedRequest =
-            routingContext.get(RouterBuilder.KEY_META_DATA_VALIDATED_REQUEST);
-    Map<String, io.vertx.openapi.validation.RequestParameter> params = validatedRequest.getQuery();
-    RequestParameter query = params != null ? params.get("query") : null;
-    RequestParameter offset =  params != null ? params.get("offset") : null;
-    RequestParameter limit = params != null ? params.get("limit") : null;
+    String query = adminRequest.requestParam("query");
+    String offset =  adminRequest.requestParam("offset");
+    String limit = adminRequest.requestParam("limit");
 
     String select = "SELECT * ";
     String from = "FROM " + schemaDotTable;
     String whereClause = "";
     String orderByClause = "";
     if (query != null && !query.isEmpty()) {
-      PgCqlQuery pgCqlQuery = definition.parse(query.getString());
+      PgCqlQuery pgCqlQuery = definition.parse(query);
       if (pgCqlQuery.getWhereClause() != null) {
         whereClause = jsonPropertiesToColumnNames(pgCqlQuery.getWhereClause());
       }

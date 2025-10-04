@@ -94,7 +94,7 @@ public class ModuleStorageAccess {
             }
           }
         }
-        logger.info("Parsed " + sequence + " log lines in "
+        logger.debug("Parsed " + sequence + " log lines in "
             + (System.currentTimeMillis() - startParse) / 1000 + " seconds."
             + (nonMatches > 0
             ? "There were " + nonMatches + " log statements that could not be parsed!" : ""));
