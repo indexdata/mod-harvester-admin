@@ -2,6 +2,7 @@ package org.folio.harvesteradmin.service;
 
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.getIntOrDefault;
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.pagingPlainText;
+import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.NO_CONTENT;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.utils.Miscellaneous.getPeriod;
 import static org.folio.okapi.common.HttpResponse.responseError;
@@ -237,9 +238,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.putConfigRecord(routingContext).map(response -> {
       if (response.wasNoContent()) {
-        responseJson(
-            routingContext, response.statusCode())
-            .end(response.jsonObject().encodePrettily());
+        responseText(routingContext, NO_CONTENT).end();
       } else {
         responseError(
             routingContext, response.statusCode(), response.errorMessage());
@@ -254,9 +253,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.deleteConfigRecord(routingContext).map(response -> {
       if (response.wasNoContent()) {
-        responseJson(
-            routingContext, response.statusCode())
-            .end(response.jsonObject().encodePrettily());
+        responseJson(routingContext, NO_CONTENT).end();
       } else {
         responseError(
             routingContext, response.statusCode(), response.errorMessage());
@@ -283,8 +280,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
     return legacyStorage.putScript(routingContext)
         .onSuccess(response -> {
-          if (response.statusCode() == 204) {
-            responseText(routingContext, 204).end();
+          if (response.wasNoContent()) {
+            responseText(routingContext, NO_CONTENT).end();
           } else {
             responseError(routingContext, response.statusCode(), response.errorMessage());
           }
