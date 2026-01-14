@@ -6,7 +6,7 @@
 name: k8s-deploy-latest
 
 env:
-  K8S_NAMESPACE: 'snapshot-dev'
+  K8S_NAMESPACE: 'folio-dev-new'
   K8S_DEPLOYMENT: 'mod-harvester-admin-dev'
 
 on:
@@ -20,7 +20,7 @@ jobs:
       - name: Deploy latest to K8s
         uses: actions-hub/kubectl@v1.34.1
         env: 
-          KUBE_CONFIG: ${{ secrets.SNAPSHOT_DEV_SA_KUBECONFIG }}
+          KUBE_CONFIG: ${{ secrets.FOLIO_DEV_NEW_SA_KUBECONFIG }}
         with:
           args:
             -n ${{ env.K8S_NAMESPACE }} rollout restart deployment ${{ env.K8S_DEPLOYMENT }}

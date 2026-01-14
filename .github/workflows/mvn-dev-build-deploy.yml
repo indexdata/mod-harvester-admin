@@ -8,7 +8,7 @@ on:
 
 env:
   PUBLISH_BRANCH: 'master'
-  OKAPI_URL: 'https://snapshot-dev-okapi.folio-dev.indexdata.com'
+  OKAPI_URL: 'https://folio-dev-new-okapi.folio-dev.indexdata.com'
   OKAPI_SECRET_USER: "${{ secrets.FOLIO_DEV_NEW_OKAPI_USER }}"
   OKAPI_SECRET_PASSWORD: "${{ secrets.FOLIO_DEV_NEW_OKAPI_PASSWORD }}"
   OK_SESSION: 'session1'
