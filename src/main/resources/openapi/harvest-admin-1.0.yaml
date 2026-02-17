@@ -1797,7 +1797,6 @@ components:
           description: List of transformation steps associated with transformation pipelines
           type: array
           items:
-            type: object
             $ref: "#/components/schemas/transformationStepAssociation"
         totalRecords:
           description: Total number of records in response
@@ -3099,7 +3098,6 @@ components:
             configuration.
           type: array
           items:
-            type: object
             $ref: "#/components/schemas/failedRecordCurrentJob"
 
     failedRecordCurrentJob:
@@ -3171,7 +3169,6 @@ components:
           description: List of previous jobs
           type: array
           items:
-            type: object
             $ref: "#/components/schemas/previousJob"
 
     previousJob:
@@ -3246,7 +3243,6 @@ components:
           description: List of failed records created by a previous harvest job run.
           type: array
           items:
-            type: object
             $ref: "#/components/schemas/failedRecordPreviousJob"
 
     failedRecordPreviousJob:
@@ -3327,7 +3323,6 @@ components:
           description: Collection of Log4J log statements.
           type: array
           items:
-            type: object
             $ref: "#/components/schemas/logLine"
 
     logLine:
