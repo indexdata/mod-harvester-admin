@@ -1,4 +1,2 @@
 *
-!Dockerfile
-!docker*
-!target/*.jar
+!target/*-fat.jar

@@ -2,6 +2,7 @@ package org.folio.harvesteradmin.service;
 
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.getIntOrDefault;
 import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.pagingPlainText;
+import static org.folio.harvesteradmin.legacydata.LegacyHarvesterStorage.NO_CONTENT;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_HARVESTABLES_PATH;
 import static org.folio.harvesteradmin.utils.Miscellaneous.getPeriod;
 import static org.folio.okapi.common.HttpResponse.responseError;
@@ -248,9 +249,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> putConfigRecord(AdminRequest adminRequest) {
     return adminRequest.legacyHarvesterAccess().putConfigRecord(adminRequest).map(response -> {
       if (response.wasNoContent()) {
-        responseJson(
-            adminRequest.routingContext(), response.statusCode())
-            .end(response.jsonObject().encodePrettily());
+        responseText(adminRequest.routingContext(), NO_CONTENT).end();
       } else {
         responseError(
             adminRequest.routingContext(), response.statusCode(), response.errorMessage());
@@ -263,9 +262,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> deleteConfigRecord(AdminRequest adminRequest) {
     return adminRequest.legacyHarvesterAccess().deleteConfigRecord(adminRequest).map(response -> {
       if (response.wasNoContent()) {
-        responseJson(
-            adminRequest.routingContext(), response.statusCode())
-            .end(response.jsonObject().encodePrettily());
+        responseJson(adminRequest.routingContext(), NO_CONTENT).end();
       } else {
         responseError(
             adminRequest.routingContext(), response.statusCode(), response.errorMessage());
@@ -288,8 +285,8 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
   private Future<Void> putScript(AdminRequest adminRequest) {
     return adminRequest.legacyHarvesterAccess().putScript(adminRequest)
         .onSuccess(response -> {
-          if (response.statusCode() == 204) {
-            responseText(adminRequest.routingContext(), 204).end();
+          if (response.wasNoContent()) {
+            responseText(adminRequest.routingContext(), NO_CONTENT).end();
           } else {
             responseError(adminRequest.routingContext(), response.statusCode(), response.errorMessage());
           }
