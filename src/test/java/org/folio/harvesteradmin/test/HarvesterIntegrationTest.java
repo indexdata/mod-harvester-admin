@@ -30,6 +30,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.File;
 import org.folio.harvesteradmin.MainVerticle;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
@@ -38,6 +39,7 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @RunWith( VertxUnitRunner.class )
@@ -50,6 +52,11 @@ public class HarvesterIntegrationTest {
 
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
+
+  @ClassRule
+  public static DockerComposeContainer<?> composeContainer =
+      new DockerComposeContainer<>(new File("docker-localindices/localindices.yml"))
+          .withExposedService("harvester", 8080);
 
   @Rule
   public final TestName name = new TestName();
