@@ -1,5 +1,5 @@
 ###
-Start localindices for running the HarvesterIntegrationTest:
+Start localindices:
 
     docker compose -f localindices.yml up -d
 
