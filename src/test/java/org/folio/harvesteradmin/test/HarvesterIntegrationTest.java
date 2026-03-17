@@ -291,7 +291,10 @@ public class HarvesterIntegrationTest {
   public void canLaunchJobIfHarvestableExists() {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
-        new JsonObject(
+        new JsonObject()
+           .put("id", harvestableId.fullId())
+           .put("name", "Test harvest job (modhaadm unit tests)")
+           ...
             "{\n"
                 + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
                 + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
