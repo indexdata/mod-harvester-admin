@@ -292,31 +292,23 @@ public class HarvesterIntegrationTest {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
         new JsonObject()
-           .put("id", harvestableId.fullId())
-           .put("name", "Test harvest job (modhaadm unit tests)")
-           ...
-            "{\n"
-                + "  \"id\": \"" + harvestableId.fullId() +"\",\n"
-                + "  \"name\": \"Test harvest job (modhaadm unit tests)\",\n"
-                + "  \"type\": \"oaiPmh\",\n"
-                + "  \"enabled\": \"false\",\n"
-                + "  \"harvestImmediately\": \"false\",\n"
-                + "  \"lastUpdated\": \"2022-12-07T15:20:49.507Z\",\n"
-                + "  \"storage\": {\n"
-                + "    \"entityType\": \"inventoryStorageEntity\",\n"
-                + "    \"id\": \"" + BASE_STORAGE_ID.fullId() + "\"\n"
-                + "  },\n"
-                + "  \"transformation\": {\n"
-                + "    \"entityType\": \"basicTransformation\",\n"
-                + "    \"id\": \"" + BASE_TRANSFORMATION_ID.fullId() + "\"\n"
-                + "  },\n"
-                + "  \"metadataPrefix\": \"marc21\",\n"
-                + "  \"oaiSetName\": \"PALCI_RESHARE\",\n"
-                + "  \"url\": \"https://na01.alma.exlibrisgroup"
-                + ".com/view/oai/01SSHELCO_BLMSBRG/request\",\n"
-                + "  \"dateFormat\": \"yyyy-MM-dd'T'hh:mm:ss'Z'\"\n"
-                + "}"
-        );
+            .put("id", harvestableId.toString())
+            .put("name", "Test harvest job (modhaadm unit tests)")
+            .put("type", "oaiPmh")
+            .put("enabled", "false")
+            .put("harvestImmediately", "false")
+            .put("lastUpdated", "2022-12-07T15:20:49.507Z")
+            .put("storage",
+                new JsonObject().put("entityType", "inventoryStorageEntity")
+                    .put("id", BASE_STORAGE_ID.toString()))
+            .put("transformation",
+                new JsonObject().put("entityType", "basicTransformation")
+                    .put("id", BASE_TRANSFORMATION_ID.toString()))
+            .put("metadataPrefix", "marc21")
+            .put("oaiSetName", "PALCI_RESHARE")
+            .put("url", "https://na01.alma.exlibrisgroup.com/view/oai/01SSHELCO_BLMSBRG/request")
+            .put("dateFormat", "yyyy-MM-dd'T'hh:mm:ss'Z'");
+    System.out.println(harvestable.encodePrettily());
     postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
     postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
     postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
