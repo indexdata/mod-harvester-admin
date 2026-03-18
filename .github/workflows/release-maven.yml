@@ -60,7 +60,7 @@ jobs:
             -p ${{ secrets.FOLIO_REGISTRY_PASSWORD }}
           OK -S ${{ env.OK_SESSION }} -x
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ github.ACTOR }}
