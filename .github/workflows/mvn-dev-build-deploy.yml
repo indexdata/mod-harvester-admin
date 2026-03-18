@@ -104,7 +104,7 @@ jobs:
 
       - name: Build and publish Docker image
         if: ${{ env.CURRENT_BRANCH == env.PUBLISH_BRANCH }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
