@@ -9,7 +9,6 @@ import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -18,17 +17,18 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.impl.HttpResponseImpl;
-import io.vertx.ext.web.openapi.RouterBuilder;
-import io.vertx.ext.web.validation.RequestParameter;
-import io.vertx.ext.web.validation.RequestParameters;
-import io.vertx.ext.web.validation.ValidationHandler;
+import io.vertx.ext.web.handler.impl.BodyHandlerImpl;
+import io.vertx.ext.web.openapi.router.RouterBuilder;
+
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import io.vertx.openapi.contract.OpenAPIContract;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.foliodata.ConfigurationsClient;
@@ -45,7 +45,6 @@ import org.folio.okapi.common.HttpResponse;
 import org.folio.tlib.RouterCreator;
 import org.folio.tlib.TenantInitHooks;
 import org.folio.tlib.postgres.PgCqlException;
-import org.folio.tlib.util.TenantUtil;
 
 /**
  * Main service.
@@ -56,93 +55,112 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
 
   @Override
   public Future<Router> createRouter(Vertx vertx) {
-    return RouterBuilder.create(vertx, "openapi/harvest-admin-1.0.yaml").map(routerBuilder -> {
-      handlers(vertx, routerBuilder);
-      return routerBuilder.createRouter();
-    });
+    return OpenAPIContract.from(vertx, "openapi/harvest-admin-1.0.yaml")
+        .map(contract -> {
+          RouterBuilder routerBuilder = RouterBuilder.create(vertx, contract);
+          handlers(vertx, routerBuilder);
+          return routerBuilder.createRouter();
+        }).onSuccess(res -> logger.info("OpenAPI parsed OK"));
   }
 
-  private void handler(Vertx vertx, RouterBuilder routerBuilder, String operation,
-      BiFunction<Vertx, RoutingContext, Future<Void>> method) {
-
-    routerBuilder
-        .operation(operation)
-        .handler(ctx -> {
+  private void validatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
+                                 Function<AdminRequest, Future<Void>> method) {
+    routerBuilder.getRoute(operation)
+        .addHandler(ctx -> {
           try {
-            method.apply(vertx, ctx)
-            .onFailure(cause -> exceptionResponse(cause, ctx));
-          } catch (Exception e) {  // exception thrown by method
-            logger.error("{}: {}", operation, e.getMessage(), e);
+            method.apply(new RequestValidated(vertx, ctx))
+                .onFailure(cause -> {
+                  logger.error("Handler failure {}: {}", operation, cause.getMessage());
+                  exceptionResponse(cause, ctx);
+                });
+          } catch (Exception e) {
+            logger.error("Handler exception {}: {}", operation, e.getMessage(), e);
             exceptionResponse(e, ctx);
           }
         })
-        .failureHandler(this::routerExceptionResponse);  // OpenAPI validation exception
+        .addFailureHandler(this::routerExceptionResponse);
   }
+
+  /**
+   * For POSTing text, PUTting xml, decoding the CQL query parameter
+   */
+  private void nonValidatingHandler(Vertx vertx, RouterBuilder routerBuilder, String operation,
+                                    Function<AdminRequest, Future<Void>> method) {
+    routerBuilder.getRoute(operation)
+        .addHandler(new BodyHandlerImpl())
+        .setDoValidation(false)
+        .addHandler(ctx -> {
+          try {
+            method.apply(new RequestUnvalidated(vertx, ctx))
+                .onFailure(cause -> {
+                  logger.error("Non-validating handler failure {}: {}", operation, cause.getMessage());
+                  exceptionResponse(cause, ctx);
+                });
+          } catch (Exception e) {  // exception thrown by method
+            logger.error("Non-validating handler exception {}: {}", operation, e.getMessage(), e);
+            exceptionResponse(e, ctx);
+          }
+        })
+        .addFailureHandler(this::routerExceptionResponse);  // OpenAPI validation exception
+  }
+
 
   private void handlers(Vertx vertx, RouterBuilder routerBuilder) {
 
-    handler(vertx, routerBuilder, "getHarvestables", this::getConfigRecords);
-    handler(vertx, routerBuilder, "getHarvestable", this::getConfigRecordById);
-    handler(vertx, routerBuilder, "postHarvestable", this::postConfigRecord);
-    handler(vertx, routerBuilder, "postHarvestableXmlBulk", this::postConfigRecord);
-    handler(vertx, routerBuilder, "postHarvestableOaiPmh", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "getHarvestables", this::getConfigRecords);
+    validatingHandler(vertx, routerBuilder, "getHarvestable", this::getConfigRecordById);
+    validatingHandler(vertx, routerBuilder, "postHarvestable", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "postHarvestableXmlBulk", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "postHarvestableOaiPmh", this::postConfigRecord);
 
-    handler(vertx, routerBuilder, "putHarvestable", this::putConfigRecord);
-    handler(vertx, routerBuilder, "putHarvestableXmlBulk", this::putConfigRecord);
-    handler(vertx, routerBuilder, "putHarvestableOaiPmh", this::putConfigRecord);
-    handler(vertx, routerBuilder, "deleteHarvestable", this::deleteConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putHarvestable", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putHarvestableXmlBulk", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putHarvestableOaiPmh", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "deleteHarvestable", this::deleteConfigRecord);
 
-    handler(vertx, routerBuilder, "getJobLog", this::getJobLog);
+    validatingHandler(vertx, routerBuilder, "getJobLog", this::getJobLog);
+    validatingHandler(vertx, routerBuilder, "getFailedRecords", this::getFailedRecords);
+    validatingHandler(vertx, routerBuilder, "getFailedRecord", this::getFailedRecord);
+    validatingHandler(vertx, routerBuilder, "storeJobLog", this::pullJobAndSaveItsLogs);
+    validatingHandler(vertx, routerBuilder, "storeJobLogWithPostedStatus", this::pullJobAndSaveItsLogs);
+    validatingHandler(vertx, routerBuilder, "getPreviousJobs", this::getPreviousJobs);
+    validatingHandler(vertx, routerBuilder, "getPreviousJob", this::getPreviousJobById);
+    validatingHandler(vertx, routerBuilder, "deletePreviousJob", this::deletePreviousJob);
+    validatingHandler(vertx, routerBuilder, "postPreviousJob", this::postPreviousJob);
+    nonValidatingHandler(vertx, routerBuilder, "getPreviousJobLog", this::getPreviousJobLog);
+    nonValidatingHandler(vertx, routerBuilder, "postPreviousJobLog", this::postPreviousJobLog);
+    validatingHandler(vertx, routerBuilder, "getFailedRecordsForPreviousJob", this::getFailedRecordsForPreviousJobs);
+    validatingHandler(vertx, routerBuilder, "postFailedRecords", this::postFailedRecords);
+    validatingHandler(vertx, routerBuilder, "getFailedRecordForPreviousJob", this::getFailedRecordForPreviousJob);
+    validatingHandler(vertx, routerBuilder, "getFailedRecordsForPreviousJobs", this::getFailedRecordsForPreviousJobs);
 
-    handler(vertx, routerBuilder, "getFailedRecords", this::getFailedRecords);
+    validatingHandler(vertx, routerBuilder, "getStorages", this::getConfigRecords);
+    validatingHandler(vertx, routerBuilder, "getStorage", this::getConfigRecordById);
+    validatingHandler(vertx, routerBuilder, "postStorage", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putStorage", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "deleteStorage", this::deleteConfigRecord);
 
-    handler(vertx, routerBuilder, "getFailedRecord", this::getFailedRecord);
+    validatingHandler(vertx, routerBuilder, "getTransformations", this::getConfigRecords);
+    validatingHandler(vertx, routerBuilder, "getTransformation", this::getConfigRecordById);
+    validatingHandler(vertx, routerBuilder, "postTransformation", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putTransformation", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "deleteTransformation", this::deleteConfigRecord);
 
-    handler(vertx, routerBuilder, "storeJobLog", this::pullJobAndSaveItsLogs);
-
-    handler(vertx, routerBuilder, "storeJobLogWithPostedStatus", this::pullJobAndSaveItsLogs);
-
-    handler(vertx, routerBuilder, "getPreviousJobs", this::getPreviousJobs);
-    handler(vertx, routerBuilder, "getPreviousJob", this::getPreviousJobById);
-    handler(vertx, routerBuilder, "deletePreviousJob", this::deletePreviousJob);
-    handler(vertx, routerBuilder, "postPreviousJob", this::postPreviousJob);
-    handler(vertx, routerBuilder, "getPreviousJobLog", this::getPreviousJobLog);
-    handler(vertx, routerBuilder, "postPreviousJobLog", this::postPreviousJobLog);
-    handler(vertx, routerBuilder, "getFailedRecordsForPreviousJob", this::getFailedRecordsForPreviousJobs);
-    handler(vertx, routerBuilder, "postFailedRecords", this::postFailedRecords);
-    handler(vertx, routerBuilder, "getFailedRecordForPreviousJob", this::getFailedRecordForPreviousJob);
-    handler(vertx, routerBuilder, "getFailedRecordsForPreviousJobs", this::getFailedRecordsForPreviousJobs);
-
-    handler(vertx, routerBuilder, "getStorages", this::getConfigRecords);
-    handler(vertx, routerBuilder, "getStorage", this::getConfigRecordById);
-    handler(vertx, routerBuilder, "postStorage", this::postConfigRecord);
-    handler(vertx, routerBuilder, "putStorage", this::putConfigRecord);
-    handler(vertx, routerBuilder, "deleteStorage", this::deleteConfigRecord);
-
-    handler(vertx, routerBuilder, "getTransformations", this::getConfigRecords);
-    handler(vertx, routerBuilder, "getTransformation", this::getConfigRecordById);
-    handler(vertx, routerBuilder, "postTransformation", this::postConfigRecord);
-    handler(vertx, routerBuilder, "putTransformation", this::putConfigRecord);
-    handler(vertx, routerBuilder, "deleteTransformation", this::deleteConfigRecord);
-
-    handler(vertx, routerBuilder, "getSteps", this::getConfigRecords);
-    handler(vertx, routerBuilder, "getStep", this::getConfigRecordById);
-    handler(vertx, routerBuilder, "postStep", this::postConfigRecord);
-    handler(vertx, routerBuilder, "putStep", this::putConfigRecord);
-    handler(vertx, routerBuilder, "deleteStep", this::deleteConfigRecord);
-    handler(vertx, routerBuilder, "getScript", this::getScript);
-    handler(vertx, routerBuilder, "putScript", this::putScript);
-    handler(vertx, routerBuilder, "getTsas", this::getConfigRecords);
-    handler(vertx, routerBuilder, "getTsa", this::getConfigRecordById);
-    handler(vertx, routerBuilder, "postTsa", this::postConfigRecord);
-    handler(vertx, routerBuilder, "deleteTsa", this::deleteConfigRecord);
-
-    handler(vertx, routerBuilder, "startJob", this::startJob);
-    handler(vertx, routerBuilder, "stopJob", this::stopJob);
-
-    handler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
-
-    handler(vertx, routerBuilder, "getIds", this::generateIds);
+    validatingHandler(vertx, routerBuilder, "getSteps", this::getConfigRecords);
+    validatingHandler(vertx, routerBuilder, "getStep", this::getConfigRecordById);
+    validatingHandler(vertx, routerBuilder, "postStep", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "putStep", this::putConfigRecord);
+    validatingHandler(vertx, routerBuilder, "deleteStep", this::deleteConfigRecord);
+    validatingHandler(vertx, routerBuilder, "getScript", this::getScript);
+    nonValidatingHandler(vertx, routerBuilder, "putScript", this::putScript);
+    validatingHandler(vertx, routerBuilder, "getTsas", this::getConfigRecords);
+    validatingHandler(vertx, routerBuilder, "getTsa", this::getConfigRecordById);
+    validatingHandler(vertx, routerBuilder, "postTsa", this::postConfigRecord);
+    validatingHandler(vertx, routerBuilder, "deleteTsa", this::deleteConfigRecord);
+    validatingHandler(vertx, routerBuilder, "startJob", this::startJob);
+    validatingHandler(vertx, routerBuilder, "stopJob", this::stopJob);
+    validatingHandler(vertx, routerBuilder, "purgeAgedLogs", this::purgeAgedLogs);
+    validatingHandler(vertx, routerBuilder, "getIds", this::generateIds);
 
   }
 
@@ -160,194 +178,175 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
    * an error in a polymorph schema, like in `harvestable` of type `oaiPmh` vs `xmlBulk`.
    */
   private void routerExceptionResponse(RoutingContext ctx) {
-    String message = ctx.failure().getMessage();
-    if (message != null && message.contains("No schema matches")) {
-      SchemaValidation validation = SchemaValidation.validateJsonObject(
-          ctx.request().path(), ctx.body().asJsonObject());
-      if (!validation.passed()) {
-        message += ". " + System.lineSeparator() + validation.getErrorMessage();
-      }
-    }
-    HttpResponse.responseError(ctx, ctx.statusCode(), message);
+    String message = ctx.failure().getCause().getMessage();
+    logger.error("Router exception: " + message);
+    HttpResponse.responseError(ctx, ctx.statusCode(), ctx.statusCode() + ": " + message);
   }
 
   @Override
   public Future<Void> postInit(Vertx vertx, String tenant, JsonObject tenantAttributes) {
     return new ModuleStorageAccess(vertx, tenant).init(tenantAttributes)
-            .onFailure(x -> logger.error("Database initialization failed: " + x.getMessage()))
-            .onSuccess(x -> logger.info("Tenant '" + tenant + "' database initialized"));
+        .onFailure(x -> logger.error("Database initialization failed: " + x.getMessage()))
+        .onSuccess(x -> logger.info("Tenant '" + tenant + "' database initialized"));
   }
 
-  private Future<Void> getConfigRecords(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getConfigRecords(routingContext).map(getResponse -> {
-      if (getResponse.wasOK()) {
-        responseJson(
-            routingContext, 200).end(getResponse.jsonObject().encodePrettily());
-      } else {
-        responseError(
-            routingContext, getResponse.statusCode(), getResponse.errorMessage());
-      }
-      return null;
-    });
+  private Future<Void> getConfigRecords(AdminRequest request) {
+    return request
+        .legacyHarvesterAccess()
+        .getConfigRecords(request)
+        .map(getResponse -> {
+          if (getResponse.wasOK()) {
+            responseJson(request.routingContext(), 200).end(getResponse.jsonObject().encodePrettily());
+          } else {
+            responseError(request.routingContext(), getResponse.statusCode(), getResponse.errorMessage());
+          }
+          return null;
+        });
   }
 
-  private Future<Void> getConfigRecordById(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    String id = routingContext.request().getParam("id");
-    return legacyStorage.getConfigRecordById(routingContext, id).map(getResponse -> {
-      if (getResponse.wasOK()) {
-        responseJson(
-            routingContext, 200)
-            .end(getResponse.jsonObject().encodePrettily());
-      } else {
-        responseError(
-            routingContext, getResponse.statusCode(), getResponse.errorMessage());
-      }
-      return null;
-    });
+  private Future<Void> getConfigRecordById(AdminRequest adminRequest) {
+    String id = adminRequest.requestParam("id");
+    return adminRequest
+        .legacyHarvesterAccess()
+        .getConfigRecordById(adminRequest.harvesterPathFromRequestPath(), id)
+        .map(getResponse -> {
+          if (getResponse.wasOK()) {
+            responseJson(
+                adminRequest.routingContext(), 200)
+                .end(getResponse.jsonObject().encodePrettily());
+          } else {
+            responseError(
+                adminRequest.routingContext(), getResponse.statusCode(), getResponse.errorMessage());
+          }
+          return null;
+        });
   }
 
-  private Future<Void> postConfigRecord(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> postConfigRecord(AdminRequest adminRequest) {
     SchemaValidation validation = SchemaValidation.validateJsonObject(
-        routingContext.request().path(), routingContext.body().asJsonObject());
+        adminRequest.path(), adminRequest.bodyAsJson());
     if (validation.passed()) {
-      String tenant = TenantUtil.tenant(routingContext);
-      LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-      return legacyStorage.postConfigRecord(routingContext).map(response -> {
-        if (response.wasCreated()) {
-          responseJson(
-              routingContext, response.statusCode())
-              .putHeader("Location", response.location)
-              .end(response.jsonObject().encodePrettily());
-        } else {
-          responseError(routingContext, response.statusCode(), response.errorMessage());
-        }
-        return null;
-      });
+      return adminRequest
+          .legacyHarvesterAccess()
+          .postConfigRecord(adminRequest)
+          .map(response -> {
+            if (response.wasCreated()) {
+              responseJson(
+                  adminRequest.routingContext(), response.statusCode())
+                  .putHeader("Location", response.location)
+                  .end(response.jsonObject().encodePrettily());
+            } else {
+              responseError(adminRequest.routingContext(), response.statusCode(), response.errorMessage());
+            }
+            return null;
+          });
     } else {
-      responseError(routingContext, 400, validation.getErrorMessage());
+      responseError(adminRequest.routingContext(), 400, validation.getErrorMessage());
       return Future.failedFuture(validation.getErrorMessage());
     }
   }
 
-  private Future<Void> putConfigRecord(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.putConfigRecord(routingContext).map(response -> {
+  private Future<Void> putConfigRecord(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().putConfigRecord(adminRequest).map(response -> {
       if (response.wasNoContent()) {
-        responseText(routingContext, NO_CONTENT).end();
+        responseText(adminRequest.routingContext(), NO_CONTENT).end();
       } else {
         responseError(
-            routingContext, response.statusCode(), response.errorMessage());
+            adminRequest.routingContext(), response.statusCode(), response.errorMessage());
       }
       return null;
     });
 
   }
 
-  private Future<Void> deleteConfigRecord(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.deleteConfigRecord(routingContext).map(response -> {
+  private Future<Void> deleteConfigRecord(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().deleteConfigRecord(adminRequest).map(response -> {
       if (response.wasNoContent()) {
-        responseJson(routingContext, NO_CONTENT).end();
+        responseJson(adminRequest.routingContext(), NO_CONTENT).end();
       } else {
         responseError(
-            routingContext, response.statusCode(), response.errorMessage());
+            adminRequest.routingContext(), response.statusCode(), response.errorMessage());
       }
       return null;
     });
   }
 
-  private Future<Void> getScript(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getScript(routingContext)
+  private Future<Void> getScript(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().getScript(adminRequest)
         .onComplete(response -> {
           if (response.succeeded()) {
-            responseText(routingContext, 200).end(response.result());
+            responseText(adminRequest.routingContext(), 200).end(response.result());
           } else {
-            responseError(routingContext, 400, response.cause().getMessage());
+            responseError(adminRequest.routingContext(), 400, response.cause().getMessage());
           }
         }).mapEmpty();
   }
 
-  private Future<Void> putScript(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.putScript(routingContext)
+  private Future<Void> putScript(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().putScript(adminRequest)
         .onSuccess(response -> {
           if (response.wasNoContent()) {
-            responseText(routingContext, NO_CONTENT).end();
+            responseText(adminRequest.routingContext(), NO_CONTENT).end();
           } else {
-            responseError(routingContext, response.statusCode(), response.errorMessage());
+            responseError(adminRequest.routingContext(), response.statusCode(), response.errorMessage());
           }
         })
-        .onFailure(response -> responseError(routingContext, 500, response.getMessage()))
+        .onFailure(response -> responseError(adminRequest.routingContext(), 500, response.getMessage()))
         .mapEmpty();
   }
 
-  private Future<Void> startJob(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    JobLauncher launcher = new JobLauncher(vertx, tenant);
-    launcher.startJob(routingContext);
+  private Future<Void> startJob(AdminRequest adminRequest) {
+    JobLauncher launcher = new JobLauncher(adminRequest);
+    launcher.startJob(adminRequest);
     return Future.succeededFuture();
   }
 
-  private Future<Void> stopJob(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    JobLauncher launcher = new JobLauncher(vertx, tenant);
-    launcher.stopJob(routingContext);
+  private Future<Void> stopJob(AdminRequest adminRequest) {
+    JobLauncher launcher = new JobLauncher(adminRequest);
+    launcher.stopJob(adminRequest);
     return Future.succeededFuture();
   }
 
-  private Future<Void> purgeAgedLogs(Vertx vertx, RoutingContext routingContext) {
+  private Future<Void> purgeAgedLogs(AdminRequest adminRequest) {
     logger.info("Running timer process: purge aged logs");
     final String SETTINGS_SCOPE = "mod-harvester-admin";
     final String SETTINGS_KEY = "PURGE_LOGS_AFTER";
-    SettingsClient.getStringValue(routingContext,
-                    SETTINGS_SCOPE,
-                    SETTINGS_KEY)
-                    .onComplete(settingsValue -> {
-                      if (settingsValue.result() != null) {
-                        applyPurgeOfPastJobs(vertx, routingContext, settingsValue.result());
-                      } else {
-                        final String CONFIGS_MODULE = "mod-harvester-admin";
-                        final String CONFIGS_CONFIG_NAME = "PURGE_LOGS_AFTER";
-                        ConfigurationsClient.getStringValue(routingContext,
-                                        CONFIGS_MODULE,
-                                        CONFIGS_CONFIG_NAME)
-                                .onComplete(configsValue -> applyPurgeOfPastJobs(vertx, routingContext, configsValue.result()));
-                      }
-                    });
+    SettingsClient.getStringValue(adminRequest.routingContext(),
+            SETTINGS_SCOPE,
+            SETTINGS_KEY)
+        .onComplete(settingsValue -> {
+          if (settingsValue.result() != null) {
+            applyPurgeOfPastJobs(adminRequest, settingsValue.result());
+          } else {
+            final String CONFIGS_MODULE = "mod-harvester-admin";
+            final String CONFIGS_CONFIG_NAME = "PURGE_LOGS_AFTER";
+            ConfigurationsClient.getStringValue(adminRequest.routingContext(),
+                    CONFIGS_MODULE,
+                    CONFIGS_CONFIG_NAME)
+                .onComplete(configsValue -> applyPurgeOfPastJobs(adminRequest, configsValue.result()));
+          }
+        });
     return Future.succeededFuture();
   }
 
-  private void applyPurgeOfPastJobs(Vertx vertx, RoutingContext routingContext, String purgeSetting) {
-    Period ageForDeletion = getPeriod(purgeSetting,3, "MONTHS");
+  private void applyPurgeOfPastJobs(AdminRequest adminRequest, String purgeSetting) {
+    Period ageForDeletion = getPeriod(purgeSetting, 3, "MONTHS");
     LocalDateTime untilDate = SettableClock.getLocalDateTime().minus(ageForDeletion).truncatedTo(ChronoUnit.MINUTES);
     logger.info("Running timer process: purging aged logs from before " + untilDate);
-    String tenant = TenantUtil.tenant(routingContext);
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    moduleStorage.purgePreviousJobsByAge(untilDate)
-            .onSuccess(x -> routingContext.response().setStatusCode(204).end())
-            .onFailure(e -> routingContext.response().setStatusCode(500).end(e.getMessage()));
+    adminRequest.moduleStorageAccess().purgePreviousJobsByAge(untilDate)
+        .onSuccess(x -> adminRequest.routingContext().response().setStatusCode(204).end())
+        .onFailure(e -> adminRequest.routingContext().response().setStatusCode(500).end(e.getMessage()));
   }
 
-  private Future<Void> getJobLog(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getJobLog(routingContext)
+  private Future<Void> getJobLog(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().getJobLog(adminRequest)
         .onComplete(response -> {
           if (response.succeeded()) {
-            int offset = getIntOrDefault(routingContext.request().getParam("offset"), 0);
-            int limit = getIntOrDefault(routingContext.request().getParam("limit"), 100000);
+            int offset = getIntOrDefault(adminRequest.requestParam("offset"), 0);
+            int limit = getIntOrDefault(adminRequest.requestParam("limit"), 100000);
             String log = pagingPlainText(response.result().bodyAsString(), offset, limit);
             responseText(
-                routingContext,
+                adminRequest.routingContext(),
                 response.result().statusCode())
                 .end(log == null ? "No logs found for this job." : log);
           }
@@ -355,63 +354,62 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
         .mapEmpty();
   }
 
-  private Future<Void> getFailedRecords(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getFailedRecords(routingContext).onComplete(getResponse -> {
+  private Future<Void> getFailedRecords(AdminRequest adminRequest) {
+    return adminRequest.legacyHarvesterAccess().getFailedRecords(adminRequest).onComplete(getResponse -> {
       if (getResponse.result().wasOK()) {
         responseJson(
-            routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
+            adminRequest.routingContext(), 200).end(getResponse.result().jsonObject().encodePrettily());
       } else {
         responseError(
-            routingContext, getResponse.result().statusCode(), getResponse.result().errorMessage());
+            adminRequest.routingContext(), getResponse.result().statusCode(), getResponse.result().errorMessage());
       }
     }).mapEmpty();
   }
 
-  private Future<Void> getFailedRecord(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    return legacyStorage.getFailedRecord(routingContext).onComplete((getResponse -> {
+  private Future<Void> getFailedRecord(AdminRequest adminRequest) {
+
+    return adminRequest.legacyHarvesterAccess().getFailedRecord(adminRequest).onComplete((getResponse -> {
       if (getResponse.result().wasOK()) {
         responseJson(
-            routingContext, 200).end(getResponse.result().jsonObject().encodePrettily());
+            adminRequest.routingContext(), 200).end(getResponse.result().jsonObject().encodePrettily());
       } else {
         responseError(
-            routingContext, getResponse.result().statusCode(), getResponse.result().errorMessage());
+            adminRequest.routingContext(), getResponse.result().statusCode(), getResponse.result().errorMessage());
       }
     })).mapEmpty();
   }
 
-  private Future<Void> pullJobAndSaveItsLogs(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    LegacyHarvesterStorage legacyStorage = new LegacyHarvesterStorage(vertx, tenant);
-    String harvestableId = routingContext.request().getParam("id");
+  private Future<Void> pullJobAndSaveItsLogs(AdminRequest adminRequest) {
+    String harvestableId = adminRequest.requestParam("id");
+    LegacyHarvesterStorage legacyStorage = adminRequest.legacyHarvesterAccess();
     return legacyStorage.getConfigRecordById(HARVESTER_HARVESTABLES_PATH, harvestableId)
         .onComplete(harvestable -> {
           if (harvestable.result().wasNotFound()) {
-            responseText(routingContext, 404).end("No job found with ID " + harvestableId);
+            responseText(adminRequest.routingContext(), 404).end("No job found with ID " + harvestableId);
           } else if (harvestable.result().wasOK()) {
             final JsonObject jobStatus =
-                (routingContext.body() != null && routingContext.body().asJsonObject() != null
-                    ? routingContext.body().asJsonObject() : new JsonObject());
+                (adminRequest.bodyAsJson() != null ? adminRequest.bodyAsJson() : new JsonObject());
+            String harvestable_startedDate = harvestable.result().jsonObject().getString("lastHarvestStarted");
+            // Use the `started` datetime on the HarvestJob, if localindices set it in time as the job was started
+            //  otherwise use the `harvestStartedDate` property of the status message that localindices POSTs after the job ends
+            //  but then strip the milliseconds or log filtering by date will fail.
             String harvestStartedDate =
                 jobStatus.isEmpty()
                     || jobStatus.getString(HarvestJobField.STARTED.propertyName()) == null
-                ? harvestable.result().jsonObject().getString("lastHarvestStarted")
-                : jobStatus.getString(HarvestJobField.STARTED.propertyName());
+                    ? harvestable_startedDate.substring(0, 19) + harvestable_startedDate.substring(23)
+                    : jobStatus.getString(HarvestJobField.STARTED.propertyName());
             logger.info("Looking for logs by start date: " + harvestStartedDate);
-            CompositeFuture.all(
-                    legacyStorage.getJobLog(harvestableId, harvestStartedDate),
+            Future.all(
+                    legacyStorage.getJobLog(harvestableId, harvestStartedDate.substring(0, 19)),
                     legacyStorage.getFailedRecords(harvestableId, 0, 10000))
                 .onComplete(logResults -> {
                   HttpResponseImpl<Buffer> logsResponse = logResults.result().resultAt(0);
                   ProcessedHarvesterResponseGet failuresResponse = logResults.result().resultAt(1);
-                  ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+                  ModuleStorageAccess moduleStorage = adminRequest.moduleStorageAccess();
                   HarvestJob job =
                       HarvestJob.fromHarvestableJson(harvestable.result().jsonObject());
-                  List<StoredEntity> failedRecords =  failedRecordsFromLegacyHarvesterJson(job.getId(),
-                          failuresResponse.jsonObject().getJsonArray("failedRecords"));
+                  List<StoredEntity> failedRecords = failedRecordsFromLegacyHarvesterJson(job.getId(),
+                      failuresResponse.jsonObject().getJsonArray("failedRecords"));
                   if (!jobStatus.isEmpty()) {
                     // Job status was included in request, overwrite pulled properties
                     job.setFinished(jobStatus.getString(HarvestJobField.FINISHED.propertyName()));
@@ -424,30 +422,32 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
                     job.setStatus(jobStatus.getString(HarvestJobField.STATUS.propertyName()));
                   }
                   moduleStorage.storeHarvestJob(job)
-                          .onComplete(jobStored -> CompositeFuture.all(
-                              moduleStorage.storeLogStatements(job.getId(), logsResponse.bodyAsString()),
-                              moduleStorage.storeFailedRecords(job.getId(),
-                                  failedRecords)
-                          ).onComplete(
-                              result -> {
-                                if (result.succeeded()) {
-                                  responseText(routingContext, 200)
-                                      .end("Saved job with logs and record failures if any.");
-                                } else {
-                                  responseError(routingContext, 500,
-                                      "There was an error saving the job or it's logs: "
-                                          + result.cause().getMessage());
-                                }
-                              }
-                          ));
+                      .onComplete(jobStored -> Future.all(
+                          moduleStorage.storeLogStatements(job.getId(), logsResponse.bodyAsString()),
+                          moduleStorage.storeFailedRecords(job.getId(),
+                              failedRecords)
+                      ).onComplete(
+                          result -> {
+                            if (result.succeeded()) {
+                              responseText(adminRequest.routingContext(), 200)
+                                  .end("Saved job with logs and record failures if any.");
+                            } else {
+                              responseError(adminRequest.routingContext(), 500,
+                                  "There was an error saving the job or it's logs: "
+                                      + result.cause().getMessage());
+                            }
+                          }
+                      ));
                 });
           } else {
-            responseError(routingContext,
+            logger.error("{} {}", harvestable.result().statusCode(), harvestable.cause().getMessage());
+            responseError(adminRequest.routingContext(),
                 harvestable.result().statusCode(), harvestable.cause().getMessage());
           }
         })
         .mapEmpty();
   }
+
   private static List<StoredEntity> failedRecordsFromLegacyHarvesterJson(UUID harvestJobId, JsonArray failedRecords) {
     List<StoredEntity> list = new ArrayList<>();
     for (Object rec : failedRecords) {
@@ -466,12 +466,9 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     return list;
   }
 
-  private Future<Void> getPreviousJobs(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-
-    String fromDateTime = routingContext.request().getParam("from");
-    String untilDateTime = routingContext.request().getParam("until");
+  private Future<Void> getPreviousJobs(AdminRequest adminRequest) {
+    String fromDateTime = adminRequest.queryParam("from");
+    String untilDateTime = adminRequest.queryParam("until");
     String timeRange = null;
     if (fromDateTime != null && untilDateTime != null) {
       timeRange = " (finished >= '" + fromDateTime + "'  AND finished <= '" + untilDateTime + "') ";
@@ -484,11 +481,11 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     SqlQuery query;
     try {
       query = HarvestJob.entity()
-          .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(Tables.harvest_job))
+          .makeSqlFromCqlQuery(adminRequest, adminRequest.moduleStorageAccess().schemaDotTable(Tables.harvest_job))
           .withAdditionalWhereClause(timeRange);
     } catch (PgCqlException pce) {
-      responseText(routingContext, 400)
-          .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + routingContext.request().absoluteURI());
+      responseText(adminRequest.routingContext(), 400)
+          .end("Could not execute query to retrieve jobs: " + pce.getMessage() + " Request:" + adminRequest.absoluteURI());
       return Future.succeededFuture();
     } catch (Exception e) {
       logger.error("getPreviousJobs from={} until={}: {}", fromDateTime, untilDateTime, e.getMessage(), e);
@@ -497,113 +494,92 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
     JsonObject responseJson = new JsonObject();
     JsonArray previousJobs = new JsonArray();
     responseJson.put("previousJobs", previousJobs);
-    return moduleStorage.getPreviousJobs(query.getQueryWithLimits())
+    return adminRequest.moduleStorageAccess().getPreviousJobs(query.getQueryWithLimits())
         .compose(jobs -> {
           for (HarvestJob job : jobs) {
             previousJobs.add(job.asJson());
           }
-          return moduleStorage.getCount(query.getCountingSql());
+          return adminRequest.moduleStorageAccess().getCount(query.getCountingSql());
         })
         .onSuccess(count -> {
           responseJson.put("totalRecords", count);
-          responseJson(routingContext, 200).end(responseJson.encodePrettily());
+          responseJson(adminRequest.routingContext(), 200).end(responseJson.encodePrettily());
         })
         .onFailure(e -> {
           logger.error("getPreviousJobs from={} until={}: {}", fromDateTime, untilDateTime, e.getMessage(), e);
-          responseText(routingContext, 500)
+          responseText(adminRequest.routingContext(), 500)
               .end("Problem retrieving jobs: " + e.getMessage());
         })
         .mapEmpty();
   }
 
-  private Future<Void> postPreviousJob(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+  private Future<Void> postPreviousJob(AdminRequest adminRequest) {
     HarvestJob job =
-            HarvestJob.fromHarvestJobJson(routingContext.body().asJsonObject());
-    return moduleStorage.storeHarvestJob(job)
-            .onComplete(harvestJobId -> {
-              if (harvestJobId.result() == null) {
-                responseText(routingContext, 400).end("Failed to insert harvest job run: " + harvestJobId.cause().getMessage());
-              } else {
-                responseJson(routingContext, 201).end(job.asJson().encodePrettily());
-              }
-            }).mapEmpty();
-  }
-
-  private Future<Void> getPreviousJobById(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    return moduleStorage.getPreviousJobById(id)
-        .onComplete(harvestJob -> {
-          if (harvestJob.result() == null) {
-            responseText(routingContext, 404).end("Found no job with id " + id);
+        HarvestJob.fromHarvestJobJson(adminRequest.bodyAsJson());
+    return adminRequest.moduleStorageAccess().storeHarvestJob(job)
+        .onComplete(harvestJobId -> {
+          if (harvestJobId.result() == null) {
+            responseText(adminRequest.routingContext(), 400).end("Failed to insert harvest job run: " + harvestJobId.cause().getMessage());
           } else {
-            responseJson(routingContext, 200).end(harvestJob.result().asJson().encodePrettily());
+            responseJson(adminRequest.routingContext(), 201).end(job.asJson().encodePrettily());
           }
         }).mapEmpty();
   }
 
-  private Future<Void> deletePreviousJob(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    return moduleStorage.deletePreviousJob(id)
+  private Future<Void> getPreviousJobById(AdminRequest adminRequest) {
+
+    UUID id = UUID.fromString(adminRequest.requestParam("id"));
+    return adminRequest.moduleStorageAccess().getPreviousJobById(id)
+        .onComplete(harvestJob -> {
+          if (harvestJob.result() == null) {
+            responseText(adminRequest.routingContext(), 404).end("Found no job with id " + id);
+          } else {
+            responseJson(adminRequest.routingContext(), 200).end(harvestJob.result().asJson().encodePrettily());
+          }
+        }).mapEmpty();
+  }
+
+  private Future<Void> deletePreviousJob(AdminRequest adminRequest) {
+    UUID id = UUID.fromString(adminRequest.requestParam("id"));
+    return adminRequest.moduleStorageAccess().deletePreviousJob(id)
         .onComplete(deleted -> {
           if (deleted.succeeded()) {
-            responseText(routingContext, 200).end("Job " + id + " and its logs deleted.");
+            responseText(adminRequest.routingContext(), 200).end("Job " + id + " and its logs deleted.");
           } else {
             String message = deleted.cause().getMessage();
             responseError(
-                routingContext, message.startsWith("No job history found") ? 404 : 500, message);
+                adminRequest.routingContext(), message.startsWith("No job history found") ? 404 : 500, message);
           }
         });
   }
 
-  private Future<Void> getPreviousJobLog(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    String contentType = routingContext.request().getHeader("Accept");
-    logger.info("Request for previous logs in " + contentType + ".");
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    String fromDateTime = routingContext.request().getParam("from");
-    String untilDateTime = routingContext.request().getParam("until");
+  private Future<Void> getPreviousJobLog(AdminRequest adminRequest) {
+    String contentType = adminRequest.getHeader("Accept");
+    String idQueryParameter = adminRequest.requestParam("id");
+    UUID id = (idQueryParameter != null ? UUID.fromString(idQueryParameter) : null);
+    String fromDateTime = adminRequest.queryParam("from");
+    String untilDateTime = adminRequest.queryParam("until");
     String timeRange = null;
     if (fromDateTime != null && untilDateTime != null) {
-      timeRange = "time_stamp >= '" + fromDateTime + "' AND time_stamp <= '" + untilDateTime + "'";
+      timeRange = "time_stamp >= '" + LogLine.legacyDateTimeToPgDateTime(fromDateTime) + "' AND time_stamp <= '"
+          + LogLine.legacyDateTimeToPgDateTime(untilDateTime) + "'";
     } else if (fromDateTime != null) {
-      timeRange = "time_stamp >= '" + fromDateTime + "'";
+      timeRange = "time_stamp >= '" + LogLine.legacyDateTimeToPgDateTime(fromDateTime) + "'";
     } else if (untilDateTime != null) {
-      timeRange = "time_stamp <= '" + untilDateTime + "'";
+      timeRange = "time_stamp <= '" + LogLine.legacyDateTimeToPgDateTime(untilDateTime) + "'";
     }
 
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
+    ModuleStorageAccess moduleStorage = adminRequest.moduleStorageAccess();
     SqlQuery queryFromCql = LogLine.entity()
-        .makeSqlFromCqlQuery(routingContext, moduleStorage.schemaDotTable(Tables.log_statement))
+        .makeSqlFromCqlQuery(adminRequest, moduleStorage.schemaDotTable(Tables.log_statement))
         .withAdditionalWhereClause(timeRange);
     if (contentType != null && contentType.contains("json")) {
       return moduleStorage.getLogsAsJsonForPreviousJob(id, queryFromCql)
           .onComplete(jobLog -> {
             if (jobLog.succeeded()) {
-              if (jobLog.result().isEmpty()) {
-                moduleStorage.getPreviousJobById(id).onComplete(harvestJob -> {
-                  if (harvestJob.result() == null) {
-                    responseText(routingContext, 404)
-                        .end("Found no previous job with ID " + id);
-                  } else {
-                    responseText(routingContext, 200)
-                        .end("Previous job with ID " + id + ", "
-                            + harvestJob.result().getName() + ", has no logs.");
-                  }
-                });
-              } else {
-                responseJson(routingContext, 200).end(jobLog.result().encodePrettily());
-              }
+              responseJson(adminRequest.routingContext(), 200).end(jobLog.result().encodePrettily());
             } else {
-              responseError(routingContext, 500, jobLog.cause().getMessage());
+              responseError(adminRequest.routingContext(), 500, jobLog.cause().getMessage());
             }
           }).mapEmpty();
     } else {
@@ -613,61 +589,57 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
               if (jobLog.result().isEmpty()) {
                 moduleStorage.getPreviousJobById(id).onComplete(harvestJob -> {
                   if (harvestJob.result() == null) {
-                    responseText(routingContext, 404)
+                    responseText(adminRequest.routingContext(), 404)
                         .end("Found no previous job with ID " + id);
                   } else {
-                    responseText(routingContext, 200)
+                    responseText(adminRequest.routingContext(), 200)
                         .end("Previous job with ID " + id + ", "
-                            + harvestJob.result().getName() + ", has no logs.");
+                            + harvestJob.result().getName() + ", has no logs " +
+                            ((untilDateTime != null || fromDateTime != null) ? "for the given timeframe. " : "." ) );
                   }
                 });
               } else {
-                responseText(routingContext, 200).end(jobLog.result());
+                responseText(adminRequest.routingContext(), 200).end(jobLog.result());
               }
             } else {
-              responseError(routingContext, 500, jobLog.cause().getMessage());
+              responseError(adminRequest.routingContext(), 500, jobLog.cause().getMessage());
             }
           }).mapEmpty();
     }
   }
 
-  public Future<Void> postPreviousJobLog (Vertx vertx, RoutingContext routingContext) {
-    String log = routingContext.body().asString();
-    String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    return moduleStorage.storeLogStatements(id, log)
-            .onComplete(failedRecordsResponse -> {
-      if (failedRecordsResponse.succeeded()) {
-        responseText(routingContext, 201).end("Job logs saved for job " + id);
-      } else {
-        responseText(routingContext, 500).end("Could not store the logs for job  " + id
+  public Future<Void> postPreviousJobLog(AdminRequest adminRequest) {
+    UUID id = UUID.fromString(adminRequest.requestParam("id"));
+    return adminRequest
+        .moduleStorageAccess()
+        .storeLogStatements(id, adminRequest.bodyAsString())
+        .onComplete(failedRecordsResponse -> {
+          if (failedRecordsResponse.succeeded()) {
+            responseText(adminRequest.routingContext(), 201).end("Job logs saved for job " + id);
+          } else {
+            responseText(adminRequest.routingContext(), 500).end("Could not store the logs for job  " + id
                 + failedRecordsResponse.cause().getMessage());
-      }
-    }).mapEmpty();
+          }
+        }).mapEmpty();
   }
 
-  private Future<Void> getFailedRecordsForPreviousJobs(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-
+  private Future<Void> getFailedRecordsForPreviousJobs(AdminRequest adminRequest) {
+    ModuleStorageAccess moduleStorageAccess = adminRequest.moduleStorageAccess();
     SqlQuery queryFromCql = RecordFailure.entity().makeSqlFromCqlQuery(
-        routingContext, moduleStorage.schemaDotTable(Tables.record_failure_view))
+            adminRequest, moduleStorageAccess.schemaDotTable(Tables.record_failure_view))
         .withDefaultLimit("100");
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    RequestParameter jobId = params.pathParameter("id");
-    RequestParameter from = params.queryParameter("from");
-    RequestParameter until = params.queryParameter("until");
+    String jobId = adminRequest.requestParam("id");
+    String from = adminRequest.requestParam("from");
+    String until = adminRequest.requestParam("until");
 
     String timeRange = null;
     if (from != null && until != null) {
-      timeRange = " (time_stamp >= '" + from.getString()
-          + "'  AND time_stamp <= '" + until.getString() + "') ";
+      timeRange = " (time_stamp >= '" + from
+          + "'  AND time_stamp <= '" + until + "') ";
     } else if (from != null) {
-      timeRange = " time_stamp >= '" + from.getString() + "' ";
+      timeRange = " time_stamp >= '" + from + "' ";
     } else if (until != null) {
-      timeRange = " time_stamp <= '" + until.getString() + "' ";
+      timeRange = " time_stamp <= '" + until + "' ";
     }
 
     if (jobId != null) {
@@ -677,74 +649,67 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
       queryFromCql.withAdditionalWhereClause(timeRange);
     }
 
-    return moduleStorage.getFailedRecordsForPreviousJobs(queryFromCql).onComplete(
-      failuresList -> {
-        if (failuresList.succeeded()) {
-          JsonObject responseJson = new JsonObject();
-          JsonArray recordFailures = new JsonArray();
-          responseJson.put("failedRecords", recordFailures);
-          List<RecordFailure> failures = failuresList.result();
-          for (RecordFailure failure : failures) {
-            recordFailures.add(failure.asJson());
+    return moduleStorageAccess.getFailedRecordsForPreviousJobs(queryFromCql).onComplete(
+        failuresList -> {
+          if (failuresList.succeeded()) {
+            JsonObject responseJson = new JsonObject();
+            JsonArray recordFailures = new JsonArray();
+            responseJson.put("failedRecords", recordFailures);
+            List<RecordFailure> failures = failuresList.result();
+            for (RecordFailure failure : failures) {
+              recordFailures.add(failure.asJson());
+            }
+            moduleStorageAccess.getCount(queryFromCql.getCountingSql()).onComplete(
+                count -> {
+                  responseJson.put("totalRecords", count.result());
+                  responseJson(adminRequest.routingContext(), 200).end(responseJson.encodePrettily());
+                }
+            );
           }
-          moduleStorage.getCount(queryFromCql.getCountingSql()).onComplete(
-              count -> {
-                responseJson.put("totalRecords", count.result());
-                responseJson(routingContext, 200).end(responseJson.encodePrettily());
-              }
-          );
         }
-      }
     ).mapEmpty();
   }
 
-  private Future<Void> getFailedRecordForPreviousJob(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    return moduleStorage.getFailedRecordForPreviousJob(id).onComplete(
+  private Future<Void> getFailedRecordForPreviousJob(AdminRequest adminRequest) {
+    UUID id = UUID.fromString(adminRequest.requestParam("id"));
+    return adminRequest.moduleStorageAccess().getFailedRecordForPreviousJob(id).onComplete(
         failureRecord -> {
           if (failureRecord.succeeded()) {
             RecordFailure failure = failureRecord.result();
-            responseJson(routingContext, 200).end(failure.asJson().encodePrettily());
+            responseJson(adminRequest.routingContext(), 200).end(failure.asJson().encodePrettily());
           } else {
             if (failureRecord.cause().getMessage().startsWith("No failed record")) {
-              responseText(routingContext, 404)
+              responseText(adminRequest.routingContext(), 404)
                   .end(failureRecord.cause().getMessage());
             }
-            responseText(routingContext, 500)
+            responseText(adminRequest.routingContext(), 500)
                 .end("Problem retrieving jobs: " + failureRecord.cause().getMessage());
           }
         }
     ).mapEmpty();
   }
 
-  private Future<Void> postFailedRecords(Vertx vertx, RoutingContext routingContext) {
-    String tenant = TenantUtil.tenant(routingContext);
-    ModuleStorageAccess moduleStorage = new ModuleStorageAccess(vertx, tenant);
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    UUID id = UUID.fromString(params.pathParameter("id").getString());
-    JsonObject failedRecordsJson = routingContext.body().asJsonObject();
+  private Future<Void> postFailedRecords(AdminRequest adminRequest) {
+    UUID id = UUID.fromString(adminRequest.requestParam("id"));
+    JsonObject failedRecordsJson = adminRequest.bodyAsJson();
     List<StoredEntity> failedRecords =
-            failedRecordsFromHarvesterAdminJson(id, failedRecordsJson.getJsonArray("failedRecords"));
-    return moduleStorage.storeFailedRecords(id, failedRecords)
-            .onComplete(failedRecordsResponse -> {
-              if (failedRecordsResponse.succeeded()) {
-                responseText(routingContext, 201).end("Failed records inserted.");
-              } else {
-                responseText(routingContext, 500).end("Could not insert failed records "
-                        + failedRecordsResponse.cause().getMessage());
-              }
-            }).mapEmpty();
+        failedRecordsFromHarvesterAdminJson(id, failedRecordsJson.getJsonArray("failedRecords"));
+    return adminRequest.moduleStorageAccess().storeFailedRecords(id, failedRecords)
+        .onComplete(failedRecordsResponse -> {
+          if (failedRecordsResponse.succeeded()) {
+            responseText(adminRequest.routingContext(), 201).end("Failed records inserted.");
+          } else {
+            responseText(adminRequest.routingContext(), 500).end("Could not insert failed records "
+                + failedRecordsResponse.cause().getMessage());
+          }
+        }).mapEmpty();
   }
 
 
-  private Future<Void> generateIds(Vertx vertx, RoutingContext routingContext) {
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
+  private Future<Void> generateIds(AdminRequest adminRequest) {
     int count = 1;
-    if (params.queryParameter("count") != null) {
-      count = Math.min(params.queryParameter("count").getInteger(), 100);
+    if (adminRequest.requestParam("count") != null) {
+      count = Math.min(Integer.parseInt(adminRequest.requestParam("count")), 100);
     }
     StringBuilder response = new StringBuilder();
     for (int i = 0; i < count; i++) {
@@ -752,7 +717,7 @@ public class HarvestAdminService implements RouterCreator, TenantInitHooks {
           .append(LegacyHarvesterStorage.getRandomFifteenDigitString())
           .append(System.lineSeparator());
     }
-    responseText(routingContext, 200).end(response.toString());
+    responseText(adminRequest.routingContext(), 200).end(response.toString());
     return Future.succeededFuture();
   }
 }

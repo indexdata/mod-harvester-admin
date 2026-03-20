@@ -27,6 +27,27 @@ public class Api {
                 .log().ifValidationFails().statusCode(expectStatus).extract().response();
     }
 
+    public static Response startJob(String harvestableId, int expectStatus) {
+        return given()
+            .baseUri(BASE_URI_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .header(CONTENT_TYPE_JSON)
+            .put("/harvester-admin/jobs/run/"+harvestableId)
+            .then()
+            .log().ifValidationFails().statusCode(expectStatus).extract().response();
+    }
+
+    public static Response stopJob(String harvestableId, int expectStatus) {
+        return given()
+            .baseUri(BASE_URI_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .header(CONTENT_TYPE_JSON)
+            .put("/harvester-admin/jobs/stop/"+harvestableId)
+            .then()
+            .log().ifValidationFails().statusCode(expectStatus).extract().response();
+    }
+
+
     public static Response getConfigRecord(String api, String id) {
         return getConfigRecord(api, id, 200);
     }
@@ -105,5 +126,15 @@ public class Api {
                 .get(THIS_HARVESTABLES_PATH + "/" + harvestableId + "/log")
                 .then()
                 .log().ifValidationFails().statusCode(status).extract().response();
+    }
+
+    public static Response getFailedRecords(String harvestableId, int status) {
+        return given()
+            .baseUri(BASE_URI_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .get(THIS_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records")
+            .then()
+            .log().ifValidationFails().statusCode(status).extract().response();
+
     }
 }

@@ -6,9 +6,9 @@
     <version>1.4.2-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <folio-vertx-lib.version>3.4.0</folio-vertx-lib.version>
-        <okapi.version>6.2.1</okapi.version>
-        <vertx.version>4.5.14</vertx.version>
+        <folio-vertx-lib.version>4.1.1</folio-vertx-lib.version>
+        <okapi.version>7.0.0</okapi.version>
+        <vertx.version>5.0.7</vertx.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -35,11 +35,6 @@
                 <groupId>org.folio.okapi</groupId>
                 <artifactId>okapi-testing</artifactId>
                 <version>${okapi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.ongres.scram</groupId>
-                <artifactId>client</artifactId>
-                <version>2.1</version>
             </dependency>
             <dependency>
                 <groupId>org.z3950.zing</groupId>
@@ -108,19 +103,19 @@
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
+            <artifactId>vertx-launcher-application</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-openapi</artifactId>
+            <artifactId>vertx-web-openapi-router</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-rx-java2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-api-contract</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
@@ -166,6 +161,11 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.18.0</version>
         </dependency>
         <!-- Test dependencies -->
         <dependency>
@@ -254,15 +254,11 @@
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <environmentVariables>
-                        <harvester_protocal>http</harvester_protocal>
+                        <harvester_protocol>http</harvester_protocol>
                         <harvester_host>localhost</harvester_host>
                         <harvester_port>8080</harvester_port>
                         <acl_filter_by_tenant>false</acl_filter_by_tenant>
                     </environmentVariables>
-                    <excludes>
-                        <!-- requires harvester at localhost:8080 -->
-                        <exclude>HarvesterIntegrationTest</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -376,7 +372,7 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>io.vertx.core.Launcher</Main-Class>
+                                        <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
                                         <Main-Verticle>org.folio.harvesteradmin.MainVerticle</Main-Verticle>
                                         <Multi-Release>true</Multi-Release>
                                     </manifestEntries>
@@ -450,33 +446,6 @@
 
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>harvesterTests</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.22.2</version>
-                        <configuration>
-                            <useSystemClassLoader>false</useSystemClassLoader>
-                            <environmentVariables>
-                                <harvester_protocal>http</harvester_protocal>
-                                <harvester_host>localhost</harvester_host>
-                                <harvester_port>8080</harvester_port>
-                                <acl_filter_by_tenant>false</acl_filter_by_tenant>
-                            </environmentVariables>
-                            <includes>
-                                <include>**/test/HarvesterIntegrationTestSuite.class</include>
-                                <include>**/test/NoHarvesterTestSuite.class</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
     <pluginRepositories>
         <pluginRepository>

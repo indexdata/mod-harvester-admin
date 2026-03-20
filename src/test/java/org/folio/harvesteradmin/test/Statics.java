@@ -5,9 +5,9 @@ import org.folio.okapi.common.XOkapiHeaders;
 
 public class Statics {
 
-    static final String TENANT = "mha_test";
     public static final Header CONTENT_TYPE_JSON = new Header("Content-Type", "application/json");
     public static final Header CONTENT_TYPE_XML = new Header("Content-Type", "application/xml");
+    public static final Header CONTENT_TYPE_TEXT = new Header("Content-Type", "text/plain");
     public static final Header OKAPI_TOKEN = new Header(XOkapiHeaders.TOKEN,"eyJhbGciOiJIUzUxMiJ9eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOiI3OWZmMmE4Yi1kOWMzLTViMzktYWQ0YS0wYTg0MDI1YWIwODUiLCJ0ZW5hbnQiOiJ0ZXN0X3RlbmFudCJ9BShwfHcNClt5ZXJ8ImQTMQtAM1sQEnhsfWNmXGsYVDpuaDN3RVQ9");
 
 

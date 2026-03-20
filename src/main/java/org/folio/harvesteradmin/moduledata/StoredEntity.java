@@ -1,15 +1,12 @@
 package org.folio.harvesteradmin.moduledata;
 
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.validation.RequestParameter;
-import io.vertx.ext.web.validation.RequestParameters;
-import io.vertx.ext.web.validation.ValidationHandler;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.List;
 import java.util.Map;
 
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
+import org.folio.harvesteradmin.service.AdminRequest;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.PgCqlQuery;
 
@@ -46,22 +43,20 @@ public abstract class StoredEntity {
   public abstract Map<String, PgColumn> getFieldMap();
 
   /**
-   * Gets a SQL query string.
+   * Gets a SQL query string from CQL query with offset/limit.
    */
-  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
+  public SqlQuery makeSqlFromCqlQuery(AdminRequest adminRequest, String schemaDotTable) {
     PgCqlDefinition definition = getQueryableFields();
-
-    RequestParameters params = routingContext.get(ValidationHandler.REQUEST_CONTEXT_KEY);
-    RequestParameter query = params.queryParameter("query");
-    RequestParameter offset =  params.queryParameter("offset");
-    RequestParameter limit = params.queryParameter("limit");
+    String query = adminRequest.requestParam("query");
+    String offset =  adminRequest.requestParam("offset");
+    String limit = adminRequest.requestParam("limit");
 
     String select = "SELECT * ";
     String from = "FROM " + schemaDotTable;
     String whereClause = "";
     String orderByClause = "";
     if (query != null && !query.isEmpty()) {
-      PgCqlQuery pgCqlQuery = definition.parse(query.getString());
+      PgCqlQuery pgCqlQuery = definition.parse(query);
       if (pgCqlQuery.getWhereClause() != null) {
         whereClause = jsonPropertiesToColumnNames(pgCqlQuery.getWhereClause());
       }

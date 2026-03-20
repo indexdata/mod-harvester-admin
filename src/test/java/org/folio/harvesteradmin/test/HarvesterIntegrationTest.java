@@ -30,6 +30,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.File;
 import org.folio.harvesteradmin.MainVerticle;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.tlib.postgres.testing.TenantPgPoolContainer;
@@ -38,6 +39,7 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @RunWith( VertxUnitRunner.class )
@@ -50,6 +52,11 @@ public class HarvesterIntegrationTest {
 
   @ClassRule
   public static PostgreSQLContainer<?> postgresSQLContainer = TenantPgPoolContainer.create();
+
+  @ClassRule
+  public static DockerComposeContainer<?> composeContainer =
+      new DockerComposeContainer<>(new File("docker-localindices/localindices.yml"))
+          .withExposedService("harvester", 8080);
 
   @Rule
   public final TestName name = new TestName();
@@ -281,6 +288,38 @@ public class HarvesterIntegrationTest {
   }
 
   @Test
+  public void canLaunchJobIfHarvestableExists() {
+    SampleId harvestableId = new SampleId(1);
+    JsonObject harvestable =
+        new JsonObject()
+            .put("id", harvestableId.toString())
+            .put("name", "Test harvest job (modhaadm unit tests)")
+            .put("type", "oaiPmh")
+            .put("enabled", "false")
+            .put("harvestImmediately", "false")
+            .put("lastUpdated", "2022-12-07T15:20:49.507Z")
+            .put("storage",
+                new JsonObject().put("entityType", "inventoryStorageEntity")
+                    .put("id", BASE_STORAGE_ID.toString()))
+            .put("transformation",
+                new JsonObject().put("entityType", "basicTransformation")
+                    .put("id", BASE_TRANSFORMATION_ID.toString()))
+            .put("metadataPrefix", "marc21")
+            .put("oaiSetName", "PALCI_RESHARE")
+            .put("url", "https://na01.alma.exlibrisgroup.com/view/oai/01SSHELCO_BLMSBRG/request")
+            .put("dateFormat", "yyyy-MM-dd'T'hh:mm:ss'Z'");
+    System.out.println(harvestable.encodePrettily());
+    postConfigRecord(BASE_STORAGE_JSON, THIS_STORAGES_PATH, 201);
+    postConfigRecord(BASE_TRANSFORMATION_JSON, THIS_TRANSFORMATIONS_PATH, 201);
+    postConfigRecord(harvestable, THIS_HARVESTABLES_PATH, 201);
+    startJob(harvestableId.toString(),200);
+    stopJob(harvestableId.toString(), 400);
+    startJob("12345", 404);
+    stopJob("12345", 404);
+    getFailedRecords(harvestableId.toString(), 200);
+  }
+
+  @Test
   public void cannotCreateTwoHarvestablesWithSameId () {
     SampleId harvestableId = new SampleId(1);
     JsonObject harvestable =
@@ -410,6 +449,7 @@ public class HarvesterIntegrationTest {
     putScript(SAMPLE_STEP.getString("id"), SAMPLE_STEP.getString("name"), SAMPLE_SCRIPT,
         204);
     getScript(SAMPLE_STEP.getString("id"), 200);
+    getConfigRecord(THIS_STEPS_PATH, SAMPLE_STEP.getString("id"));
   }
 
   @Test

@@ -1,7 +1,6 @@
 package org.folio.harvesteradmin.moduledata;
 
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
 import java.util.Arrays;
@@ -12,9 +11,9 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.folio.harvesteradmin.moduledata.RecordFailure.Column;
 import org.folio.harvesteradmin.moduledata.database.SqlQuery;
 import org.folio.harvesteradmin.moduledata.database.Tables;
+import org.folio.harvesteradmin.service.AdminRequest;
 import org.folio.tlib.postgres.PgCqlDefinition;
 import org.folio.tlib.postgres.cqlfield.PgCqlFieldAlwaysMatches;
 
@@ -157,13 +156,22 @@ public class LogLine extends StoredEntity {
       logLine.id = row.getUUID(LogLineField.ID.columnName());
       logLine.harvestJobId = row.getUUID(LogLineField.HARVEST_JOB_ID.columnName());
       // Display in original legacy harvester date format, not the pg date format (supports importing the output)
-      logLine.timeStamp = row.getLocalDateTime(LogLineField.TIME_STAMP.columnName())
-              .toString().replace("T", " ").replace(".",",");
+      logLine.timeStamp =  pgDateTimeToLegacyDataTime(
+          row.getLocalDateTime(LogLineField.TIME_STAMP.columnName()).toString()
+      );
       logLine.logLevel = row.getString(LogLineField.LOG_LEVEL.columnName());
       logLine.jobLabel = row.getString(LogLineField.JOB_LABEL.columnName());
       logLine.line = row.getString(LogLineField.LOG_STATEMENT.columnName());
       return logLine;
     };
+  }
+
+  public static String legacyDateTimeToPgDateTime(String dateTimeStr) {
+    return dateTimeStr.replace(" ", "T").replace(",",".");
+  }
+
+  public static String pgDateTimeToLegacyDataTime(String dateTimeStr) {
+    return dateTimeStr.replace("T", " ").replace(".",",");
   }
 
   /**
@@ -222,8 +230,8 @@ public class LogLine extends StoredEntity {
     return pgCqlDefinition;
   }
 
-  public SqlQuery makeSqlFromCqlQuery(RoutingContext routingContext, String schemaDotTable) {
-    SqlQuery sql = super.makeSqlFromCqlQuery(routingContext, schemaDotTable);
+  public SqlQuery makeSqlFromCqlQuery(AdminRequest adminRequest, String schemaDotTable) {
+    SqlQuery sql = super.makeSqlFromCqlQuery(adminRequest, schemaDotTable);
     sql.withAdditionalOrderByField(LogLineField.TIME_STAMP.columnName());
     sql.withAdditionalOrderByField(LogLineField.SEQUENCE_NUMBER.columnName());
     return sql;

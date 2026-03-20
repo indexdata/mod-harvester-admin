@@ -5,13 +5,11 @@ import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STE
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_STORAGES_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TRANSFORMATIONS_PATH;
 import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.HARVESTER_TSAS_PATH;
-import static org.folio.harvesteradmin.legacydata.statics.ApiPaths.harvesterPathByRequestPath;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfArrayOfEntities;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.mapToNameOfRootOfEntity;
 import static org.folio.harvesteradmin.legacydata.statics.EntityRootNames.typeToEmbeddedTypeMap;
 import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.crosswalkCqlFieldNames;
 import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.crosswalkRequestParameterNames;
-import static org.folio.harvesteradmin.legacydata.statics.RequestParameters.supportedGetRequestParameters;
 import static org.folio.okapi.common.HttpResponse.responseText;
 
 import io.vertx.core.AsyncResult;
@@ -20,10 +18,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -36,7 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +39,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.folio.harvesteradmin.legacydata.dataconverters.JsonToHarvesterXml;
@@ -57,13 +53,12 @@ import org.folio.harvesteradmin.legacydata.responsehandlers.ProcessedHarvesterRe
 import org.folio.harvesteradmin.legacydata.statics.ApiPaths;
 import org.folio.harvesteradmin.legacydata.statics.EntityRootNames;
 import org.folio.harvesteradmin.legacydata.statics.LegacyServiceConfig;
+import org.folio.harvesteradmin.service.AdminRequest;
 import org.folio.harvesteradmin.utils.SettableClock;
-import org.folio.okapi.common.GenericCompositeFuture;
 import org.xml.sax.SAXException;
 
 
 public class LegacyHarvesterStorage {
-
 
   public static final String VALID_STEP_TYPE = "XmlTransformStep";
   public static final String STEP_NAME_KEY = "name";
@@ -100,12 +95,9 @@ public class LegacyHarvesterStorage {
   /**
    * Gets config records based on path and tenant.
    */
-  public Future<ProcessedHarvesterResponseGet> getConfigRecords(RoutingContext routingContext) {
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    Map<String, String> queryParameters =
-        getSupportedGetRequestParameters(routingContext.request());
-    String query = buildQueryString(queryParameters);
-    return getConfigRecords(harvesterPath, query);
+  public Future<ProcessedHarvesterResponseGet> getConfigRecords(AdminRequest request) {
+    String query = buildQueryString(request.supportedLegacyGetParameters());
+    return getConfigRecords(request.harvesterPathFromRequestPath(), query);
   }
 
   /**
@@ -117,19 +109,11 @@ public class LegacyHarvesterStorage {
         + ((query == null || query.isEmpty()) ? aclFilter(tenant)
         : (query.startsWith("?") ? query : "?" + query) + andAclFilter(tenant));
     harvesterGetRequest(pathAndQuery)
-        .send(ar ->
+        .send().onComplete(ar ->
             promise.complete(new ProcessedHarvesterResponseGet(ar, path, query)));
     return promise.future();
   }
 
-  /**
-   * Gets config record based on harvester path and id parameter from context.
-   */
-  public Future<ProcessedHarvesterResponseGetById> getConfigRecordById(
-      RoutingContext routingContext, String id) {
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    return getConfigRecordById(harvesterPath, id);
-  }
 
   /**
    * Gets config record based on harvester path and id parameter.
@@ -138,7 +122,7 @@ public class LegacyHarvesterStorage {
       String harvesterPath, String id) {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
     logger.debug("GET " + harvesterPath + "/" + id);
-    harvesterGetRequest(harvesterPath + "/" + id).send(ar -> promise.complete(
+    harvesterGetRequest(harvesterPath + "/" + id).send().onComplete(ar -> promise.complete(
         new ProcessedHarvesterResponseGetById(ar, harvesterPath, id, tenant)));
     return promise.future();
   }
@@ -187,46 +171,44 @@ public class LegacyHarvesterStorage {
    * Posts config record, after checking the ID, and -- if no ID provided -- for possible
    * duplicate name, and retrieves the record for the response.
    */
-  public Future<ProcessedHarvesterResponsePost> postConfigRecord(RoutingContext routingContext) {
+  public Future<ProcessedHarvesterResponsePost> postConfigRecord(AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    JsonObject jsonToPost = routingContext.body().asJsonObject();
-    String idInPostedRecord = jsonToPost.getString("id");
+    String idInPostedRecord = adminRequest.bodyAsJson().getString("id");
     if (idInPostedRecord == null) {
-      nameExistsAlready(harvesterPath,jsonToPost).onComplete(
+      nameExistsAlready(adminRequest.harvesterPathFromRequestPath(),adminRequest.bodyAsJson()).onComplete(
           exists -> {
             if (exists.result()) {
               promise.complete(
                   new ProcessedHarvesterResponsePost(
                       422,
                       "The name '"
-                          + jsonToPost.getString("name")
+                          + adminRequest.bodyAsJson().getString("name")
                           + "' exists already in "
-                          + harvesterPath
+                          + adminRequest.harvesterPathFromRequestPath()
                           + "."));
             } else {
-              doPostConfigRecord(routingContext)
+              doPostConfigRecord(adminRequest)
                   .onComplete(post -> promise.complete(post.result()));
             }
           }
       );
     } else {
-      getConfigRecordById(routingContext, idInPostedRecord)
+      getConfigRecordById(adminRequest.harvesterPathFromRequestPath(), idInPostedRecord)
           .onComplete(lookUp -> {
             if (lookUp.succeeded()) {
               if (lookUp.result().wasOK()) {
                 promise.complete(
                     new ProcessedHarvesterResponsePost(
                         422,
-                        harvesterPath + "/" + idInPostedRecord + " already exists."));
+                            adminRequest.harvesterPathFromRequestPath() + "/" + idInPostedRecord + " already exists."));
               } else if (lookUp.result().wasNotFound()) {
-                doPostConfigRecord(routingContext)
+                doPostConfigRecord(adminRequest)
                     .onComplete(post -> promise.complete(post.result()));
               } else {
                 promise.complete(new ProcessedHarvesterResponsePost(lookUp.result().statusCode(),
                     "There was an error ("
                         + lookUp.result().statusCode() + ") looking up "
-                        + harvesterPath + "/" + idInPostedRecord
+                        + adminRequest.harvesterPathFromRequestPath() + "/" + idInPostedRecord
                         + " before POST: "
                         + lookUp.result().errorMessage()));
               }
@@ -330,14 +312,14 @@ public class LegacyHarvesterStorage {
   /**
    * Posts configuration record and retrieves the persisted result for the response.
    */
-  public Future<ProcessedHarvesterResponsePost> doPostConfigRecord(RoutingContext routingContext) {
-    String harvesterPath = mapToHarvesterPath(routingContext);
+  public Future<ProcessedHarvesterResponsePost> doPostConfigRecord(AdminRequest adminRequest) {
+    String harvesterPath = adminRequest.harvesterPathFromRequestPath();
     if (harvesterPath.equals(HARVESTER_TRANSFORMATIONS_PATH)) {
-      return doPostAndPutTransformation(routingContext);
+      return doPostAndPutTransformation(adminRequest);
     } else if (harvesterPath.equals(HARVESTER_TSAS_PATH)) {
-      return doPostTsaPutTransformation(routingContext);
+      return doPostTsaPutTransformation(adminRequest);
     } else {
-      JsonObject jsonToPost = routingContext.body().asJsonObject();
+      JsonObject jsonToPost = adminRequest.bodyAsJson();
       if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
         jsonToPost.put("lastUpdated", iso_instant.format(SettableClock.getInstant()));
         JsonObject transformationReference = jsonToPost.getJsonObject("transformation");
@@ -349,8 +331,7 @@ public class LegacyHarvesterStorage {
           storageReference.put("entityType", "inventoryStorageEntity");
         }
       }
-      String requestUri = routingContext.request().absoluteURI();
-      return doPostConfigRecord(requestUri, harvesterPath, jsonToPost);
+      return doPostConfigRecord(adminRequest.absoluteURI(), harvesterPath, jsonToPost);
     }
   }
 
@@ -369,7 +350,7 @@ public class LegacyHarvesterStorage {
             try {
               String xml = JsonToHarvesterXml.convertToHarvesterRecord(json,
                   mapToNameOfRootOfEntity(harvesterPath), tenant);
-              harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml), ar -> {
+              harvesterPostRequest(harvesterPath).sendBuffer(Buffer.buffer(xml)).onComplete(ar -> {
                 if (ar.succeeded()) {
                   String location = ar.result().getHeader("Location");
                   if (ar.result().statusCode() == CREATED && location != null) {
@@ -407,25 +388,25 @@ public class LegacyHarvesterStorage {
   /**
    * Puts a config record.
    */
-  public Future<ProcessedHarvesterResponsePut> putConfigRecord(RoutingContext routingContext) {
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    JsonObject jsonToPut = routingContext.body().asJsonObject();
-    String id = routingContext.request().getParam("id");
+  public Future<ProcessedHarvesterResponsePut> putConfigRecord(AdminRequest adminRequest) {
+    String id = adminRequest.requestParam("id");
+    String harvesterPath = adminRequest.harvesterPathFromRequestPath();
+    JsonObject jsonToPut = adminRequest.bodyAsJson().copy();
     if (harvesterPath != null) {
       if (harvesterPath.equals(HARVESTER_TRANSFORMATIONS_PATH)) {
-        return putTransformation(routingContext);
+        return putTransformation(adminRequest);
       } else if (harvesterPath.equals(HARVESTER_HARVESTABLES_PATH)) {
         jsonToPut.put("lastUpdated", iso_instant.format(SettableClock.getInstant()));
       }
     }
-    return putConfigRecord(routingContext, harvesterPath, jsonToPut, id);
+    return putConfigRecord(adminRequest, harvesterPath, jsonToPut, id);
   }
 
   /**
    * Puts a config record.
    */
   public Future<ProcessedHarvesterResponsePut> putConfigRecord(
-      RoutingContext routingContext,
+      AdminRequest adminRequest,
       String harvesterPath,
       JsonObject jsonToPut,
       String id) {
@@ -442,12 +423,11 @@ public class LegacyHarvesterStorage {
               try {
                 String xml = JsonToHarvesterXml.convertToHarvesterRecord(jsonToPut,
                     mapToNameOfRootOfEntity(harvesterPath), tenant);
-                harvesterPutRequest(harvesterPath + "/" + id).sendBuffer(Buffer.buffer(xml),
-                    put -> {
+                harvesterPutRequest(harvesterPath + "/" + id).sendBuffer(Buffer.buffer(xml)).onComplete(put ->{
                       if (put.succeeded()) {
                         promisedResponse.complete(
                             new ProcessedHarvesterResponsePut(
-                                put, routingContext.request().path(), harvesterPath));
+                                put, adminRequest.path(), harvesterPath));
                       } else {
                         promisedResponse.complete(
                             new ProcessedHarvesterResponsePut(INTERNAL_SERVER_ERROR,
@@ -485,15 +465,14 @@ public class LegacyHarvesterStorage {
    * Deletes a config record.
    */
   public Future<ProcessedHarvesterResponseDelete> deleteConfigRecord(
-      RoutingContext routingContext) {
+      AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponseDelete> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    String harvesterPath = mapToHarvesterPath(routingContext);
-    String requestUri = routingContext.request().absoluteURI();
+    String id = adminRequest.requestParam("id");
+    String harvesterPath = adminRequest.harvesterPathFromRequestPath();
     checkForReferencingEntities(harvesterPath, id)
         .onComplete(check -> {
           if (check.result() == 0) {
-            deleteConfigRecord(requestUri, id, harvesterPath)
+            deleteConfigRecord(adminRequest.absoluteURI(), id, harvesterPath)
                 .onComplete(result -> promise.complete(result.result()));
           } else {
             promise.complete(
@@ -525,7 +504,7 @@ public class LegacyHarvesterStorage {
                   new ProcessedHarvesterResponseDelete(
                       NOT_FOUND, "Could not delete " + requestUri));
             } else if (idLookUp.result().wasOK()) {
-              harvesterDeleteRequest(harvesterPath + "/" + id).send(ar -> {
+              harvesterDeleteRequest(harvesterPath + "/" + id).send().onComplete(ar -> {
                 if (ar.succeeded()) {
                   if (ar.result().statusCode() == NO_CONTENT) {
                     promisedResponse.complete(
@@ -598,12 +577,12 @@ public class LegacyHarvesterStorage {
     return promise.future();
   }
 
-  private Future<ProcessedHarvesterResponsePut> putTransformation(RoutingContext routingContext) {
-    JsonObject transformationJson = routingContext.body().asJsonObject();
+  private Future<ProcessedHarvesterResponsePut> putTransformation(AdminRequest adminRequest) {
+    JsonObject transformationJson = adminRequest.bodyAsJson();
     logger.debug("About to PUT " + transformationJson.encodePrettily());
     List<Future<ProcessedHarvesterResponse>> stepFutures = getStepLookupFutures(transformationJson);
     Promise<ProcessedHarvesterResponsePut> promise = Promise.promise();
-    GenericCompositeFuture.all(stepFutures).onComplete(steps -> {
+    Future.all(stepFutures).onComplete(steps -> {
       if (steps.succeeded()) {
         boolean allStepsFound = true;
         for (int h = 0; h < steps.result().size(); h++) {
@@ -619,7 +598,7 @@ public class LegacyHarvesterStorage {
         if (allStepsFound) {
           expandAssociatedSteps(steps, transformationJson);
           putConfigRecord(
-              routingContext,
+              adminRequest,
               HARVESTER_TRANSFORMATIONS_PATH,
               transformationJson,
               transformationJson.getString("id")).onComplete(response ->
@@ -657,13 +636,12 @@ public class LegacyHarvesterStorage {
    * PUTs the transformation, checks that a transformation with the given ID exists.
    * @return response structure
    */
-  private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(
-      RoutingContext routingContext) {
-    JsonObject transformationJson = routingContext.body().asJsonObject();
-    logger.debug("About to POST-then-PUT " + transformationJson.encodePrettily());
+  private Future<ProcessedHarvesterResponsePost> doPostAndPutTransformation(AdminRequest adminRequest) {
+    JsonObject transformationJson = adminRequest.bodyAsJson();
+    logger.debug("About to POST-then-PUT " + transformationJson);
     List<Future<ProcessedHarvesterResponse>> stepFutures = getStepLookupFutures(transformationJson);
     Promise<ProcessedHarvesterResponsePost> promise = Promise.promise();
-    GenericCompositeFuture.all(stepFutures).onComplete(steps -> {
+    Future.all(stepFutures).onComplete(steps -> {
       if (steps.succeeded()) {
         boolean allStepsFound = true;
         for (int h = 0; h < steps.result().size(); h++) {
@@ -678,7 +656,7 @@ public class LegacyHarvesterStorage {
         }
         if (allStepsFound) {
           doPostConfigRecord(
-              routingContext.request().absoluteURI(),
+              adminRequest.absoluteURI(),
               HARVESTER_TRANSFORMATIONS_PATH,
               transformationJson).onComplete(
                   transformationPost -> {
@@ -687,7 +665,7 @@ public class LegacyHarvesterStorage {
                       JsonObject createdTransformation = transformationPost.result().jsonObject();
                       expandAssociatedSteps(steps, createdTransformation);
                       putConfigRecord(
-                          routingContext,
+                          adminRequest,
                           HARVESTER_TRANSFORMATIONS_PATH,
                           createdTransformation,
                           createdTransformation.getString("id")).onComplete(putResponse -> {
@@ -764,9 +742,8 @@ public class LegacyHarvesterStorage {
     }
   }
 
-  private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(
-      RoutingContext routingContext) {
-    JsonObject incomingTsa = routingContext.body().asJsonObject();
+  private Future<ProcessedHarvesterResponsePost> doPostTsaPutTransformation(AdminRequest adminRequest) {
+    JsonObject incomingTsa = adminRequest.bodyAsJson();
     String transId = incomingTsa.getString("transformation");
     String transName = incomingTsa.getString("transformationName");
     String stepId = incomingTsa.getJsonObject("step").getString("id");
@@ -805,7 +782,7 @@ public class LegacyHarvesterStorage {
                     incomingTsa.getJsonObject("step").put("id", stepFound.getString("id"));
                     incomingTsa.put("transformation", transformationFound.getString("id"));
                     doPostConfigRecord(
-                        routingContext.request().absoluteURI(),
+                        adminRequest.absoluteURI(),
                         HARVESTER_TSAS_PATH,
                         incomingTsa).onComplete(postedTsa -> {
                           if (postedTsa.succeeded() && postedTsa.result() != null) {
@@ -827,7 +804,7 @@ public class LegacyHarvesterStorage {
                               harvesterPutRequest(
                                   HARVESTER_TRANSFORMATIONS_PATH + "/"
                                       + transformationFound.getString("id"))
-                                  .sendBuffer(Buffer.buffer(xml), ar -> {
+                                  .sendBuffer(Buffer.buffer(xml)).onComplete(ar -> {
                                     if (ar.succeeded()) {
                                       if (ar.result().statusCode() == NO_CONTENT) {
                                         promise.complete(postedTsa.result());
@@ -882,10 +859,10 @@ public class LegacyHarvesterStorage {
   /**
    * Gets the logs for a job.
    */
-  public Future<HttpResponse<Buffer>> getJobLog(RoutingContext routingContext) {
+  public Future<HttpResponse<Buffer>> getJobLog(AdminRequest adminRequest) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    String fromParameter = routingContext.request().getParam("from");
+    String id = adminRequest.requestParam("id");
+    String fromParameter = adminRequest.requestParam("from");
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
@@ -922,19 +899,19 @@ public class LegacyHarvesterStorage {
    */
   public Future<HttpResponse<Buffer>> getJobLog(String harvestableId, String fromDate) {
     Promise<HttpResponse<Buffer>> promise = Promise.promise();
-    harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from="
-            + URLEncoder.encode(fromDate,StandardCharsets.UTF_8))
-            .send(ar -> promise.complete(ar.result()));
+    HttpRequest<Buffer> getRequest = harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/log?from="
+            + URLEncoder.encode(fromDate,StandardCharsets.UTF_8));
+    getRequest.send().onComplete(ar -> promise.complete(ar.result()));
     return promise.future();
   }
   /**
    * Gets failed records.
    */
-  public Future<ProcessedHarvesterResponseGet> getFailedRecords(RoutingContext routingContext) {
+  public Future<ProcessedHarvesterResponseGet> getFailedRecords(AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    int offset = getIntOrDefault(routingContext.request().getParam("offset"),0);
-    int limit = getIntOrDefault(routingContext.request().getParam("limit"),1000);
+    String id = adminRequest.requestParam("id");
+    int offset = getIntOrDefault(adminRequest.requestParam("offset"),0);
+    int limit = getIntOrDefault(adminRequest.requestParam("limit"),1000);
     getConfigRecordById(HARVESTER_HARVESTABLES_PATH, id).onComplete(idLookup -> {
       if (idLookup.succeeded()) {
         ProcessedHarvesterResponseGetById idLookUpResponse = idLookup.result();
@@ -965,7 +942,7 @@ public class LegacyHarvesterStorage {
       String harvestableId, int offset, int limit) {
     Promise<ProcessedHarvesterResponseGet> promise = Promise.promise();
     harvesterGetRequest(HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records")
-        .send(ar -> {
+        .send().onComplete(ar -> {
           ProcessedHarvesterResponseGet listResponse =
               new ProcessedHarvesterResponseGet(ar,
                   HARVESTER_HARVESTABLES_PATH + "/" + harvestableId + "/failed-records",null);
@@ -975,7 +952,7 @@ public class LegacyHarvesterStorage {
           for (int i = offset; i < Math.min(offset + limit, fileArray.size()); i++)  {
             failedRecordFutures.add(getFailedRecord(fileArray.getJsonObject(i)));
           }
-          GenericCompositeFuture.all(failedRecordFutures).onComplete(results -> {
+          Future.all(failedRecordFutures).onComplete(results -> {
             JsonObject response = new JsonObject();
             JsonArray failedRecords = new JsonArray();
             response.put("failedRecords", failedRecords);
@@ -997,10 +974,9 @@ public class LegacyHarvesterStorage {
   /**
    * Gets a failed record by harvestable ID and record number.
    */
-  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(
-      RoutingContext routingContext) {
-    String id = routingContext.request().getParam("id");
-    String num = routingContext.request().getParam("num");
+  public Future<ProcessedHarvesterResponseGetById> getFailedRecord(AdminRequest adminRequest) {
+    String id = adminRequest.requestParam("id");
+    String num = adminRequest.requestParam("num");
     return getFailedRecord(id, num);
   }
 
@@ -1019,7 +995,7 @@ public class LegacyHarvesterStorage {
           promise.complete(idLookUpResponse);
         } else if (idLookup.result().wasOK()) {
           harvesterGetRequest(failedRecordUri)
-              .send(ar ->  promise.complete(
+              .send().onComplete(ar ->  promise.complete(
                   new ProcessedHarvesterResponseGetById(ar,failedRecordUri,harvestableId,"")));
         } else {
           promise.fail("There was an error (" + idLookUpResponse.statusCode() + ") looking up "
@@ -1038,7 +1014,7 @@ public class LegacyHarvesterStorage {
     Promise<ProcessedHarvesterResponseGetById> promise = Promise.promise();
     String uri = entry.getString("url");
     harvesterGetRequest(uri)
-        .send(ar ->  {
+        .send().onComplete(ar ->  {
           if (ar.result().bodyAsString() != null) {
             ProcessedHarvesterResponseGetById response =
                 new ProcessedHarvesterResponseGetById(ar, uri, "", "");
@@ -1058,9 +1034,9 @@ public class LegacyHarvesterStorage {
   /**
    * Gets a script.
    */
-  public Future<String> getScript(RoutingContext routingContext) {
+  public Future<String> getScript(AdminRequest adminRequest) {
     Promise<String> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
+    String id = adminRequest.requestParam("id");
     getConfigRecordById(ApiPaths.HARVESTER_STEPS_PATH, id).onComplete(getStep -> {
       if (getStep.result().found()) {
         String script = getStep.result().jsonObject().getString(STEP_SCRIPT_KEY);
@@ -1080,16 +1056,16 @@ public class LegacyHarvesterStorage {
   /**
    * PUTs a transformation script.
    */
-  public Future<ProcessedHarvesterResponsePut> putScript(RoutingContext routingContext) {
+  public Future<ProcessedHarvesterResponsePut> putScript(AdminRequest adminRequest) {
     Promise<ProcessedHarvesterResponsePut> promise = Promise.promise();
-    String id = routingContext.request().getParam("id");
-    String name = routingContext.request().getParam("name");
+    String id = adminRequest.requestParam("id");
+    String name = adminRequest.requestParam("name");
     if (name == null || name.isEmpty()) {
-      responseText(routingContext, 400).end(
+      responseText(adminRequest.routingContext(), 400).end(
           "Parameter 'name' is mandatory when putting a script to the step. The value should "
               + "match the name of the step to PUT to.");
     } else {
-      String script = routingContext.body().asString().replaceAll(System.lineSeparator(), "\n");
+      String script = adminRequest.bodyAsString().replaceAll(System.lineSeparator(), "\n");
       getConfigRecordById(HARVESTER_STEPS_PATH, id).onComplete(getStep -> {
         if (getStep.result().found()) {
           JsonObject step = getStep.result().jsonObject();
@@ -1105,12 +1081,11 @@ public class LegacyHarvesterStorage {
             String validationResponse = validateScriptAsXml(script);
             if (validationResponse.equals("OK")) {
               step.put(STEP_SCRIPT_KEY, script);
-
-              putConfigRecord(routingContext, ApiPaths.HARVESTER_STEPS_PATH, step, id)
+              putConfigRecord(adminRequest, ApiPaths.HARVESTER_STEPS_PATH, step, id)
                   .onComplete(putStep -> {
                     if (putStep.succeeded()) {
                       promise.complete(new ProcessedHarvesterResponsePut(
-                          putStep.result().harvesterResponse, routingContext.request().path(), ""));
+                          putStep.result().harvesterResponse, adminRequest.routingContext().request().path(), ""));
                     } else {
                       promise.complete(
                           new ProcessedHarvesterResponsePut(
@@ -1160,9 +1135,7 @@ public class LegacyHarvesterStorage {
   }
 
 
-  private static JsonArray insertStepIntoPipeline(
-      JsonArray existingSteps,
-      JsonObject updatingStep) {
+  private static JsonArray insertStepIntoPipeline(JsonArray existingSteps, JsonObject updatingStep) {
     logger.debug("Inserting/moving step: " + updatingStep.encodePrettily());
     JsonArray updatedListOfSteps = new JsonArray();
     if (existingSteps == null) {
@@ -1213,26 +1186,6 @@ public class LegacyHarvesterStorage {
       }
     }
     return queryString.toString();
-  }
-
-  private String mapToHarvesterPath(RoutingContext routingContext) {
-    return harvesterPathByRequestPath.get(
-        routingContext.request().path().replaceAll("/" + routingContext.pathParam("id") + "$",
-            ""));
-  }
-
-  /**
-   * Gets supported get request parameters.
-   */
-  public static Map<String, String> getSupportedGetRequestParameters(HttpServerRequest request) {
-    Map<String, String> requestParameterMap = new HashMap<>();
-    for (String param : supportedGetRequestParameters) {
-      String paramValue = request.getParam(param);
-      if (paramValue != null && !paramValue.isEmpty()) {
-        requestParameterMap.put(param, paramValue);
-      }
-    }
-    return requestParameterMap;
   }
 
   private String aclFilter(String tenant) {

@@ -94,7 +94,7 @@ public class ModuleStorageAccess {
             }
           }
         }
-        logger.info("Parsed " + sequence + " log lines in "
+        logger.debug("Parsed " + sequence + " log lines in "
             + (System.currentTimeMillis() - startParse) / 1000 + " seconds."
             + (nonMatches > 0
             ? "There were " + nonMatches + " log statements that could not be parsed!" : ""));
@@ -231,13 +231,13 @@ public class ModuleStorageAccess {
 
 
   /**
-   * Retrieves failed records for past harvest job.
+   * Retrieves a failed record by ID, for past harvest job.
    */
   public Future<RecordFailure> getFailedRecordForPreviousJob(UUID id) {
     Promise<RecordFailure> promise = Promise.promise();
     SqlTemplate.forQuery(pool.getPool(),
             "SELECT * "
-                + "FROM " + schemaDotTable(Tables.record_failure) + " "
+                + "FROM " + schemaDotTable(Tables.record_failure_view) + " "
                 + "WHERE id = #{id} ")
         .mapTo(RecordFailure.entity().getRowMapper())
         .execute(Collections.singletonMap("id", id))

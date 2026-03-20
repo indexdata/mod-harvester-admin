@@ -13,10 +13,12 @@ import org.folio.tlib.postgres.TenantPgPool;
 
 
 public class MainVerticle extends AbstractVerticle {
+  private static final String MODULE = "mod-harvester-admin";
+
   @Override
   public void start(Promise<Void> promise) {
 
-    TenantPgPool.setModule("mod-harvester-admin"); // Postgres - schema separation
+    TenantPgPool.setModule(MODULE); // Postgres - schema separation
 
     // listening port
     final int port = Integer.parseInt(Config.getSysConf("http.port", "port", "8081", config()));
@@ -30,11 +32,12 @@ public class MainVerticle extends AbstractVerticle {
     };
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
-    RouterCreator.mountAll(vertx, routerCreators)
+    RouterCreator.mountAll(vertx, routerCreators, MODULE)
         .compose(router ->
             vertx.createHttpServer(so)
                 .requestHandler(router)
-                .listen(port).mapEmpty())
+                    .listen(port)
+                    .mapEmpty())
         .<Void>mapEmpty()
         .onComplete(promise);
   }

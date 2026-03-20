@@ -1,5 +1,0 @@
-{
-  "description": "Response to confirm that a harvest job was stopped",
-  "type": "object",
-  "additionalProperties": true
-}
