@@ -79,6 +79,13 @@ public class Api {
                 .log().ifValidationFails().statusCode(expectStatus).extract().response();
     }
 
+    public static void deleteConfigRecord(String api, String id) {
+        given()
+            .baseUri(BASE_URI_HARVESTER_ADMIN)
+            .header(OKAPI_TENANT)
+            .delete(api + "/" + id);
+    }
+
     public static Response deleteConfigRecord(String api, String id, int expectStatus) {
         return given()
                 .baseUri(BASE_URI_HARVESTER_ADMIN)

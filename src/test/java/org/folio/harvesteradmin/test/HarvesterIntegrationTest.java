@@ -99,7 +99,7 @@ public class HarvesterIntegrationTest {
     JsonArray sampleRecords = samples.getJsonArray(recordsArrayProperty);
     for (Object o : sampleRecords) {
       String id = ((JsonObject) o).getString("id");
-      deleteConfigRecord(path, id, 204);
+      deleteConfigRecord(path, id);
     }
   }
 
