@@ -1,3 +1,7 @@
+## 1.5.0 2026-04-13
+
+* Miscellaneous dependency upgrades, bug fixes [MODHAADM-141 - Vert.X 5](https://issues.folio.org/browse/MODHAADM-141) [MODHAADM-139](https://issues.folio.org/browse/MODHAADM-139) [MODHAADM-143](https://issues.folio.org/browse/MODHAADM-143)
+
 ## 1.4.1 2025-04-23
 
 * [MODHAADM-117](https://issues.folio.org/browse/MODHAADM-117) Fixes purging of large log tables.
