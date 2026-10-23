@@ -1,0 +1,175 @@
+{
+  "description": "Deployment configuration template for mod-harvester-admin. A Bugfest baseline for this module could not be found: the published Trillium (R1 2026) Modules configuration details page does not list mod-harvester-admin. Defaults use the ModuleDescriptor, folio-vertx-lib 4.1.1, and implementation-guide fallbacks; they are not Bugfest-verified. Deployment-specific hosts, database identity and credentials must be supplied externally. Legacy lowercase variable names are preserved because these are the names consumed by the module. The empty sidecarDefaults block is required by DeployConfigSchema.ts; no sidecar configuration is specified.",
+  "moduleDefaults": {
+    "resources": [
+      {
+        "name": "cpu",
+        "value": "64",
+        "description": "CPU units recommended by the implementation guide when no module baseline is published; pending Bugfest verification."
+      },
+      {
+        "name": "memory",
+        "value": "1024",
+        "description": "Container memory hard limit in MiB from the implementation-guide fallback; the existing ModuleDescriptor uses 512 MiB and no Bugfest value was found."
+      },
+      {
+        "name": "memoryReservation",
+        "value": "896",
+        "description": "Container memory reservation in MiB from the implementation-guide fallback, pending Bugfest verification."
+      }
+    ],
+    "java": [
+      {
+        "name": "MaxRAMPercentage",
+        "value": "66.0",
+        "description": "Maximum Java heap as a percentage of container memory, matching JAVA_OPTIONS in the ModuleDescriptor."
+      }
+    ],
+    "deployment": {
+      "isHaSupported": true,
+      "replicasRecommendedCount": 2,
+      "description": "Recommended HA replica count from the implementation guide, pending deployment verification; module state is stored in PostgreSQL and the external harvester, and the scheduled log purge deletes aged database records."
+    },
+    "kong": {
+      "timeouts": {
+        "connect": "60s",
+        "send": "60s",
+        "read": "120s"
+      },
+      "description": "General gateway timeout recommendations from the implementation guide; allow 120 seconds for requests proxying the external harvester and verify against actual request durations."
+    },
+    "EnvVars": [
+      {
+        "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0",
+        "description": "JVM options passed by the container launcher, matching the ModuleDescriptor.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "DB_HOST",
+        "value": null,
+        "description": "PostgreSQL hostname supplied by the deployment instead of the descriptor development hostname.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_PORT",
+        "value": "5432",
+        "description": "PostgreSQL port, matching the descriptor and client default.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_USERNAME",
+        "value": null,
+        "description": "PostgreSQL administrative username supplied by the deployment instead of the descriptor development account.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_PASSWORD",
+        "value": null,
+        "description": "PostgreSQL administrative password supplied through deployment secret management.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_DATABASE",
+        "value": null,
+        "description": "PostgreSQL database name supplied by the deployment instead of the descriptor development database.",
+        "type": "DB",
+        "essential": true
+      },
+      {
+        "name": "DB_MAXPOOLSIZE",
+        "value": "5",
+        "description": "Maximum size of the PostgreSQL connection pool shared across tenants in each module instance, matching the descriptor.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "harvester_protocol",
+        "value": "http",
+        "description": "External harvester protocol, http or https, matching the descriptor and code default.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "harvester_host",
+        "value": null,
+        "description": "External harvester hostname required by the module, supplied by the deployment instead of localhost.",
+        "type": "CONFIG",
+        "essential": true
+      },
+      {
+        "name": "harvester_port",
+        "value": "8080",
+        "description": "External harvester port from the descriptor; when omitted the code uses 80 for http or 443 for https.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "acl_filter_by_tenant",
+        "value": false,
+        "description": "Filter harvester access by tenant when enabled; the descriptor disables filtering while the code defaults to true when omitted.",
+        "type": "FUNCTIONAL",
+        "essential": false
+      },
+      {
+        "name": "harvester_auth_basic_username",
+        "value": null,
+        "description": "Optional external harvester basic-auth username, used only when both basic-auth credentials are supplied.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "harvester_auth_basic_password",
+        "value": null,
+        "description": "Optional external harvester basic-auth password from secret management, used only when both basic-auth credentials are supplied.",
+        "type": "CONFIG",
+        "essential": false
+      },
+      {
+        "name": "DB_MAX_LIFETIME",
+        "value": "1800000",
+        "description": "Maximum PostgreSQL connection lifetime in milliseconds, matching folio-vertx-lib; zero disables the limit.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_CONNECTIONRELEASEDELAY",
+        "value": "60000",
+        "description": "PostgreSQL idle connection timeout in milliseconds, matching folio-vertx-lib; zero disables idle expiry.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_RECONNECTATTEMPTS",
+        "value": "0",
+        "description": "Number of retries after a PostgreSQL connection failure, disabled by the client default.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_RECONNECTINTERVAL",
+        "value": null,
+        "description": "Optional delay in milliseconds between PostgreSQL reconnection attempts; leave unset to retain the client default.",
+        "type": "DB",
+        "essential": false
+      },
+      {
+        "name": "DB_SERVER_PEM",
+        "value": null,
+        "description": "Optional PostgreSQL server PEM certificate chain enabling TLSv1.3 with full hostname verification when supplied.",
+        "type": "DB",
+        "essential": false
+      }
+    ]
+  },
+  "sidecarDefaults": {
+    "resources": [],
+    "java": [],
+    "EnvVars": []
+  }
+}
