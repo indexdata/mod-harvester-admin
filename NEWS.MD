@@ -1,3 +1,7 @@
+## 1.5.1 2026-11-13
+
+* [MODHAADM-149](https://folio-org.atlassian.net/browse/MODHAADM-149) DeployConfig.json added.
+
 ## 1.5.0 2026-04-13
 
 * Miscellaneous dependency upgrades, bug fixes [MODHAADM-141 - Vert.X 5](https://issues.folio.org/browse/MODHAADM-141) [MODHAADM-139](https://issues.folio.org/browse/MODHAADM-139) [MODHAADM-143](https://issues.folio.org/browse/MODHAADM-143)
