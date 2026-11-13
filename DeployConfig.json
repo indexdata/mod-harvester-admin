@@ -40,7 +40,7 @@
     },
     "EnvVars": [
       {
-        "name": "JAVA_OPTIONS",
+        "name": "JAVA_TOOL_OPTIONS",
         "value": "-XX:MaxRAMPercentage=66.0",
         "description": "JVM options passed by the container launcher, matching the ModuleDescriptor.",
         "type": "CONFIG",
