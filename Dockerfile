@@ -7,4 +7,4 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=66.0"
 
 # Expose this port locally in the container.
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "/usr/verticles/app.jar"]
+ENTRYPOINT ["java", "-XX:+ExitOnOutOfMemoryError", "-jar", "/usr/verticles/app.jar"]
